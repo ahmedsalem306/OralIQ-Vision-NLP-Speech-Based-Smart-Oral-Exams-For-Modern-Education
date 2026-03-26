@@ -1,0 +1,133 @@
+.card {
+    --main-col: #ffeba7;
+    --bg-col: #2a2b38;
+    --bg-field: #1f2029;
+
+    width: 100%;
+    max-width: 400px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    background: var(--bg-col);
+    border-radius: 10px;
+    border: 1px solid var(--main-col);
+    user-select: none;
+    margin: 0 auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.title {
+    margin-bottom: 1.5rem;
+    font-size: 1.8em;
+    font-weight: 600;
+    color: var(--main-col);
+    text-shadow: 1px 1px 20px rgba(255, 235, 167, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.field {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.8rem;
+    gap: 0.5rem;
+    background-color: var(--bg-field);
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: border-color 0.3s;
+}
+
+.field:focus-within {
+    border-color: var(--main-col);
+}
+
+.input-icon {
+    width: 1.2em;
+    color: var(--main-col);
+    fill: var(--main-col);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-field {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    width: 100%;
+    color: #fff;
+    padding: 1em 1em 1em 0;
+    font-size: 0.95em;
+    box-shadow: none !important;
+}
+
+.input-field:focus {
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+
+.input-field::placeholder {
+    color: #666;
+}
+
+.btn {
+    margin: 1.5rem 0 1rem;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    padding: 0.8em 1.2em;
+    background-color: var(--main-col);
+    color: var(--bg-col);
+    box-shadow: 0 8px 24px 0 rgb(255 235 167 / 20%);
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    background-color: var(--bg-field);
+    color: var(--main-col);
+    box-shadow: 0 8px 24px 0 rgb(16 39 112 / 20%);
+    transform: translateY(-2px);
+}
+
+.btn-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--main-col);
+    color: var(--main-col);
+    box-shadow: none;
+}
+
+.btn-outline:hover,
+.btn-outline.active {
+    background-color: var(--main-col);
+    color: var(--bg-col);
+}
+
+.btn-link {
+    color: #aaa;
+    display: inline-block;
+    font-size: 0.85em;
+    text-decoration: none;
+    transition: color 0.3s ease-out;
+    margin-top: 1rem;
+}
+
+.btn-link:hover {
+    color: var(--main-col);
+    text-decoration: underline;
+}

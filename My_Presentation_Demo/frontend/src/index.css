@@ -1,0 +1,274 @@
+@import "tailwindcss";
+
+/* ── OralIQ Design System ─────────────────────────── */
+:root {
+  --oiq-bg: #0F0F1A;
+  --oiq-card: #1A1A2E;
+  --oiq-card2: #16213E;
+  --oiq-border: rgba(108, 99, 255, 0.2);
+  --oiq-primary: #6C63FF;
+  --oiq-primary-h: #8B85FF;
+  --oiq-accent: #00D4AA;
+  --oiq-accent-h: #00F0C0;
+  --oiq-text: #E8E8F0;
+  --oiq-muted: #8888A8;
+  --oiq-danger: #FF4D6D;
+}
+
+body {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  background-color: var(--oiq-bg);
+  color: var(--oiq-text);
+}
+
+/* ── Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--oiq-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--oiq-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--oiq-primary);
+}
+
+/* ── Auth Card (Login / Register) ────────────────── */
+.oiq-auth-bg {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--oiq-bg);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(108, 99, 255, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 212, 170, 0.10) 0%, transparent 60%);
+  padding: 1.5rem;
+}
+
+.oiq-card {
+  background: var(--oiq-card);
+  border: 1px solid var(--oiq-border);
+  border-radius: 1.5rem;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 0 60px rgba(108, 99, 255, 0.12), 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.oiq-logo-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 0.25rem;
+}
+
+.oiq-logo-mark h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #6C63FF, #00D4AA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+.oiq-logo-mark span {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--oiq-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.oiq-card h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--oiq-text);
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.oiq-card p.subtitle {
+  font-size: 0.85rem;
+  color: var(--oiq-muted);
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.oiq-field {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.oiq-field svg {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--oiq-muted);
+  pointer-events: none;
+}
+
+.oiq-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--oiq-border);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem 0.85rem 2.75rem;
+  color: var(--oiq-text);
+  font-size: 0.9rem;
+  font-family: 'Space Grotesk', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.oiq-input::placeholder {
+  color: var(--oiq-muted);
+}
+
+.oiq-input:focus {
+  border-color: var(--oiq-primary);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+}
+
+.oiq-btn {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, var(--oiq-primary), #8B85FF);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(108, 99, 255, 0.35);
+  margin-top: 0.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.oiq-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 25px rgba(108, 99, 255, 0.5);
+}
+
+.oiq-btn:active {
+  transform: translateY(0);
+}
+
+.oiq-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.oiq-btn-outline {
+  width: 100%;
+  padding: 0.9rem;
+  background: transparent;
+  color: var(--oiq-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid var(--oiq-primary);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.oiq-btn-outline:hover {
+  background: rgba(108, 99, 255, 0.1);
+}
+
+.oiq-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: var(--oiq-muted);
+  font-size: 0.8rem;
+}
+
+.oiq-divider::before,
+.oiq-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--oiq-border);
+}
+
+.oiq-role-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--oiq-border);
+  background: transparent;
+  color: var(--oiq-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.oiq-role-btn.active {
+  border-color: var(--oiq-primary);
+  background: rgba(108, 99, 255, 0.12);
+  color: var(--oiq-primary);
+}
+
+@theme {
+  --color-background: #0F0F1A;
+  --color-foreground: #E8E8F0;
+  --color-card: #1A1A2E;
+  --color-card-foreground: #E8E8F0;
+  --color-primary: #6C63FF;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1A1A2E;
+  --color-secondary-foreground: #E8E8F0;
+  --color-muted: #1A1A2E;
+  --color-muted-foreground: #8888A8;
+  --color-accent: #00D4AA;
+  --color-accent-foreground: #0F0F1A;
+  --color-destructive: #FF4D6D;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(108, 99, 255, 0.2);
+  --color-input: #1A1A2E;
+  --color-ring: #6C63FF;
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

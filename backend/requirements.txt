@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pydantic-settings
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+opencv-python-headless
+librosa
+transformers
+torch
+sentence-transformers
+numpy
+pytest
+httpx
+moviepy
