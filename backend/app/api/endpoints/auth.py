@@ -29,25 +29,36 @@ def login_access_token(
         "token_type": "bearer",
     }
 
+@router.get("/test-auth")
+def test_auth():
+    return {"status": "auth module loaded"}
+
 @router.post("/register", response_model=UserOut)
 def register_user(
     *,
     db: Session = Depends(deps.get_db),
     user_in: UserCreate,
 ) -> Any:
-    user = db.query(User).filter(User.email == user_in.email).first()
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system",
+    try:
+        user = db.query(User).filter(User.email == user_in.email).first()
+        if user:
+            raise HTTPException(
+                status_code=400,
+                detail="The user with this email already exists in the system",
+            )
+        user = User(
+            email=user_in.email,
+            hashed_password=security.get_password_hash(user_in.password),
+            full_name=user_in.full_name,
+            role=user_in.role,
         )
-    user = User(
-        email=user_in.email,
-        hashed_password=security.get_password_hash(user_in.password),
-        full_name=user_in.full_name,
-        role=user_in.role,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    except Exception as e:
+        import traceback
+        return {
+            "error_detail": str(e),
+            "traceback": traceback.format_exc()
+        }

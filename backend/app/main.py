@@ -1,9 +1,10 @@
-import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.api_router import api_router
 from app.core.database import engine, Base
-import app.models  # noqa: F401 — ensures all models are registered
+from app.core.config import settings
+from app.models.user import User # noqa: F401 — ensures all models are registered
+import threading
 
 
 def _preload_models():
@@ -58,18 +59,35 @@ def read_root():
 def debug_info():
     """Debug endpoint — shows database and environment info."""
     import os
-    from app.core.database import DATABASE_URL, engine
+    from sqlalchemy import text
+    from app.core.database import SessionLocal
+    
+    db_writable = False
     try:
-        with engine.connect() as conn:
-            db_ok = True
-    except Exception as e:
-        db_ok = str(e)
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_writable = True
+    except Exception:
+        pass
+
+    # Lazy import to avoid circular issues or early crashes
+    try:
+        from app.services.speech_ai import speech_analyzer
+        from app.services.nlp_ai import nlp_analyzer
+        stt_ready = speech_analyzer.is_ready()
+        nlp_ready = nlp_analyzer.is_ready()
+    except Exception:
+        stt_ready = "error"
+        nlp_ready = "error"
 
     return {
-        "database_url": DATABASE_URL,
-        "db_writable": db_ok,
+        "database_url": settings.SQLALCHEMY_DATABASE_URL,
+        "db_writable": db_writable,
         "tmp_writable": os.access("/tmp", os.W_OK),
-        "cwd": os.getcwd(),
+        "stt_ready": stt_ready,
+        "nlp_ready": nlp_ready,
+        "cwd": os.getcwd()
     }
 
 
@@ -89,6 +107,16 @@ def health_check():
 
 
 app.include_router(api_router, prefix="/api/v1")
+
+# Global Exception Handler for debugging 500 errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    return {
+        "detail": str(exc),
+        "traceback": traceback.format_exc(),
+        "type": type(exc).__name__
+    }
 
 # Start background model preloading after the app is fully configured
 _preload_thread = threading.Thread(target=_preload_models, daemon=True)

@@ -7,12 +7,13 @@ warnings.filterwarnings("ignore")
 
 # ── Make ffmpeg available to Whisper ──────────────────────
 try:
-    import imageio_ffmpeg, shutil
-    ffmpeg_src = imageio_ffmpeg.get_ffmpeg_exe()
-    ffmpeg_dst = os.path.join(os.path.dirname(ffmpeg_src), "ffmpeg.exe")
-    if not os.path.exists(ffmpeg_dst):
-        shutil.copy2(ffmpeg_src, ffmpeg_dst)
-    os.environ["PATH"] = os.path.dirname(ffmpeg_dst) + os.pathsep + os.environ["PATH"]
+    if os.name == 'nt': # Windows only
+        import imageio_ffmpeg, shutil
+        ffmpeg_src = imageio_ffmpeg.get_ffmpeg_exe()
+        ffmpeg_dst = os.path.join(os.path.dirname(ffmpeg_src), "ffmpeg.exe")
+        if not os.path.exists(ffmpeg_dst):
+            shutil.copy2(ffmpeg_src, ffmpeg_dst)
+        os.environ["PATH"] = os.path.dirname(ffmpeg_dst) + os.pathsep + os.environ["PATH"]
 except Exception:
     pass  # ffmpeg might already be on PATH
 # ──────────────────────────────────────────────────────────
@@ -45,9 +46,9 @@ class SpeechAnalyzer:
         if self._model is None:
             for attempt in range(1, self.MAX_RETRIES + 1):
                 try:
-                    print(f"[SpeechAI] Loading Whisper 'medium' model (attempt {attempt}/{self.MAX_RETRIES})...")
+                    print(f"[SpeechAI] Loading Whisper 'small' model (attempt {attempt}/{self.MAX_RETRIES})...")
                     import whisper
-                    self._model = whisper.load_model("medium")
+                    self._model = whisper.load_model("small")
                     self._load_failed = False
                     print("[SpeechAI] ✅ Whisper loaded successfully.")
                     break

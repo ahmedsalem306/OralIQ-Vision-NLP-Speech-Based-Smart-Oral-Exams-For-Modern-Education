@@ -4,6 +4,10 @@ Welcome to the **Interview AI System** project repository. This system is design
 
 ## 🚀 Project Overview
 
+**Live Demo:** [OralIQ Platform](https://oral-iq-vision-nlp-speech-based-sma.vercel.app/)
+**API Documentation:** [Swagger UI](https://ahmed2552-oraliq-api.hf.space/docs)
+**Backend Status:** [Health Check](https://ahmed2552-oraliq-api.hf.space/health)
+
 The system evaluates candidates based on three key metrics:
 1.  **Speech Analysis (30%)**: Confidence, tone, speed (WPM), and fluency.
 2.  **Facial Expression Analysis (30%)**: Emotional state (confident, nervous, confused) via video feed.
