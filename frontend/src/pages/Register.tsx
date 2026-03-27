@@ -25,8 +25,10 @@ export default function RegisterPage() {
             const response = await api.post("/login/access-token", params);
             localStorage.setItem("token", response.data.access_token);
             navigate(redirectTo);
-        } catch {
-            setError("Registration failed. Email might already be in use.");
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { detail?: string } }, message?: string };
+            const detail = axiosErr?.response?.data?.detail;
+            setError(detail || axiosErr?.message || "Registration failed. Please try again.");
         } finally {
             setLoading(false);
         }
