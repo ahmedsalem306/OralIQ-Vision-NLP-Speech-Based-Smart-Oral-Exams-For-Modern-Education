@@ -54,6 +54,25 @@ def read_root():
     return {"message": "Welcome to the Interview AI System API 🚀"}
 
 
+@app.get("/debug")
+def debug_info():
+    """Debug endpoint — shows database and environment info."""
+    import os
+    from app.core.database import DATABASE_URL, engine
+    try:
+        with engine.connect() as conn:
+            db_ok = True
+    except Exception as e:
+        db_ok = str(e)
+
+    return {
+        "database_url": DATABASE_URL,
+        "db_writable": db_ok,
+        "tmp_writable": os.access("/tmp", os.W_OK),
+        "cwd": os.getcwd(),
+    }
+
+
 @app.get("/health")
 def health_check():
     """Health check — shows which AI models are loaded and ready."""
