@@ -15,3 +15,4 @@ numpy
 pytest
 httpx
 moviepy
+email-validator

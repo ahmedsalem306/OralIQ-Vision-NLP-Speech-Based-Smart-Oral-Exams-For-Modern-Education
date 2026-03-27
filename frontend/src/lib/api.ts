@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://localhost:8000/api/v1",
+    baseURL: "https://ahmed2552-oraliq-api.hf.space/api/v1",
 });
 
 // Add a request interceptor to include the JWT token

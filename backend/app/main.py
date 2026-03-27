@@ -39,16 +39,11 @@ app = FastAPI(
 )
 
 # CORS Configuration
-origins = [
-    "http://localhost:3000",  # React Frontend
-    "http://localhost:5173",  # Vite Frontend
-    "http://localhost:5174",  # Vite Alternate Port
-    "http://localhost:5175",  # Vite Alternate Port
-]
-
+# For production, we will add the Vercel URL once provided.
+# For now, we'll allow all origins to test the connection.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
