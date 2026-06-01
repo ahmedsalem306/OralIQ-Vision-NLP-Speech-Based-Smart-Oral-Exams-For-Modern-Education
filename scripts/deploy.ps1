@@ -9,12 +9,9 @@ Write-Host "=== 1/2 Push to GitHub (origin main) ===" -ForegroundColor Cyan
 git push origin main
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "=== 2/2 Push backend to Hugging Face Space (hfspace main) ===" -ForegroundColor Cyan
-git subtree push --prefix=backend hfspace main
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "إذا فشل subtree، جرّب: git push hfspace `$(git subtree split --prefix=backend HEAD):main --force" -ForegroundColor Yellow
-    exit $LASTEXITCODE
-}
+Write-Host "=== 2/2 Deploy backend to Hugging Face Space ===" -ForegroundColor Cyan
+& (Join-Path $Root "scripts\deploy-hf.ps1")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "تم. Vercel يُحدَّث تلقائياً من GitHub إن كان المشروع مربوطاً." -ForegroundColor Green
 Write-Host "Frontend: https://oral-iq-vision-nlp-speech-based-sma.vercel.app/" -ForegroundColor Green
