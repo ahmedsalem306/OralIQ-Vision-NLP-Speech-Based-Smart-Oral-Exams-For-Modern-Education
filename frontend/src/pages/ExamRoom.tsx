@@ -168,8 +168,8 @@ export default function ExamRoom() {
         const now = Date.now();
         if (now - lastAlertTimeRef.current > 4000) {
             const labels: Record<string, string> = {
-                "gaze_left": "⚠️ نظرت بعيداً",
-                "gaze_right": "⚠️ نظرت بعيداً",
+                "gaze_left": "⚠️ نظرت لليسار",
+                "gaze_right": "⚠️ نظرت لليمين",
                 "gaze_down": "⚠️ نظرت للأسفل",
                 "gaze_up": "⚠️ نظرت للأعلى",
                 "no_face": "⚠️ الوجه مش ظاهر",
@@ -190,14 +190,20 @@ export default function ExamRoom() {
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
 
-        // ── temporal smoothing buffers (same as Python deque maxlen=5) ─────────
-        const SMOOTH_N = 5;
+        // Smaller smoothing makes iris movement feel immediate on mobile.
+        const SMOOTH_N = 2;
         const bufHH: number[] = [], bufHV: number[] = [];
         const bufPH: number[] = [], bufPV: number[] = [];
+        const gazeCenter = { samples: 0, h: 0.5, v: 0.5 };
         const smooth = (buf: number[], val: number) => {
             buf.push(val);
             if (buf.length > SMOOTH_N) buf.shift();
             return buf.reduce((a, b) => a + b, 0) / buf.length;
+        };
+        const normalizeBetween = (value: number, a: number, b: number) => {
+            const min = Math.min(a, b);
+            const max = Math.max(a, b);
+            return (value - min) / Math.max(max - min, 1e-6);
         };
 
         const { FaceMesh } = await import("@mediapipe/face_mesh");
@@ -240,6 +246,9 @@ export default function ExamRoom() {
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
                 accumulateDistraction("no_face", dt);
                 bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
+                gazeCenter.samples = 0;
+                gazeCenter.h = 0.5;
+                gazeCenter.v = 0.5;
                 return;
             }
             if (results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
@@ -257,10 +266,10 @@ export default function ExamRoom() {
             const liris = lm[468], lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
             const riris = lm[473], rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
 
-            const pHL = (liris.x - lOuter.x) / Math.max(lInner.x - lOuter.x, 1e-6);
-            const pVL = (liris.y - lTop.y)   / Math.max(lBot.y   - lTop.y,   1e-6);
-            const pHR = (riris.x - rOuter.x) / Math.max(rInner.x - rOuter.x, 1e-6);
-            const pVR = (riris.y - rTop.y)   / Math.max(rBot.y   - rTop.y,   1e-6);
+            const pHL = normalizeBetween(liris.x, lOuter.x, lInner.x);
+            const pVL = normalizeBetween(liris.y, lTop.y, lBot.y);
+            const pHR = normalizeBetween(riris.x, rOuter.x, rInner.x);
+            const pVR = normalizeBetween(riris.y, rTop.y, rBot.y);
 
             const rawPH = (pHL + pHR) / 2;
             const rawPV = (pVL + pVR) / 2;
@@ -272,12 +281,28 @@ export default function ExamRoom() {
             const pV = smooth(bufPV, rawPV);
 
             // ── gaze classification ───────────────────────────────────────────
-            // AND logic: head pose + iris must agree → eliminates false positives
-            // Fallback: very strong head turn alone (no iris needed)
-            const gazeLeft  = hH < 0.36 || (hH < 0.44 && pH > 0.63);
-            const gazeRight = hH > 0.64 || (hH > 0.56 && pH < 0.37);
-            const gazeDown  = hV > 1.9  || (hV > 1.6  && pV > 0.63);
-            const gazeUp    = hV < 0.55 || (hV < 0.72 && pV < 0.34);
+            // Calibrate the first centered frames, then measure iris deviation
+            // from that student's own neutral eye position.
+            if (gazeCenter.samples < 14 && hH > 0.42 && hH < 0.58 && hV > 0.85 && hV < 1.55) {
+                gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
+                gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
+                gazeCenter.samples += 1;
+            }
+
+            const relH = pH - gazeCenter.h;
+            const relV = pV - gazeCenter.v;
+            const calibrated = gazeCenter.samples >= 6;
+
+            // Iris drives eye-only movement; strong head pose remains a fallback.
+            const irisLeft  = calibrated ? relH > 0.075 : pH > 0.58;
+            const irisRight = calibrated ? relH < -0.075 : pH < 0.42;
+            const irisDown  = calibrated ? relV > 0.18  : pV > 0.70;
+            const irisUp    = calibrated ? relV < -0.18 : pV < 0.28;
+
+            const gazeLeft  = irisLeft  || hH < 0.34;
+            const gazeRight = irisRight || hH > 0.66;
+            const gazeDown  = irisDown  || hV > 2.15;
+            const gazeUp    = irisUp    || hV < 0.42;
 
             if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
             else if (gazeRight) accumulateDistraction("gaze_right", dt);
@@ -306,6 +331,35 @@ export default function ExamRoom() {
                         ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 5, 0, Math.PI * 2);
                         ctx.fillStyle = "#fff"; ctx.fill();
                         ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+                    });
+                    [
+                        { iris: liris, outer: lOuter, inner: lInner, top: lTop, bot: lBot },
+                        { iris: riris, outer: rOuter, inner: rInner, top: rTop, bot: rBot },
+                    ].forEach(({ iris, outer, inner, top, bot }) => {
+                        const minX = Math.min(outer.x, inner.x) * W;
+                        const maxX = Math.max(outer.x, inner.x) * W;
+                        const minY = Math.min(top.y, bot.y) * H;
+                        const maxY = Math.max(top.y, bot.y) * H;
+                        const neutralX = minX + gazeCenter.h * (maxX - minX);
+                        const neutralY = minY + gazeCenter.v * (maxY - minY);
+                        const irisX = iris.x * W;
+                        const irisY = iris.y * H;
+                        const active = Math.abs(irisX - neutralX) > (maxX - minX) * 0.075;
+
+                        ctx.strokeStyle = active ? "#ff4d5d" : "#5ec269";
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.moveTo(neutralX, neutralY);
+                        ctx.lineTo(irisX, irisY);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(irisX, irisY, 6.5, 0, Math.PI * 2);
+                        ctx.fillStyle = active ? "#ff4d5d" : "#ffffff";
+                        ctx.fill();
+                        ctx.strokeStyle = "#0a0a0a";
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
                     });
                 }
             }
