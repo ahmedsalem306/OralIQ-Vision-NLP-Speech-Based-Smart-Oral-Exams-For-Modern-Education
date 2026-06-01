@@ -4,6 +4,7 @@ WORKDIR /app
 
 # HF Spaces run on shared CPU; "medium" gives better Arabic/English accuracy.
 ENV WHISPER_MODEL=medium
+ENV ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ENV HF_HOME=/tmp/huggingface
 ENV TRANSFORMERS_CACHE=/tmp/huggingface/transformers
 

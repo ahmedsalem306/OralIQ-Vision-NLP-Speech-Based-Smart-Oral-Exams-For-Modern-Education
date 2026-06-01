@@ -102,6 +102,7 @@ type TranslationKey =
     | "exam.stop"
     | "exam.processing"
     | "exam.failed"
+    | "exam.sessionExpired"
     | "exam.backDashboard"
     | "exam.done"
     | "exam.finalScore"
@@ -223,6 +224,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         "exam.stop": "أنه الإجابة وأرسل",
         "exam.processing": "جاري التحليل والتصحيح...",
         "exam.failed": "فشل إرسال الامتحان",
+        "exam.sessionExpired": "انتهت جلسة الدخول. سجل دخولك مرة أخرى من نفس رابط الامتحان ثم أعد المحاولة.",
         "exam.backDashboard": "العودة للوحة التحكم",
         "exam.done": "تم إرسال الإجابة",
         "exam.finalScore": "الدرجة النهائية",
@@ -343,6 +345,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         "exam.stop": "Finish and submit",
         "exam.processing": "Analyzing and grading...",
         "exam.failed": "Exam submission failed",
+        "exam.sessionExpired": "Your login session expired. Sign in again from the same exam link, then try again.",
         "exam.backDashboard": "Back to dashboard",
         "exam.done": "Answer submitted",
         "exam.finalScore": "Final Score",

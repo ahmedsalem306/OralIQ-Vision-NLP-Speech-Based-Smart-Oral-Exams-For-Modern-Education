@@ -411,6 +411,17 @@ export default function ExamRoom() {
         if (!question) { setErrorMsg(t("exam.noQuestion")); return; }
         setErrorMsg("");
 
+        try {
+            await api.get("/users/me");
+        } catch (e: any) {
+            const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+                localStorage.removeItem("token");
+                setErrorMsg(t("exam.sessionExpired"));
+                return;
+            }
+        }
+
         let s: MediaStream;
         try {
             try {
@@ -533,6 +544,12 @@ export default function ExamRoom() {
         } catch (e: any) {
             const detail = e?.response?.data?.detail;
             const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+                localStorage.removeItem("token");
+                setErrorMsg(t("exam.sessionExpired"));
+                setPhase("failed");
+                return;
+            }
             const msg = (typeof detail === "string" ? detail : null)
                 || (status ? `خطأ ${status} من السيرفر` : null)
                 || e?.message
