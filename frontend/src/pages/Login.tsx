@@ -48,8 +48,7 @@ export default function LoginPage() {
     const G = "rgba(207,163,85,";
 
     return (
-        <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "grid", gridTemplateColumns: "1fr 1fr" }}
-            className="grid-cols-1 md:grid-cols-2">
+        <div className="oiq-auth-shell" style={{ minHeight: "100vh", background: "#0a0a0a", display: "grid" }}>
 
             {/* ── Left: Brand Panel ── */}
             <div className="hidden md:flex flex-col" style={{ position: "relative", overflow: "hidden", padding: "3rem", background: "#0d0d0d", borderRight: `1px solid ${G}0.06)` }}>

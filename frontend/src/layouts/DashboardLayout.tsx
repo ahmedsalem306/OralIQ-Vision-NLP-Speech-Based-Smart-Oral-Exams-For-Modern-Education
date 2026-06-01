@@ -219,7 +219,7 @@ export function DashboardLayout() {
                 </header>
 
                 {/* Page content */}
-                <motion.div style={{ flex: 1, padding: "2rem 1.75rem", overflowY: "auto" }}
+                <motion.div className="oiq-dashboard-page" style={{ flex: 1, padding: "2rem 1.75rem", overflowY: "auto" }}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <Outlet />
                 </motion.div>

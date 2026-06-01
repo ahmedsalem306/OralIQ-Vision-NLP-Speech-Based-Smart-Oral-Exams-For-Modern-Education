@@ -715,3 +715,74 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ── Responsive shell fixes (mobile/tablet) ───────────────── */
+.oiq-auth-shell {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .oiq-auth-shell {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 1023px) {
+  [data-tooltip]::before,
+  [data-tooltip]::after {
+    display: none;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 15px;
+  }
+
+  .oiq-dashboard-page {
+    padding: 1rem !important;
+  }
+
+  .oiq-exam-header {
+    height: auto !important;
+    min-height: 60px;
+    padding: 0.75rem 1rem !important;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .oiq-exam-header > span:last-child {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .oiq-exam-body {
+    justify-content: flex-start !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .oiq-auth-shell > div:last-child {
+    padding: 1.25rem !important;
+  }
+
+  .oiq-dashboard-page {
+    padding: 0.875rem !important;
+  }
+
+  .oiq-exam-body {
+    padding: 0.75rem !important;
+  }
+}

@@ -18,4 +18,4 @@ pytest
 httpx
 moviepy
 email-validator
-openai-whisper
+faster-whisper

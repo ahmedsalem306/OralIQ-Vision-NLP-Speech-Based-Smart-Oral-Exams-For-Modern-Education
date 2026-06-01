@@ -121,7 +121,7 @@ export default function Dashboard() {
                                             <span style={{ fontSize: "0.75rem", color: "#8b8b73", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link}</span>
                                         </div>
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
                                         <motion.button whileTap={{ scale: 0.9 }} onClick={() => copyLink(q)} data-tooltip={isCopied ? "Copied!" : "Copy exam link"} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.9rem", background: isCopied ? "rgba(94,194,105,0.08)" : `${G}0.06)`, border: `1px solid ${isCopied ? "rgba(94,194,105,0.25)" : `${G}0.15)`}`, borderRadius: "0.6rem", color: isCopied ? "#5ec269" : "#cfa355", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif", transition: "all 0.2s" }}>
                                             {isCopied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
                                         </motion.button>

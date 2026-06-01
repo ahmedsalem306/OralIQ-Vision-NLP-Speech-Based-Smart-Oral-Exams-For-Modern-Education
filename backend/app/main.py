@@ -98,12 +98,18 @@ def health_check():
     """Health check — shows which AI models are loaded and ready."""
     from app.services.speech_ai import speech_analyzer
     from app.services.nlp_ai import nlp_analyzer
+    from app.services.face_ai import face_analyzer
 
     return {
         "status": "ok",
         "models": {
             "whisper": "ready" if speech_analyzer.is_ready() else "not_loaded",
             "sbert": "ready" if nlp_analyzer.is_ready() else "not_loaded",
+            "anti_cheat": "ready",
+        },
+        "config": {
+            "whisper_model": speech_analyzer.MODEL_SIZE,
+            "anti_cheat_alerts": list(face_analyzer.ALERT_WEIGHTS.keys()),
         },
     }
 

@@ -13,6 +13,8 @@ class FaceAnalyzer:
         "gaze_right": 5.0,
         "gaze_down": 3.0,
         "gaze_up": 3.0,
+        "head_turn_left": 6.0,
+        "head_turn_right": 6.0,
         "no_face": 6.0,
         "multiple_people": 25.0,
         "phone_detected": 30.0,

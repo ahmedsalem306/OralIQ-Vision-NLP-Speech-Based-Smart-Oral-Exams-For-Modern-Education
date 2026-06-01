@@ -327,10 +327,13 @@ export default function ExamRoom() {
                     if (phaseRef.current === "recording" && objectDetector) {
                         const detections = objectDetector.detectForVideo(video, now);
                         for (const detection of detections.detections) {
-                            const label = detection.categories[0]?.categoryName || "";
+                            const label = (detection.categories[0]?.categoryName || "").toLowerCase();
                             const dt2 = (now - lastFrameTimeRef.current) / 1000;
-                            if (label === "cell phone") accumulateDistraction("phone_detected", dt2);
-                            else if (label === "book")  accumulateDistraction("book_detected",  dt2);
+                            if (["cell phone", "mobile phone", "phone"].includes(label)) {
+                                accumulateDistraction("phone_detected", dt2);
+                            } else if (["book", "notebook"].includes(label)) {
+                                accumulateDistraction("book_detected", dt2);
+                            }
                         }
                     }
                     lastFrameTimeRef.current = now;
@@ -706,7 +709,7 @@ export default function ExamRoom() {
         <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
 
             {/* Header */}
-            <header style={{ height: 60, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2rem", background: "#141414", borderBottom: "1px solid rgba(207,163,85,0.1)" }}>
+            <header className="oiq-exam-header" style={{ height: 60, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2rem", background: "#141414", borderBottom: "1px solid rgba(207,163,85,0.1)" }}>
                 <Logo size={22} showText />
 
                 {/* Timer — only in recording */}
@@ -730,11 +733,11 @@ export default function ExamRoom() {
             </header>
 
             {/* Body — centered layout: small square camera + question (recording only) + controls */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem", gap: "1.5rem", overflow: "auto" }}>
+            <div className="oiq-exam-body" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem", gap: "1.5rem", overflow: "auto" }}>
 
                 {/* Camera — small square in a framed card; red glow if any violation is active */}
                 <div style={{
-                    position: "relative", width: 440, height: 440, borderRadius: "1.25rem",
+                    position: "relative", width: "min(440px, calc(100vw - 2rem))", aspectRatio: "1 / 1", borderRadius: "1.25rem",
                     overflow: "hidden", background: "#000",
                     border: liveAlert ? "2px solid rgba(224,85,85,0.85)" : "2px solid rgba(207,163,85,0.25)",
                     boxShadow: liveAlert
@@ -790,8 +793,8 @@ export default function ExamRoom() {
                 </div>
 
                 {/* Accumulated cheat seconds debug strip */}
-                <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#8b8b73" }}>
-                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face"].map(k => {
+                    <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#8b8b73", flexWrap: "wrap", justifyContent: "center" }}>
+                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face","phone_detected","book_detected"].map(k => {
                         const v = antiCheatAlertsRef.current[k] || 0;
                         return v > 0 ? (
                             <span key={k} style={{ padding: "0.2rem 0.55rem", background: "#141414", borderRadius: "0.35rem" }}>

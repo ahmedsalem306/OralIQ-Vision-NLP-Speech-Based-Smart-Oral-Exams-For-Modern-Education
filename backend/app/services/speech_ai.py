@@ -44,9 +44,9 @@ class SpeechAnalyzer:
 
     MAX_RETRIES = 3
     RETRY_DELAY = 2
-    # "medium" is the sweet spot: solid Arabic/English code-switching at ~3x realtime on CPU.
-    # Override with WHISPER_MODEL env var if you want to try "small" / "large-v3".
-    MODEL_SIZE = os.environ.get("WHISPER_MODEL", "medium")
+    # "small" is the safest default for Hugging Face Spaces CPU/RAM limits.
+    # Override locally with WHISPER_MODEL=medium if you want higher accuracy.
+    MODEL_SIZE = os.environ.get("WHISPER_MODEL", "small")
 
     def __init__(self):
         self._model = None
