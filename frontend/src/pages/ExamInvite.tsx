@@ -13,17 +13,17 @@ export default function ExamInvite() {
 
     useEffect(() => {
         if (token) {
-            // Save pending exam token so dashboard can show it
+            // Save pending exam token so the exam room can pick it up
             localStorage.setItem("pendingExamToken", token);
         }
 
         const authToken = localStorage.getItem("token");
         if (authToken) {
-            // Already logged in → go to dashboard
-            navigate("/dashboard", { replace: true });
+            // Already logged in → go straight to the exam room
+            navigate("/exam/start", { replace: true });
         } else {
-            // Not logged in → go to login, then dashboard
-            navigate("/login?redirect=/dashboard", { replace: true });
+            // Not logged in → force student registration; come back to exam after signup
+            navigate("/register?redirect=/exam/start&role=student", { replace: true });
         }
     }, [token, navigate]);
 

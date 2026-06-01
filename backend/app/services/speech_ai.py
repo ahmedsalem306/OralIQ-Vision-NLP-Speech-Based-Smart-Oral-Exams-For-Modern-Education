@@ -1,3 +1,15 @@
+"""
+Speech analysis powered by faster-whisper.
+
+Why faster-whisper instead of openai-whisper?
+  - Same models, but the CTranslate2 engine is 4-8x faster on CPU.
+  - Uses int8 quantization, so the "medium" model only needs ~1.5GB RAM
+    instead of ~3GB for openai-whisper.
+  - Supports word-level timestamps natively.
+  - Result: we can run "medium" (much better Arabic accuracy than "small")
+    without blowing past the 5-minute submit timeout.
+"""
+
 import os
 import re
 import time
@@ -5,22 +17,20 @@ import traceback
 import warnings
 warnings.filterwarnings("ignore")
 
-# ── Make ffmpeg available to Whisper ──────────────────────
+# Make ffmpeg available (needed by faster-whisper to decode audio)
 try:
-    if os.name == 'nt': # Windows only
-        import imageio_ffmpeg, shutil
+    if os.name == "nt":  # Windows only
+        import imageio_ffmpeg
+        import shutil
         ffmpeg_src = imageio_ffmpeg.get_ffmpeg_exe()
         ffmpeg_dst = os.path.join(os.path.dirname(ffmpeg_src), "ffmpeg.exe")
         if not os.path.exists(ffmpeg_dst):
             shutil.copy2(ffmpeg_src, ffmpeg_dst)
         os.environ["PATH"] = os.path.dirname(ffmpeg_dst) + os.pathsep + os.environ["PATH"]
 except Exception:
-    pass  # ffmpeg might already be on PATH
-# ──────────────────────────────────────────────────────────
+    pass
 
-import numpy as np
-
-# Arabic filler words / hesitation markers
+# Arabic filler / hesitation markers
 ARABIC_FILLERS = [
     "اه", "آه", "إه", "اهه", "امم", "ام", "يعني", "مم", "ممم",
     "هم", "هممم", "طبع", "طبعا", "خلاص", "عارف",
@@ -30,15 +40,17 @@ ARABIC_FILLERS = [
 
 
 class SpeechAnalyzer:
-    """Whisper-based Arabic STT + speech fluency analysis (fully lazy-loaded with retry)."""
+    """faster-whisper STT + fluency analysis. Lazy-loaded with retry."""
 
     MAX_RETRIES = 3
-    RETRY_DELAY = 2  # seconds
+    RETRY_DELAY = 2
+    # "medium" is the sweet spot: solid Arabic/English code-switching at ~3x realtime on CPU.
+    # Override with WHISPER_MODEL env var if you want to try "small" / "large-v3".
+    MODEL_SIZE = os.environ.get("WHISPER_MODEL", "medium")
 
     def __init__(self):
         self._model = None
         self._load_failed = False
-        # This prompt encourages Whisper to transcribe hesitation markers rather than cleaning them
         self.filler_prompt = "اه يعني اممم طيب بصراحة خلاص كدة تمام ممم إه"
 
     @property
@@ -46,57 +58,56 @@ class SpeechAnalyzer:
         if self._model is None:
             for attempt in range(1, self.MAX_RETRIES + 1):
                 try:
-                    print(f"[SpeechAI] Loading Whisper 'small' model (attempt {attempt}/{self.MAX_RETRIES})...")
-                    import whisper
-                    self._model = whisper.load_model("small")
+                    print(f"[SpeechAI] Loading faster-whisper '{self.MODEL_SIZE}' (int8, attempt {attempt}/{self.MAX_RETRIES})...")
+                    from faster_whisper import WhisperModel
+                    # int8 = smaller memory + faster CPU inference, same accuracy as fp16.
+                    self._model = WhisperModel(
+                        self.MODEL_SIZE,
+                        device="cpu",
+                        compute_type="int8",
+                    )
                     self._load_failed = False
-                    print("[SpeechAI] ✅ Whisper loaded successfully.")
+                    print(f"[SpeechAI] faster-whisper '{self.MODEL_SIZE}' loaded.")
                     break
                 except Exception as e:
-                    print(f"[SpeechAI] ❌ Load failed (attempt {attempt}): {e}")
+                    print(f"[SpeechAI] Load failed (attempt {attempt}): {e}")
                     traceback.print_exc()
                     if attempt < self.MAX_RETRIES:
                         print(f"[SpeechAI] Retrying in {self.RETRY_DELAY}s...")
                         time.sleep(self.RETRY_DELAY)
                     else:
                         self._load_failed = True
-                        print("[SpeechAI] ❌ All retries exhausted. Model unavailable.")
-                        raise RuntimeError(f"Failed to load Whisper after {self.MAX_RETRIES} attempts") from e
+                        raise RuntimeError(
+                            f"Failed to load faster-whisper after {self.MAX_RETRIES} attempts"
+                        ) from e
         return self._model
 
     def is_ready(self) -> bool:
-        """Check if model is loaded without triggering a load."""
         return self._model is not None
 
-    def transcribe_audio(self, audio_path: str, hint: str = "") -> str:
-        """
-        Transcribe an audio file to Arabic text.
-        """
+    def _transcribe(self, audio_path: str, hint: str = "", word_timestamps: bool = False):
+        """Run a transcription, return (full_text, segments_list, info)."""
         prompt = (hint + " " + self.filler_prompt).strip()
-        result = self.model.transcribe(
+        segments_iter, info = self.model.transcribe(
             audio_path,
-            language="ar",
+            language="ar",  # primary language; faster-whisper still handles English code-switching
             initial_prompt=prompt,
+            word_timestamps=word_timestamps,
+            vad_filter=True,            # skip pure-silence regions
+            vad_parameters={"min_silence_duration_ms": 500},
+            beam_size=5,
+            condition_on_previous_text=False,  # avoid hallucinations from short clips
         )
-        return result["text"].strip()
+        segments = list(segments_iter)
+        text = " ".join(s.text.strip() for s in segments if s.text).strip()
+        return text, segments, info
+
+    def transcribe_audio(self, audio_path: str, hint: str = "") -> str:
+        text, _segments, _info = self._transcribe(audio_path, hint, word_timestamps=False)
+        return text
 
     def analyze_fluency(self, audio_path: str, hint: str = "") -> dict:
-        """
-        Full analysis: transcribe + detect hesitation/stuttering.
-        """
-        # Encourage filler transcription via prompt
-        prompt = (hint + " " + self.filler_prompt).strip()
-        
-        # Transcribe with word-level timestamps
-        result = self.model.transcribe(
-            audio_path,
-            language="ar",
-            initial_prompt=prompt,
-            word_timestamps=True,
-        )
-
-        transcript = result["text"].strip()
-        segments = result.get("segments", [])
+        transcript, segments, _info = self._transcribe(audio_path, hint, word_timestamps=True)
 
         if not transcript or not segments:
             return {
@@ -109,75 +120,62 @@ class SpeechAnalyzer:
                 },
             }
 
-        # ─── 1. Calculate speech rate (WPM) ───
-        # Collect Whisper's word-level tokens (for pause/repetition analysis)
+        # Flatten word-level info from all segments
         words_all = []
         for seg in segments:
-            for w in seg.get("words", []):
-                words_all.append(w)
+            for w in (seg.words or []):
+                words_all.append({"word": w.word, "start": w.start, "end": w.end})
 
-        total_duration = segments[-1]["end"] - segments[0]["start"]
-
-        # Count ACTUAL words from transcript (not Whisper tokens which split Arabic sub-words)
+        total_duration = (segments[-1].end - segments[0].start) if segments else 0
         actual_words = [w for w in transcript.split() if w.strip()]
         word_count = len(actual_words)
         wpm = (word_count / total_duration * 60) if total_duration > 0 else 0
 
-        # ─── 2. Detect filler words ───
-        filler_count = 0
-        fillers_found = []
-        words_text = [w["word"].strip() for w in words_all]
-
-        # Improved regex to catch variations and elongated letters (tashkil/elongation)
-        def normalize_arabic(text):
-            # Remove non-arabic chars, but keep elongation (tatweel) for a moment then normalize
-            text = re.sub(r'[\u064B-\u0652]', '', text) # remove harakat
-            text = re.sub(r'(\u0627){2,}', 'ا', text)   # normalize repeated Alef
+        # ── Filler detection ─────────────────────────────────────────────────
+        def normalize_arabic(text: str) -> str:
+            text = re.sub(r"[ً-ْ]", "", text)        # remove harakat
+            text = re.sub(r"(ا){2,}", "ا", text)          # collapse repeated Alef
             return text
 
+        filler_count = 0
+        fillers_found: list[str] = []
+        words_text = [w["word"].strip() for w in words_all]
         for word in words_text:
             clean = normalize_arabic(word)
-            # Simple check for ARABIC_FILLERS or if it's a known filler variation
             if clean in ARABIC_FILLERS:
                 filler_count += 1
                 if clean not in fillers_found:
                     fillers_found.append(clean)
 
-        # ─── 3. Detect long pauses (gaps > 1.5s between words) ───
+        # ── Long pauses (>1.5s gap between words) ────────────────────────────
         pause_count = 0
         for i in range(1, len(words_all)):
             gap = words_all[i]["start"] - words_all[i - 1]["end"]
             if gap > 1.5:
                 pause_count += 1
 
-        # ─── 4. Detect word repetition (same word said 2+ times in a row) ───
+        # ── Repetition detection ─────────────────────────────────────────────
         repeat_count = 0
         for i in range(1, len(words_text)):
-            clean_prev = normalize_arabic(words_text[i - 1])
-            clean_curr = normalize_arabic(words_text[i])
-            if clean_prev and clean_curr and clean_prev == clean_curr:
+            if normalize_arabic(words_text[i - 1]) and \
+               normalize_arabic(words_text[i - 1]) == normalize_arabic(words_text[i]):
                 repeat_count += 1
 
-        # ─── 5. Calculate fluency score ───
-        # Start at 100, subtract penalties
+        # ── Score ────────────────────────────────────────────────────────────
         penalty = 0
-        penalty += filler_count * 5       # each filler = -5 (Strict)
-        penalty += pause_count * 8        # each long pause = -8 (Strict)
-        penalty += repeat_count * 6       # each repetition = -6 (Strict)
-
-        # Speech rate penalty (too slow or too fast)
+        penalty += filler_count * 5
+        penalty += pause_count * 8
+        penalty += repeat_count * 6
         if wpm < 60:
-            penalty += 10  # very slow = nervous
+            penalty += 10
         elif wpm < 80:
-            penalty += 5   # a bit slow
+            penalty += 5
         elif wpm > 200:
-            penalty += 5   # too fast
-
+            penalty += 5
         speech_score = max(0.0, min(100.0, 100.0 - penalty))
 
-        # ─── 6. Build Arabic fluency report ───
-        report_lines = []
-
+        # ── Arabic report ────────────────────────────────────────────────────
+        report_lines: list[str] = []
         if speech_score >= 85:
             report_lines.append("تحدث بطلاقة وثقة")
         elif speech_score >= 70:
@@ -187,23 +185,23 @@ class SpeechAnalyzer:
         else:
             report_lines.append("تلعثم واضح — لم يكن واثقاً من إجابته")
 
-        details_lines = []
+        details_lines: list[str] = []
         if filler_count > 0:
-            details_lines.append(
-                f"كلمات تردد ({filler_count}): {', '.join(fillers_found)}"
-            )
+            details_lines.append(f"كلمات تردد ({filler_count}): {', '.join(fillers_found)}")
         if pause_count > 0:
             details_lines.append(f"توقفات طويلة: {pause_count} مرة")
         if repeat_count > 0:
             details_lines.append(f"تكرار كلمات: {repeat_count} مرة")
-
-        speed_label = "بطيء جداً" if wpm < 60 else "بطيء" if wpm < 80 else "طبيعي" if wpm <= 160 else "سريع"
+        speed_label = (
+            "بطيء جداً" if wpm < 60 else
+            "بطيء" if wpm < 80 else
+            "طبيعي" if wpm <= 160 else
+            "سريع"
+        )
         details_lines.append(f"عدد الكلمات: {word_count} كلمة | سرعة الكلام: {wpm:.0f} كلمة/دقيقة ({speed_label})")
-
         if details_lines:
             report_lines.append("الملاحظات:")
             report_lines.extend(f"  • {d}" for d in details_lines)
-
         fluency_report = "\n".join(report_lines)
 
         return {
@@ -221,5 +219,5 @@ class SpeechAnalyzer:
         }
 
 
-# Singleton instance (lazy — model loads on first use)
+# Singleton (lazy — model loads on first use)
 speech_analyzer = SpeechAnalyzer()

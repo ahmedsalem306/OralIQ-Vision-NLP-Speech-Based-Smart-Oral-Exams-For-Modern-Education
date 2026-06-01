@@ -4,12 +4,24 @@ __pycache__/
 *$py.class
 venv/
 .env
+backend/local.env
+backend/data/
+*.db
+interview_ai.db
 
 # Frontend
 node_modules/
 dist/
 .DS_Store
+frontend/.env.local
 
-# IDE
+# IDE / tools
 .vscode/
 .idea/
+.claude/
+hf-space-clone_v2/
+
+# Local-only
+test_face_detection.py
+yolo26n.pt
+face_landmarker.task

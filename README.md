@@ -21,7 +21,7 @@ This project uses a modern, scalable architecture suitable for a high-level grad
 -   **Frontend**: React.js (Vite) - For a premium, responsive user interface.
 -   **Database**: SQLite (Development) / PostgreSQL (Production).
 -   **AI Models**:
-    -   **Face**: OpenCV, DeepFace / MediaPipe.
+    -   **Face**: OpenCV, YOLO26, MediaPipe.
     -   **Voice**: SpeechRecognition, Librosa, PyAudioAnalysis.
     -   **NLP**: Sentence-Transformers (BERT), NLTK/Spacy.
 
@@ -38,6 +38,28 @@ This project uses a modern, scalable architecture suitable for a high-level grad
 │   └── package.json
 └── README.md         # Project Documentation
 ```
+
+### النشر (GitHub + Vercel + Hugging Face)
+
+| المنصة | الرابط |
+|--------|--------|
+| GitHub | [OralIQ Repository](https://github.com/ahmedsalem306/OralIQ-Vision-NLP-Speech-Based-Smart-Oral-Exams-For-Modern-Education) |
+| Frontend (Vercel) | [oral-iq-vision-nlp-speech-based-sma.vercel.app](https://oral-iq-vision-nlp-speech-based-sma.vercel.app/) |
+| Backend (HF Space) | [ahmed2552-oraliq-api.hf.space](https://ahmed2552-oraliq-api.hf.space/health) |
+
+بعد التعديلات محلياً:
+
+```powershell
+git add -A
+git commit -m "your message"
+git push origin main
+git subtree push --prefix=backend hfspace main
+```
+
+أو: `powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1` (بعد الـ commit).
+
+على **Hugging Face Space** → Settings → Variables: `DATABASE_URL` (Supabase) و `GEMINI_API_KEY`.  
+على **Vercel** → Environment Variables: `VITE_API_URL` = `https://ahmed2552-oraliq-api.hf.space/api/v1` (اختياري؛ موجود في `.env.production`).
 
 ## ⚡ Getting Started
 

@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.api_router import api_router
 from app.core.database import engine, Base
-from app.core.config import settings
 from app.models.user import User # noqa: F401 — ensures all models are registered
+import os
 import threading
 
 
@@ -82,7 +84,7 @@ def debug_info():
         nlp_ready = "error"
 
     return {
-        "database_url": settings.SQLALCHEMY_DATABASE_URL,
+        "database_url": os.environ.get("DATABASE_URL", "sqlite:///tmp/interview_ai.db"),
         "db_writable": db_writable,
         "tmp_writable": os.access("/tmp", os.W_OK),
         "stt_ready": stt_ready,
@@ -108,15 +110,28 @@ def health_check():
 
 app.include_router(api_router, prefix="/api/v1")
 
+# Let FastAPI handle HTTPException with proper status codes
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
 # Global Exception Handler for debugging 500 errors
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     import traceback
-    return {
-        "detail": str(exc),
-        "traceback": traceback.format_exc(),
-        "type": type(exc).__name__
-    }
+    print(f"[500 ERROR] {request.method} {request.url.path}")
+    print(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc),
+            "traceback": traceback.format_exc(),
+            "type": type(exc).__name__,
+        },
+    )
 
 # Start background model preloading after the app is fully configured
 _preload_thread = threading.Thread(target=_preload_models, daemon=True)

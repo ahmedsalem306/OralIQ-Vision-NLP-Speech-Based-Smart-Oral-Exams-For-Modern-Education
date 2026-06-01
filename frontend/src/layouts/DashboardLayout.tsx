@@ -1,13 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, BarChart2, Settings, LogOut, Menu, Camera, ChevronDown, ClipboardList, Award } from "lucide-react";
+import {
+    LayoutDashboard, Users, BarChart2, Settings, LogOut, Menu, Camera,
+    ClipboardList, Award, MessageSquare, TrendingUp, X, ChevronRight
+} from "lucide-react";
 import { cn } from "../lib/utils";
 import api from "../lib/api";
 import Logo from "../components/Logo";
+import { motion, AnimatePresence } from "framer-motion";
+
+const PAGE_TITLES: Record<string, string> = {
+    "/dashboard": "Overview",
+    "/dashboard/questions": "Exam Questions",
+    "/dashboard/results": "Results",
+    "/dashboard/analytics": "Analytics",
+    "/dashboard/attendance": "Attendance",
+    "/dashboard/settings": "Settings",
+    "/dashboard/grades": "My Grades",
+    "/dashboard/messages": "Messages",
+    "/dashboard/students": "Students",
+};
 
 export function DashboardLayout() {
     const [isOpen, setIsOpen] = useState(false);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
     const [user, setUser] = useState<{ full_name: string; email: string; role: string } | null>(null);
     const [profilePic, setProfilePic] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -18,9 +33,7 @@ export function DashboardLayout() {
         api.get("/users/me")
             .then((res) => {
                 setUser(res.data);
-                // Load profile pic keyed by email — isolated per account
-                const key = `profilePic_${res.data.email}`;
-                const saved = localStorage.getItem(key);
+                const saved = localStorage.getItem(`profilePic_${res.data.email}`);
                 if (saved) setProfilePic(saved);
             })
             .catch(() => navigate("/login"));
@@ -38,214 +51,172 @@ export function DashboardLayout() {
         reader.onload = (ev) => {
             const result = ev.target?.result as string;
             setProfilePic(result);
-            // Store per-account using email as key
             localStorage.setItem(`profilePic_${user.email}`, result);
         };
         reader.readAsDataURL(file);
     };
 
     const isLecturer = user?.role === "lecturer" || user?.role === "hr" || user?.role === "admin";
+    const pageTitle = PAGE_TITLES[location.pathname] || "Dashboard";
+    const G = "rgba(207,163,85,";
 
-    const sidebarItems = [
-        { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-        ...(isLecturer ? [
-            { icon: ClipboardList, label: "Exam Questions", href: "/dashboard/questions" },
-            { icon: Users, label: "Attendance", href: "/dashboard/attendance" },
-            { icon: BarChart2, label: "Results", href: "/dashboard/results" },
-            { icon: BarChart2, label: "Analytics", href: "/dashboard/analytics" },
-        ] : [
-            // Students: Overview + My Grades only (exam comes via banner)
-            { icon: Award, label: "My Grades", href: "/dashboard/grades" },
-        ]),
-        { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+    const navGroups = [
+        {
+            label: "Platform",
+            items: [
+                { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+                ...(isLecturer
+                    ? [{ icon: ClipboardList, label: "Exam Questions", href: "/dashboard/questions" }]
+                    : [
+                        { icon: Award, label: "My Grades", href: "/dashboard/grades" },
+                        { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
+                    ]),
+            ],
+        },
+        ...(isLecturer ? [{
+            label: "Analytics",
+            items: [
+                { icon: BarChart2, label: "Results", href: "/dashboard/results" },
+                { icon: TrendingUp, label: "Analytics", href: "/dashboard/analytics" },
+                { icon: Users, label: "Attendance", href: "/dashboard/attendance" },
+            ],
+        }] : []),
+        {
+            label: "Account",
+            items: [
+                { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+            ],
+        },
     ];
 
-    const avatar = profilePic ? (
-        <img src={profilePic} alt="Profile" className="w-full h-full object-cover rounded-full" />
-    ) : (
-        <span style={{ color: "#0F0F1A", fontWeight: 700, fontSize: "1.1rem" }}>
-            {user?.full_name ? user.full_name[0].toUpperCase() : "U"}
-        </span>
-    );
-
-    const V = "rgba(108,99,255,";
-    const T = "rgba(0,212,170,";
+    const avatarInner = profilePic
+        ? <img src={profilePic} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+        : <span style={{ color: "#0a0a0a", fontWeight: 800, fontSize: "0.9rem" }}>{user?.full_name?.[0]?.toUpperCase() || "U"}</span>;
 
     return (
-        <div style={{ minHeight: "100vh", background: "#0F0F1A", color: "#E8E8F0", display: "flex" }}>
+        <div className="noise-overlay" style={{ minHeight: "100vh", background: "#0a0a0a", color: "#e5e5e0", display: "flex" }}>
             {/* Mobile overlay */}
-            {isOpen && <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setIsOpen(false)} />}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div className="fixed inset-0 z-40 md:hidden"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+                        onClick={() => setIsOpen(false)} />
+                )}
+            </AnimatePresence>
 
-            {/* Sidebar */}
+            {/* ── Sidebar ── */}
             <aside className={cn(
-                "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static",
+                "fixed inset-y-0 left-0 z-50 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static",
                 isOpen ? "translate-x-0" : "-translate-x-full"
-            )} style={{ background: "#1A1A2E", borderRight: `1px solid ${V}0.2)` }}>
+            )} style={{ width: 220, background: "#0d0d0d", borderRight: `1px solid ${G}0.07)`, flexShrink: 0 }}>
 
                 {/* Logo */}
-                <div style={{ height: 72, display: "flex", alignItems: "center", padding: "0 1.25rem", borderBottom: `1px solid ${V}0.15)` }}>
-                    <Logo size={34} showText={true} showSubtitle={false} />
+                <div style={{ height: 60, display: "flex", alignItems: "center", padding: "0 1.125rem", borderBottom: `1px solid ${G}0.06)`, flexShrink: 0 }}>
+                    <Logo size={26} showText showSubtitle={false} />
+                    <button className="ml-auto md:hidden" onClick={() => setIsOpen(false)}
+                        style={{ background: "none", border: "none", color: "#5a5a4a", cursor: "pointer", padding: "0.25rem" }}>
+                        <X size={16} />
+                    </button>
                 </div>
 
-                {/* Role badge */}
-                {user && (
-                    <div style={{ padding: "0.75rem 1.25rem", borderBottom: `1px solid ${V}0.1)` }}>
-                        <span style={{
-                            fontSize: "0.7rem",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.12em",
-                            padding: "0.25rem 0.75rem",
-                            borderRadius: "999px",
-                            background: isLecturer ? `${T}0.15)` : `${V}0.15)`,
-                            color: isLecturer ? "#00D4AA" : "#6C63FF",
-                            border: `1px solid ${isLecturer ? T : V}0.3)`,
-                        }}>
-                            {isLecturer ? "Lecturer" : "Student"}
-                        </span>
-                    </div>
-                )}
-
-                {/* Nav */}
-                <nav style={{ padding: "1rem 0.75rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                    {sidebarItems.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = location.pathname === item.href;
-                        return (
-                            <Link
-                                key={item.label}
-                                to={item.href}
-                                onClick={() => setIsOpen(false)}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.75rem",
-                                    padding: "0.7rem 1rem",
-                                    borderRadius: "0.75rem",
-                                    fontSize: "0.9rem",
-                                    fontWeight: isActive ? 700 : 500,
-                                    textDecoration: "none",
-                                    transition: "all 0.15s",
-                                    background: isActive ? "linear-gradient(135deg, rgba(108,99,255,0.2), rgba(0,212,170,0.1))" : "transparent",
-                                    color: isActive ? "#6C63FF" : "#8888A8",
-                                    border: isActive ? `1px solid ${V}0.3)` : "1px solid transparent",
-                                }}
-                            >
-                                <Icon size={18} />
-                                {item.label}
-                            </Link>
-                        );
-                    })}
+                {/* Nav groups */}
+                <nav style={{ flex: 1, padding: "0.625rem 0.5rem", overflowY: "auto" }}>
+                    {navGroups.map((group, gi) => (
+                        <div key={gi} style={{ marginBottom: "0.375rem" }}>
+                            <p style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: `${G}0.28)`, padding: "0.625rem 0.75rem 0.3rem" }}>
+                                {group.label}
+                            </p>
+                            {group.items.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = location.pathname === item.href;
+                                return (
+                                    <Link key={item.href} to={item.href} onClick={() => setIsOpen(false)}
+                                        style={{
+                                            display: "flex", alignItems: "center", gap: "0.6rem",
+                                            padding: "0.525rem 0.75rem", borderRadius: "0.55rem", marginBottom: "0.075rem",
+                                            fontSize: "0.835rem", fontWeight: isActive ? 600 : 400,
+                                            textDecoration: "none", transition: "all 0.15s",
+                                            background: isActive ? `${G}0.09)` : "transparent",
+                                            color: isActive ? "#dbb870" : "#5a5a4a",
+                                        }}
+                                        className={!isActive ? "hover:text-[#9a8a5a] hover:bg-[rgba(207,163,85,0.04)]" : ""}>
+                                        <Icon size={14} />
+                                        <span style={{ flex: 1 }}>{item.label}</span>
+                                        {isActive && (
+                                            <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cfa355", flexShrink: 0 }} />
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </nav>
 
-                {/* Bottom */}
-                <div style={{ position: "absolute", bottom: "1.5rem", left: "1rem", right: "1rem", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.7rem", color: "#444466" }}>© 2026 OralIQ</p>
-                </div>
+                {/* User card at bottom */}
+                {user && (
+                    <div style={{ margin: "0.625rem", padding: "0.875rem", background: `${G}0.03)`, border: `1px solid ${G}0.07)`, borderRadius: "0.875rem", flexShrink: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.75rem" }}>
+                            <div
+                                style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #cfa355, #e8c97a)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, cursor: "pointer", position: "relative" }}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="group/av"
+                            >
+                                {avatarInner}
+                                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s" }} className="group-hover/av:opacity-100">
+                                    <Camera size={11} color="white" />
+                                </div>
+                            </div>
+                            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfilePicChange} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#c8c8c0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.full_name}</p>
+                                <p style={{ fontSize: "0.62rem", color: "#4a4a3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", padding: "0.18rem 0.5rem", borderRadius: "999px", background: `${G}0.07)`, color: "#b8934a", border: `1px solid ${G}0.13)` }}>
+                                {isLecturer ? "Lecturer" : "Student"}
+                            </span>
+                            <button onClick={handleLogout}
+                                style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "none", border: "none", cursor: "pointer", color: "#3a3a2a", fontSize: "0.72rem", fontWeight: 500, padding: 0 }}
+                                className="hover:text-[#c04444]">
+                                <LogOut size={12} /> Sign out
+                            </button>
+                        </div>
+                    </div>
+                )}
             </aside>
 
-            {/* Main */}
-            <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#0F0F1A" }}>
+            {/* ── Main ── */}
+            <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
                 {/* Header */}
                 <header style={{
-                    height: 72,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "0 2rem",
-                    borderBottom: `1px solid ${V}0.15)`,
-                    background: "rgba(26,26,46,0.6)",
-                    backdropFilter: "blur(12px)",
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 30,
+                    height: 60, display: "flex", alignItems: "center",
+                    padding: "0 1.75rem", gap: "0.75rem",
+                    borderBottom: `1px solid ${G}0.06)`,
+                    background: "rgba(10,10,10,0.92)", backdropFilter: "blur(16px)",
+                    position: "sticky", top: 0, zIndex: 30,
                 }}>
-                    {/* Mobile menu */}
-                    <button
-                        className="md:hidden"
-                        onClick={() => setIsOpen(!isOpen)}
-                        style={{ background: "none", border: "none", color: "#6C63FF", cursor: "pointer" }}
-                    >
-                        <Menu size={22} />
+                    <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}
+                        style={{ background: "none", border: "none", color: `${G}0.6)`, cursor: "pointer", padding: "0.25rem", flexShrink: 0 }}>
+                        <Menu size={19} />
                     </button>
-
-                    <div style={{ marginLeft: "auto", position: "relative" }}>
-                        <button
-                            onClick={() => setDropdownOpen(!dropdownOpen)}
-                            onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
-                            style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: "none", border: "none", cursor: "pointer" }}
-                        >
-                            <div className="hidden md:block" style={{ textAlign: "right" }}>
-                                <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "#E8E8F0" }}>{user?.full_name || "User"}</p>
-                                <p style={{ fontSize: "0.75rem", color: "#8888A8" }}>{user?.email}</p>
-                            </div>
-                            <div style={{
-                                width: 42, height: 42, borderRadius: "50%",
-                                background: "linear-gradient(135deg, #6C63FF, #00D4AA)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                overflow: "hidden", boxShadow: "0 0 15px rgba(108,99,255,0.4)",
-                                border: "2px solid rgba(108,99,255,0.3)",
-                            }}>
-                                {avatar}
-                            </div>
-                            <ChevronDown size={16} style={{ color: "#8888A8" }} />
-                        </button>
-
-                        {/* Dropdown */}
-                        {dropdownOpen && (
-                            <div style={{
-                                position: "absolute", right: 0, top: "calc(100% + 0.75rem)",
-                                width: 260, background: "#1A1A2E",
-                                border: `1px solid ${V}0.2)`,
-                                borderRadius: "1rem", boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                                overflow: "hidden", zIndex: 50,
-                            }}>
-                                {/* Profile header */}
-                                <div style={{ padding: "1rem", borderBottom: `1px solid ${V}0.1)`, display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                                    <div style={{ position: "relative" }} className="group/av">
-                                        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #6C63FF, #00D4AA)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                                            {avatar}
-                                        </div>
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            style={{
-                                                position: "absolute", inset: 0, borderRadius: "50%",
-                                                background: "rgba(0,0,0,0.6)", display: "flex",
-                                                alignItems: "center", justifyContent: "center",
-                                                border: "none", cursor: "pointer", opacity: 0,
-                                                transition: "opacity 0.2s",
-                                            }}
-                                            className="group-hover/av:opacity-100"
-                                        >
-                                            <Camera size={14} color="white" />
-                                        </button>
-                                        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfilePicChange} />
-                                    </div>
-                                    <div>
-                                        <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "#E8E8F0" }}>{user?.full_name}</p>
-                                        <p style={{ fontSize: "0.75rem", color: "#8888A8" }}>{user?.email}</p>
-                                        <button onClick={() => fileInputRef.current?.click()} style={{ fontSize: "0.7rem", color: "#6C63FF", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 2 }}>
-                                            Change photo
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <Link to="/dashboard/settings" style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", color: "#8888A8", textDecoration: "none", fontSize: "0.875rem", transition: "all 0.15s" }}
-                                    className="hover:bg-[rgba(108,99,255,0.08)] hover:text-white">
-                                    <Settings size={16} /> Settings
-                                </Link>
-                                <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", color: "#FF4D6D", background: "none", border: "none", cursor: "pointer", fontSize: "0.875rem", transition: "all 0.15s" }}
-                                    className="hover:bg-[rgba(255,77,109,0.08)]">
-                                    <LogOut size={16} /> Log Out
-                                </button>
-                            </div>
-                        )}
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <span style={{ fontSize: "0.72rem", color: "#2a2a1a", fontWeight: 500 }}>OralIQ</span>
+                        <ChevronRight size={11} style={{ color: "#2a2a1a" }} />
+                        <span style={{ fontSize: "0.825rem", fontWeight: 600, color: "#7a7a60" }}>{pageTitle}</span>
+                    </div>
+                    {/* Mobile avatar only */}
+                    <div className="md:hidden" style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #cfa355, #e8c97a)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                        {avatarInner}
                     </div>
                 </header>
 
-                <div style={{ flex: 1, padding: "2rem", overflowY: "auto" }}>
+                {/* Page content */}
+                <motion.div style={{ flex: 1, padding: "2rem 1.75rem", overflowY: "auto" }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                     <Outlet />
-                </div>
+                </motion.div>
             </main>
         </div>
     );

@@ -1,7 +1,11 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "https://ahmed2552-oraliq-api.hf.space/api/v1",
+    baseURL:
+        import.meta.env.VITE_API_URL ??
+        (import.meta.env.DEV
+            ? "http://127.0.0.1:8000/api/v1"
+            : "https://ahmed2552-oraliq-api.hf.space/api/v1"),
 });
 
 // Add a request interceptor to include the JWT token

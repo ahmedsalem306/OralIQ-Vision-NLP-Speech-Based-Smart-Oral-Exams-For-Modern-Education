@@ -1,173 +1,201 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react"; // useCallback kept for goToNextExam/startExam/startRecording/stopAndSubmit/forceStop
 import { useNavigate } from "react-router-dom";
-import { Square, CheckCircle2, User, Hash, Camera, ArrowRight, Sparkles, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+    Mic, MicOff, CheckCircle2, AlertCircle, Loader2,
+    Sparkles, ArrowRight, Camera,
+} from "lucide-react";
 import Logo from "../components/Logo";
 import api from "../lib/api";
-import { ObjectDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-type Step = "auth_check" | "student_info" | "question_preview" | "recording" | "processing" | "submitted";
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Phase = "loading" | "info" | "preview" | "recording" | "processing" | "done" | "failed";
 
 interface ExamQuestion {
     id: number;
     text: string;
-    category: string;
-    difficulty: string;
+    exam_id: number | null;
     timeLimit: number;
+    model_answer?: string;
 }
 
-// ─── Sub-Components ──────────────────────────────────────────────────────────
-
-function StepIndicator({ currentStep }: { currentStep: Step }) {
-    const steps = [
-        { key: "student_info", label: "Check-In", id: 1 },
-        { key: "question_preview", label: "Question", id: 2 },
-        { key: "recording", label: "Record", id: 3 },
-        { key: "submitted", label: "Done", id: 4 },
-    ];
-
-    const getStatus = (stepKey: string, stepId: number) => {
-        const stepOrder = ["auth_check", "student_info", "question_preview", "recording", "processing", "submitted"];
-        const currentIndex = stepOrder.indexOf(currentStep);
-        const targetIndex = stepOrder.indexOf(stepKey);
-
-        if (currentIndex > targetIndex || (currentStep === "processing" && stepId <= 3) || (currentStep === "submitted" && stepId <= 4)) return "completed";
-        if (currentIndex === targetIndex) return "active";
-        return "pending";
-    };
-
-    return (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", marginBottom: "3rem", width: "100%", maxWidth: "600px" }}>
-            {steps.map((s, i) => {
-                const status = getStatus(s.key, s.id);
-                return (
-                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: i === steps.length - 1 ? "none" : 1 }}>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.4rem", position: "relative" }}>
-                            <div style={{
-                                width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700,
-                                background: status === "completed" ? "#00D4AA" : status === "active" ? "#6C63FF" : "rgba(255,255,255,0.05)",
-                                border: `2px solid ${status === "completed" ? "#00D4AA" : status === "active" ? "#6C63FF" : "rgba(255,255,255,0.1)"}`,
-                                color: status === "pending" ? "#8888A8" : "#fff",
-                                transition: "all 0.3s ease"
-                            }}>
-                                {status === "completed" ? <Check size={16} /> : s.id}
-                            </div>
-                            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: status === "active" ? "#6C63FF" : "#8888A8", position: "absolute", top: "100%", marginTop: "0.5rem", whiteSpace: "nowrap" }}>{s.label}</span>
-                        </div>
-                        {i < steps.length - 1 && (
-                            <div style={{ flex: 1, height: 2, background: status === "completed" ? "#00D4AA" : "rgba(255,255,255,0.1)", margin: "0 0.5rem" }} />
-                        )}
-                    </div>
-                );
-            })}
-        </div>
-    );
+interface ExamResult {
+    transcript: string;
+    nlp_score: number;
+    speech_score: number;
+    facial_score: number;
+    overall_score: number;
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+type AlertKey = "gaze_left" | "gaze_right" | "gaze_up" | "gaze_down"
+    | "no_face" | "multiple_people" | "phone_detected" | "book_detected";
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ExamRoom() {
-    const examToken = localStorage.getItem("pendingExamToken") || "";
     const navigate = useNavigate();
+    const examToken = localStorage.getItem("pendingExamToken") || "";
 
-    // Step state
-    const [step, setStep] = useState<Step>("auth_check");
-    const [authLoading, setAuthLoading] = useState(true);
+    // ── UI state ──────────────────────────────────────────────────────────────
+    const [phase, setPhase] = useState<Phase>("loading");
     const [question, setQuestion] = useState<ExamQuestion | null>(null);
-
-    // Student info
     const [studentName, setStudentName] = useState("");
     const [studentId, setStudentId] = useState("");
-    const [infoError, setInfoError] = useState("");
-
-    // Recording
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
-    const [stream, setStream] = useState<MediaStream | null>(null);
-    const [recording, setRecording] = useState(false);
-    const recordingRef = useRef(false);
-    useEffect(() => { recordingRef.current = recording; }, [recording]);
-    const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
     const [timeLeft, setTimeLeft] = useState(120);
-    const [startedAt, setStartedAt] = useState<string | null>(null);
-    const startedAtRef = useRef<string | null>(null);
+    const [result, setResult] = useState<ExamResult | null>(null);
+    const [stream, setStream] = useState<MediaStream | null>(null);
 
-    // AI Monitoring
-    const [liveAlert, setLiveAlert] = useState<string | null>(null);
+    // ── Stable refs ───────────────────────────────────────────────────────────
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const recorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const startedAtRef = useRef("");
+    const phaseRef = useRef<Phase>("loading");
+
+    // anti-cheat (exact names from original OralIQ repo)
     const antiCheatAlertsRef = useRef<Record<string, number>>({});
-    const lastAlertTimeRef = useRef<number>(0);
     const lastFrameTimeRef = useRef<number>(performance.now());
+    const lastAlertTimeRef = useRef<number>(0);
 
-    // ── Auth check + question fetch on mount ─────────────────────────────────
-    useEffect(() => {
-        if (step === "processing" || step === "submitted") return;
-        const token_stored = localStorage.getItem("token");
-        if (token_stored) {
-            api.get("/users/me")
-                .then(res => {
-                    setStudentName(res.data.full_name || "");
-                    if (examToken && examToken !== "") {
-                        return api.get(`/questions/by-token/${examToken}`)
-                            .then(qRes => {
-                                const q = qRes.data;
-                                const duration = (q.duration_minutes || 2) * 60;
-                                setQuestion({
-                                    id: q.id,
-                                    text: q.text,
-                                    category: q.category,
-                                    difficulty: q.difficulty,
-                                    timeLimit: duration,
-                                });
-                                setTimeLeft(duration);
-                            })
-                            .catch(() => console.error("Could not load exam question."));
-                    }
-                })
-                .then(() => {
-                    if (step === "auth_check") setStep("student_info");
-                })
-                .catch(() => {
-                    localStorage.removeItem("token");
-                    setStep("auth_check");
-                })
-                .finally(() => setAuthLoading(false));
-        } else {
-            setAuthLoading(false);
-            setStep("auth_check");
-        }
-    }, [examToken, step]);
+    // live alert popup (single string, 4s throttle — same as original)
+    const [liveAlert, setLiveAlert] = useState<string | null>(null);
 
-    // ── Countdown timer ───────────────────────────────────────────────────────
-    useEffect(() => {
-        if (step !== "recording" || !recording || timeLeft <= 0) return;
-        const t = setInterval(() => setTimeLeft(p => {
-            if (p <= 1) { handleSubmit(); return 0; }
-            return p - 1;
-        }), 1000);
-        return () => clearInterval(t);
-    }, [step, recording, timeLeft]);
+    // Remaining pending assignments
+    const [remainingExams, setRemainingExams] = useState<{ exam_token: string; question_text: string }[]>([]);
 
-    // ── Camera setup + FaceMesh ───────────────────────────────────────────────
-    const setupCamera = async () => {
+    // keep phaseRef in sync
+    useEffect(() => { phaseRef.current = phase; }, [phase]);
+
+    // ── Move on to the next assigned exam (if any) ───────────────────────────
+    const goToNextExam = useCallback(async () => {
         try {
-            const s = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "user" },
-                audio: true
-            });
-            setStream(s);
-            if (videoRef.current) videoRef.current.srcObject = s;
-            initFaceMesh();
+            const { data } = await api.get("/exams/my-assignments");
+            const remaining = (data || []).filter((a: any) => a.exam_token && a.exam_token !== examToken);
+            if (remaining.length === 0) {
+                navigate("/dashboard");
+                return;
+            }
+            const next = remaining[0];
+            localStorage.setItem("pendingExamToken", next.exam_token);
+            // Hard reload so state resets cleanly
+            window.location.assign("/exam/start");
         } catch {
-            console.error("Camera access denied");
+            navigate("/dashboard");
+        }
+    }, [examToken, navigate]);
+
+    // ── Connect stream to video element whenever stream changes ───────────────
+    useEffect(() => {
+        if (stream && videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch(() => {});
+        }
+    }, [stream]);
+
+    // ── Auth + question load ──────────────────────────────────────────────────
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) { navigate("/login"); return; }
+
+        const buildQ = (q: any): ExamQuestion => ({
+            id: q.id,
+            text: q.text,
+            exam_id: q.exam_id ?? null,
+            timeLimit: (q.duration_minutes || 2) * 60,
+            model_answer: q.model_answer || "",
+        });
+
+        api.get("/users/me")
+            .then(res => {
+                setStudentName(res.data.full_name || "");
+                // Fetch remaining assignments in parallel (used after submit to chain questions)
+                api.get("/exams/my-assignments")
+                    .then(r => setRemainingExams(
+                        (r.data || []).map((a: any) => ({
+                            exam_token: a.exam_token,
+                            question_text: a.question_text || "",
+                        })).filter((a: any) => a.exam_token)
+                    ))
+                    .catch(() => {});
+
+                if (!examToken) {
+                    setErrorMsg("مفيش امتحان متاح. ارجع للداشبورد.");
+                    setPhase("info");
+                    return Promise.resolve();
+                }
+                return api.get(`/questions/by-token/${examToken}`)
+                    .then(r => setQuestion(buildQ(r.data)))
+                    .catch(() =>
+                        api.get(`/exams/exam-by-token/${examToken}`)
+                            .then(r => {
+                                const qs: any[] = r.data.questions || [];
+                                if (qs.length > 0) setQuestion(buildQ(qs[0]));
+                            })
+                    );
+            })
+            .then(() => setPhase("info"))
+            .catch(() => { localStorage.removeItem("token"); navigate("/login"); });
+    }, []);
+
+    // ── Timer (recording only) ────────────────────────────────────────────────
+    useEffect(() => {
+        if (phase !== "recording" || timeLeft <= 0) return;
+        const id = setInterval(() => {
+            setTimeLeft(p => {
+                if (p <= 1) { forceStop(); return 0; }
+                return p - 1;
+            });
+        }, 1000);
+        return () => clearInterval(id);
+    }, [phase, timeLeft]);
+
+    useEffect(() => { if (question) setTimeLeft(question.timeLimit); }, [question]);
+
+    // ── accumulateDistraction: exact copy from original OralIQ repo ─────────
+    const accumulateDistraction = (type: string, dt: number) => {
+        antiCheatAlertsRef.current[type] = (antiCheatAlertsRef.current[type] || 0) + dt;
+        const now = Date.now();
+        if (now - lastAlertTimeRef.current > 4000) {
+            const labels: Record<string, string> = {
+                "gaze_left": "⚠️ نظرت بعيداً",
+                "gaze_right": "⚠️ نظرت بعيداً",
+                "gaze_down": "⚠️ نظرت للأسفل",
+                "gaze_up": "⚠️ نظرت للأعلى",
+                "no_face": "⚠️ الوجه مش ظاهر",
+                "multiple_people": "⚠️ أكتر من شخص",
+                "phone_detected": "⚠️ تليفون ظاهر",
+                "book_detected": "⚠️ ورق/كتاب ظاهر",
+            };
+            setLiveAlert(labels[type] || `⚠️ ${type}`);
+            lastAlertTimeRef.current = now;
+            setTimeout(() => setLiveAlert(null), 3000);
         }
     };
 
     const initFaceMesh = async () => {
+        // ── hidden canvas for CLAHE-like preprocessing ────────────────────────
+        const procCanvas = document.createElement("canvas");
+        procCanvas.width  = 640;
+        procCanvas.height = 480;
+        const procCtx = procCanvas.getContext("2d")!;
+
+        // ── temporal smoothing buffers (same as Python deque maxlen=5) ─────────
+        const SMOOTH_N = 5;
+        const bufHH: number[] = [], bufHV: number[] = [];
+        const bufPH: number[] = [], bufPV: number[] = [];
+        const smooth = (buf: number[], val: number) => {
+            buf.push(val);
+            if (buf.length > SMOOTH_N) buf.shift();
+            return buf.reduce((a, b) => a + b, 0) / buf.length;
+        };
+
         const { FaceMesh } = await import("@mediapipe/face_mesh");
         const faceMesh = new FaceMesh({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+            locateFile: (file: string) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
         });
         faceMesh.setOptions({
             maxNumFaces: 1,
@@ -175,354 +203,691 @@ export default function ExamRoom() {
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5,
         });
-        const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-        );
-        const objectDetector = await ObjectDetector.createFromOptions(vision, {
-            baseOptions: {
-                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite`,
-                delegate: "GPU"
-            },
-            scoreThreshold: 0.5,
-            runningMode: "VIDEO"
-        });
 
-        faceMesh.onResults((results) => {
+        // ObjectDetector is optional — if it fails (no WASM/network), face detection still works
+        let objectDetector: any = null;
+        try {
+            const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+            objectDetector = await ObjectDetector.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath:
+                        "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                    delegate: "CPU",
+                },
+                scoreThreshold: 0.5,
+                runningMode: "VIDEO",
+            });
+        } catch (e) {
+            console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
+        }
+
+        faceMesh.onResults((results: any) => {
             const now = performance.now();
             const dt = (now - lastFrameTimeRef.current) / 1000;
-            // Only update time after BOTH detectors have run
-            if (!recordingRef.current) return;
+            if (phaseRef.current !== "recording") return;
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
                 accumulateDistraction("no_face", dt);
+                bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 return;
             }
             if (results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
 
-            const landmarks = results.multiFaceLandmarks[0];
-            const nose = landmarks[1];
-            const leftEye = landmarks[33];
-            const rightEye = landmarks[263];
-            const mouth = landmarks[14]; // Upper lip
+            const lm = results.multiFaceLandmarks[0];
 
-            // --- Head Pose (Nose vs Eyes) ---
-            const headHorizontalRatio = (nose.x - leftEye.x) / (rightEye.x - leftEye.x);
-            const eyeToNose = nose.y - leftEye.y;
-            const noseToMouth = mouth.y - nose.y;
-            const headVerticalRatio = eyeToNose / noseToMouth;
+            // ── head pose ─────────────────────────────────────────────────────
+            const nose = lm[1], leftEye = lm[33], rightEye = lm[263], mouth = lm[14];
+            const rawHH = (nose.x - leftEye.x)  / Math.max(rightEye.x - leftEye.x,  1e-6);
+            const rawHV = (nose.y - leftEye.y)  / Math.max(mouth.y    - nose.y,      1e-6);
 
-            // --- Pupil/Iris Tracking (Left Eye) ---
-            const iris = landmarks[468]; // Center of left iris
-            const eyeInner = landmarks[133];
-            const eyeOuter = landmarks[33];
-            const eyeTop = landmarks[159];
-            const eyeBottom = landmarks[145];
+            // ── dual iris average (left + right) — more robust ────────────────
+            // left iris: 468 center, outer 33, inner 133, top 159, bot 145
+            // right iris: 473 center, outer 263, inner 362, top 386, bot 374
+            const liris = lm[468], lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
+            const riris = lm[473], rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
 
-            // Horizontal pupil position: 0.0 (looking far left/outer) to 1.0 (looking far right/inner)
-            // (Note: camera feeds are often mirrored, so directions might feel flipped. We catch both extremes)
-            const pupilHorizontalRatio = (iris.x - eyeOuter.x) / (eyeInner.x - eyeOuter.x);
+            const pHL = (liris.x - lOuter.x) / Math.max(lInner.x - lOuter.x, 1e-6);
+            const pVL = (liris.y - lTop.y)   / Math.max(lBot.y   - lTop.y,   1e-6);
+            const pHR = (riris.x - rOuter.x) / Math.max(rInner.x - rOuter.x, 1e-6);
+            const pVR = (riris.y - rTop.y)   / Math.max(rBot.y   - rTop.y,   1e-6);
 
-            // Vertical pupil position: 0.0 (looking up) to 1.0 (looking down)
-            const pupilVerticalRatio = (iris.y - eyeTop.y) / (eyeBottom.y - eyeTop.y);
+            const rawPH = (pHL + pHR) / 2;
+            const rawPV = (pVL + pVR) / 2;
 
-            // Trigger alerts if EITHER the head is turned OR the pupils are darting (Increased sensitivity)
-            if (headHorizontalRatio < 0.42 || pupilHorizontalRatio > 0.65) accumulateDistraction("gaze_left", dt);
-            else if (headHorizontalRatio > 0.58 || pupilHorizontalRatio < 0.35) accumulateDistraction("gaze_right", dt);
+            // ── temporal smoothing ────────────────────────────────────────────
+            const hH = smooth(bufHH, rawHH);
+            const hV = smooth(bufHV, rawHV);
+            const pH = smooth(bufPH, rawPH);
+            const pV = smooth(bufPV, rawPV);
 
-            if (headVerticalRatio > 1.5 || pupilVerticalRatio > 0.65) accumulateDistraction("gaze_down", dt);
-            else if (headVerticalRatio < 0.8 || pupilVerticalRatio < 0.35) accumulateDistraction("gaze_up", dt);
+            // ── gaze classification ───────────────────────────────────────────
+            // AND logic: head pose + iris must agree → eliminates false positives
+            // Fallback: very strong head turn alone (no iris needed)
+            const gazeLeft  = hH < 0.36 || (hH < 0.44 && pH > 0.63);
+            const gazeRight = hH > 0.64 || (hH > 0.56 && pH < 0.37);
+            const gazeDown  = hV > 1.9  || (hV > 1.6  && pV > 0.63);
+            const gazeUp    = hV < 0.55 || (hV < 0.72 && pV < 0.34);
 
+            if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
+            else if (gazeRight) accumulateDistraction("gaze_right", dt);
+            if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
+            else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+
+            // ── canvas overlay ────────────────────────────────────────────────
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext("2d");
+                if (ctx) {
+                    const W = canvas.width, H = canvas.height;
+                    ctx.clearRect(0, 0, W, H);
+                    const totalAcc = Object.values(antiCheatAlertsRef.current).reduce((a, b) => a + b, 0);
+                    const color = totalAcc > 3 ? "#e05555" : totalAcc > 0.5 ? "#e8c97a" : "#5ec269";
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = 0.65;
+                    for (const p of lm) {
+                        ctx.beginPath();
+                        ctx.arc(p.x * W, p.y * H, 1.2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.globalAlpha = 1;
+                    [468, 473].forEach((i: number) => {
+                        const p = lm[i]; if (!p) return;
+                        ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 5, 0, Math.PI * 2);
+                        ctx.fillStyle = "#fff"; ctx.fill();
+                        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+                    });
+                }
+            }
         });
 
         const runDetection = async () => {
-            if (videoRef.current && videoRef.current.readyState >= 2) {
-                const now = performance.now();
-                await faceMesh.send({ image: videoRef.current });
+            try {
+                const video = videoRef.current;
+                if (video && video.readyState >= 2) {
+                    const now = performance.now();
 
-                if (recordingRef.current) {
-                    const detections = objectDetector.detectForVideo(videoRef.current, now);
-                    for (const detection of detections.detections) {
-                        const label = detection.categories[0].categoryName;
-                        if (label === 'cell phone') {
-                            accumulateDistraction("phone_detected", (now - lastFrameTimeRef.current) / 1000);
-                        } else if (label === 'book') {
-                            accumulateDistraction("book_detected", (now - lastFrameTimeRef.current) / 1000);
+                    // ── CLAHE-like preprocessing: boost contrast/brightness ────
+                    procCanvas.width  = video.videoWidth  || 640;
+                    procCanvas.height = video.videoHeight || 480;
+                    procCtx.filter = "contrast(1.25) brightness(1.05)";
+                    procCtx.drawImage(video, 0, 0);
+                    procCtx.filter = "none";
+
+                    await faceMesh.send({ image: procCanvas });
+
+                    if (phaseRef.current === "recording" && objectDetector) {
+                        const detections = objectDetector.detectForVideo(video, now);
+                        for (const detection of detections.detections) {
+                            const label = detection.categories[0]?.categoryName || "";
+                            const dt2 = (now - lastFrameTimeRef.current) / 1000;
+                            if (label === "cell phone") accumulateDistraction("phone_detected", dt2);
+                            else if (label === "book")  accumulateDistraction("book_detected",  dt2);
                         }
                     }
+                    lastFrameTimeRef.current = now;
                 }
-                lastFrameTimeRef.current = now;
+            } catch (e) {
+                console.warn("[runDetection] frame error:", e);
             }
             requestAnimationFrame(runDetection);
         };
         requestAnimationFrame(runDetection);
     };
 
-    const accumulateDistraction = (type: string, dt: number) => {
-        antiCheatAlertsRef.current[type] = (antiCheatAlertsRef.current[type] || 0) + dt;
-        const now = Date.now();
-        if (now - lastAlertTimeRef.current > 4000) {
-            const labels: Record<string, string> = {
-                "gaze_left": "Looking away",
-                "gaze_right": "Looking away",
-                "gaze_down": "Looking down",
-                "gaze_up": "Looking up",
-                "no_face": "Face not detected",
-                "multiple_people": "Multiple people detected",
-                "phone_detected": "Phone detected",
-                "book_detected": "Book detected"
-            };
-            setLiveAlert(`⚠️ ${labels[type] || type}! Please focus on the screen.`);
-            lastAlertTimeRef.current = now;
-            setTimeout(() => setLiveAlert(null), 3000);
-        }
-    };
-
-    const handleReadyClick = async () => {
-        const now = new Date().toISOString();
-        setStep("recording");
-        setStartedAt(now);
-        startedAtRef.current = now;
-        await setupCamera();
-    };
-
-    const startRecording = () => {
-        if (!stream) return;
-        audioChunksRef.current = [];
-        const audioTracks = stream.getAudioTracks();
-        const audioStream = new MediaStream(audioTracks);
-        const recorder = new MediaRecorder(audioStream, {
-            mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm',
-        });
-        recorder.ondataavailable = (e) => {
-            if (e.data.size > 0) audioChunksRef.current.push(e.data);
-        };
-        recorder.start(1000);
-        mediaRecorderRef.current = recorder;
-        setRecording(true);
-    };
-
-    const stopRecording = (): Promise<Blob> => {
-        return new Promise((resolve) => {
-            const recorder = mediaRecorderRef.current;
-            if (!recorder || recorder.state === 'inactive') {
-                resolve(new Blob(audioChunksRef.current, { type: 'audio/webm' }));
-                return;
-            }
-            recorder.onstop = () => {
-                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                resolve(blob);
-            };
-            recorder.stop();
-            setRecording(false);
-        });
-    };
-
-    const handleSubmit = async () => {
-        setShowSubmitModal(false);
-        const audioBlob = await stopRecording();
-        const fAt = new Date().toISOString();
-
-        stream?.getTracks().forEach(t => t.stop());
-        setStep('processing');
-
-        try {
-            if (question) {
-                const formData = new FormData();
-                formData.append('question_id', String(question.id));
-                formData.append('student_name', studentName);
-                formData.append('student_number', studentId);
-                formData.append('audio', audioBlob, 'answer.webm');
-                formData.append('anti_cheat_alerts', JSON.stringify(antiCheatAlertsRef.current));
-
-                const sAt = startedAtRef.current || startedAt;
-                if (sAt) formData.append('started_at', sAt);
-                formData.append('finished_at', fAt);
-
-                await api.post('/exams/submit', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    timeout: 120000,
-                });
-            }
-        } catch (err) {
-            console.error('Submit error:', err);
-        }
-        localStorage.removeItem('pendingExamToken');
-        setStep('submitted');
-    };
-
-    const handleInfoSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    // ── START EXAM: info → preview ────────────────────────────────────────────
+    const startExam = useCallback(async () => {
         if (!studentName.trim() || !studentId.trim()) {
-            setInfoError("Please fill in all details.");
+            setErrorMsg("لازم تدخل اسمك ورقمك الأول.");
             return;
         }
-        setStep("question_preview");
+        if (!question) { setErrorMsg("مفيش سؤال متاح."); return; }
+        setErrorMsg("");
+
+        let s: MediaStream;
+        try {
+            s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch {
+            setErrorMsg("محتاج إذن الكاميرا والميكروفون.");
+            return;
+        }
+
+        setStream(s);
+        if (videoRef.current) {
+            videoRef.current.srcObject = s;
+            videoRef.current.play().catch(() => {});
+        }
+        setPhase("preview");
+
+        // Reset anti-cheat counters
+        antiCheatAlertsRef.current = {};
+        lastFrameTimeRef.current = performance.now();
+        lastAlertTimeRef.current = 0;
+
+        // Start FaceMesh + ObjectDetector (exact original pattern: not awaited)
+        initFaceMesh();
+    }, [studentName, studentId, question]);
+
+    // ── START RECORDING: preview → recording ─────────────────────────────────
+    const startRecording = useCallback(() => {
+        if (!stream) return;
+        setErrorMsg("");
+        startedAtRef.current = new Date().toISOString();
+        chunksRef.current = [];
+
+        const audioOnly = new MediaStream(stream.getAudioTracks());
+        const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+            ? "audio/webm;codecs=opus" : "audio/webm";
+        const rec = new MediaRecorder(audioOnly, { mimeType: mime });
+        rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+        rec.start(100);
+        recorderRef.current = rec;
+        setPhase("recording");
+    }, [stream]);
+
+    // ── STOP + SUBMIT ─────────────────────────────────────────────────────────
+    const stopAndSubmit = useCallback(() => {
+        const rec = recorderRef.current;
+        if (!rec || rec.state !== "recording") return;
+
+        rec.onstop = async () => {
+            // Stop camera (RAF loop stops itself when video disappears)
+            stream?.getTracks().forEach(t => t.stop());
+            setStream(null);
+
+            const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+            if (blob.size < 500) {
+                setErrorMsg("التسجيل قصير جداً — اضغط التسجيل وتكلم أكتر.");
+                setPhase("preview");
+                return;
+            }
+            setPhase("processing");
+            await submitToBackend(blob);
+        };
+        rec.stop();
+    }, [stream]);
+
+    const forceStop = useCallback(() => {
+        if (recorderRef.current?.state === "recording") stopAndSubmit();
+    }, [stopAndSubmit]);
+
+    // ── Submit to backend ─────────────────────────────────────────────────────
+    // Submits the answer; only marks the exam as "done" on a real success
+    // (response carries an id). Anything else -> "failed" with the actual error.
+    const submitToBackend = async (blob: Blob) => {
+        if (!question?.id) {
+            setErrorMsg("مفيش سؤال محمّل — تأكد من الرابط.");
+            setPhase("failed");
+            return;
+        }
+        const fd = new FormData();
+        fd.append("question_id", String(question.id));
+        fd.append("student_name", studentName);
+        fd.append("student_number", studentId);
+        fd.append("audio", blob, "answer.webm");
+        fd.append("anti_cheat_alerts", JSON.stringify(antiCheatAlertsRef.current));
+        fd.append("started_at", startedAtRef.current);
+        fd.append("finished_at", new Date().toISOString());
+
+        try {
+            const res = await api.post("/exams/submit", fd, {
+                headers: { "Content-Type": "multipart/form-data" },
+                timeout: 300_000, // 5 minutes — Whisper + SBERT can be slow on first call
+            });
+            if (res.data?.id) {
+                setResult({
+                    transcript: res.data.transcript || "",
+                    nlp_score: res.data.nlp_score ?? 0,
+                    speech_score: res.data.speech_score ?? 0,
+                    facial_score: res.data.facial_score ?? 100,
+                    overall_score: res.data.overall_score ?? 0,
+                });
+                localStorage.removeItem("pendingExamToken");
+                setPhase("done");
+            } else {
+                setErrorMsg("السيرفر رجع رد غير متوقع.");
+                setPhase("failed");
+            }
+        } catch (e: any) {
+            const detail = e?.response?.data?.detail;
+            const status = e?.response?.status;
+            const msg = (typeof detail === "string" ? detail : null)
+                || (status ? `خطأ ${status} من السيرفر` : null)
+                || e?.message
+                || "تعذّر الاتصال بالسيرفر";
+            console.error("[ExamRoom] submit error:", status, e?.response?.data, e);
+            setErrorMsg(msg);
+            setPhase("failed");
+        }
     };
 
-    const mins = Math.floor(timeLeft / 60);
-    const secs = timeLeft % 60;
-    const timeColor = timeLeft < 30 ? "#FF4D6D" : timeLeft < 60 ? "#FFB347" : "#00D4AA";
+    // ── Cleanup on unmount ────────────────────────────────────────────────────
+    useEffect(() => {
+        return () => {
+            stream?.getTracks().forEach(t => t.stop());
+        };
+    }, [stream]);
 
-    return (
-        <div style={{ minHeight: "100vh", background: "#0F0F1A", display: "flex", flexDirection: "column", overflowX: "hidden" }}>
-            <AnimatePresence mode="wait">
-                {authLoading ? (
-                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ width: 40, height: 40, border: "3px solid rgba(108,99,255,0.3)", borderTopColor: "#6C63FF", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                    </motion.div>
-                ) : step === "recording" ? (
-                    <motion.div key="recording" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-                        <header style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2rem", background: "#1A1A2E", borderBottom: "1px solid rgba(108,99,255,0.1)" }}>
-                            <Logo size={24} showText={true} />
-                            <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: timeColor, fontWeight: 800 }}>
-                                    <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 1 }} style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF4D6D" }} />
-                                    {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
-                                </div>
-                                <motion.button whileHover={{ scale: 1.05 }} onClick={() => setShowSubmitModal(true)} style={{ padding: "0.5rem 1.5rem", background: "#6C63FF", color: "#fff", border: "none", borderRadius: "0.5rem", fontWeight: 700, cursor: "pointer" }}>Finish</motion.button>
-                            </div>
-                        </header>
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    const scoreColor = (s: number) => s >= 75 ? "#5ec269" : s >= 50 ? "#e0a030" : "#e05555";
+    const scoreLabel = (s: number) => s >= 85 ? "ممتاز" : s >= 65 ? "جيد" : s >= 45 ? "مقبول" : "ضعيف";
+    const fmt = (s: number) => String(Math.floor(s)).padStart(2, "0");
+    const alertLabel = (k: AlertKey): string => ({
+        gaze_left: "نظر يسار",
+        gaze_right: "نظر يمين",
+        gaze_up: "نظر فوق",
+        gaze_down: "نظر تحت",
+        no_face: "الوجه مش ظاهر",
+        multiple_people: "أكثر من شخص",
+        phone_detected: "📱 موبايل",
+        book_detected: "📖 كتاب/ورق",
+    }[k]);
 
-                        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", position: "relative", background: "#000", margin: "1rem", borderRadius: "1.5rem", overflow: "hidden", border: "1px solid rgba(108,99,255,0.2)" }}>
-                            <video ref={videoRef} autoPlay muted playsInline style={{ width: "100%", maxWidth: "900px", maxHeight: "100%", objectFit: "contain", transform: "scaleX(-1)" }} />
+    // ═════════════════════════════════════════════════════════════════════════
+    //  UI
+    // ═════════════════════════════════════════════════════════════════════════
 
-                            <AnimatePresence>
-                                {liveAlert && (
-                                    <motion.div initial={{ y: 20, opacity: 0, x: "-50%" }} animate={{ y: 0, opacity: 1, x: "-50%" }} exit={{ y: 20, opacity: 0, x: "-50%" }} style={{ position: "absolute", bottom: "2rem", left: "50%", background: "rgba(255,77,109,0.9)", color: "#fff", padding: "0.75rem 1.5rem", borderRadius: "1rem", fontWeight: 700, backdropFilter: "blur(10px)" }}>
-                                        {liveAlert}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+    if (phase === "loading") return (
+        <div style={C.center}>
+            <Loader2 size={36} color="#cfa355" style={{ animation: "spin 1s linear infinite" }} />
+        </div>
+    );
 
-                            <div style={{ position: "absolute", top: "1.5rem", left: "1.5rem", right: "1.5rem", background: "rgba(15,15,26,0.8)", backdropFilter: "blur(10px)", padding: "1.5rem", borderRadius: "1rem", border: "1px solid rgba(108,99,255,0.2)" }}>
-                                <p style={{ fontSize: "0.65rem", color: "#6C63FF", fontWeight: 800, marginBottom: "0.25rem" }}>{question?.category}</p>
-                                <p style={{ color: "#fff", fontSize: "1.1rem", fontWeight: 600 }}>{question?.text}</p>
-                            </div>
+    if (phase === "info") return (
+        <div style={{ ...C.center, padding: "2rem" }}>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                style={{ width: "100%", maxWidth: 460, background: "#141414", borderRadius: "1.5rem", border: "1px solid rgba(207,163,85,0.15)", padding: "2.5rem" }}>
+                <Logo size={28} showText style={{ marginBottom: "1.5rem" }} />
 
-                            <div style={{ position: "absolute", bottom: "2rem", right: "2rem" }}>
-                                {!recording ? (
-                                    <button onClick={startRecording} style={{ width: 64, height: 64, borderRadius: "50%", background: "#FF4D6D", border: "none", cursor: "pointer" }} />
-                                ) : (
-                                    <motion.button animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 2 }} onClick={() => setShowSubmitModal(true)} style={{ width: 64, height: 64, borderRadius: "50%", background: "#FF4D6D", border: "none", display: "flex", alignItems: "center", justifyContent: "center" }}><Square size={24} color="#fff" fill="#fff" /></motion.button>
-                                )}
-                            </div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.85rem", borderRadius: "999px", background: "rgba(207,163,85,0.08)", border: "1px solid rgba(207,163,85,0.18)", marginBottom: "1rem" }}>
+                    <Sparkles size={12} color="#cfa355" />
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#cfa355", letterSpacing: "0.05em" }}>امتحان شفوي</span>
+                </div>
+
+                <h2 style={{ color: "#e5e5e0", fontSize: "1.5rem", fontWeight: 800, marginBottom: "0.4rem" }}>أهلاً بيك</h2>
+                <p style={{ color: "#8b8b73", fontSize: "0.875rem", marginBottom: "1.75rem", lineHeight: 1.7 }} dir="rtl">
+                    دخّل بياناتك ثم اضغط ابدأ. السؤال هيظهرلك أول ما يبدأ التسجيل.
+                </p>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+                    <input value={studentName} onChange={e => setStudentName(e.target.value)}
+                        placeholder="الاسم الكامل" dir="rtl" style={C.input} />
+                    <input value={studentId} onChange={e => setStudentId(e.target.value)}
+                        placeholder="رقم الطالب" dir="rtl" style={C.input} />
+
+                    {errorMsg && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#e05555", fontSize: "0.85rem" }} dir="rtl">
+                            <AlertCircle size={16} /> {errorMsg}
                         </div>
+                    )}
 
-                        {showSubmitModal && (
-                            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-                                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} style={{ background: "#1A1A2E", padding: "2.5rem", borderRadius: "1.5rem", textAlign: "center", maxWidth: 400, border: "1px solid rgba(108,99,255,0.3)" }}>
-                                    <h2 style={{ color: "#fff", marginBottom: "1rem" }}>Submit Exam?</h2>
-                                    <p style={{ color: "#8888A8", marginBottom: "2rem" }}>Are you sure you want to finish and submit your answer?</p>
-                                    <div style={{ display: "flex", gap: "1rem" }}>
-                                        <button onClick={() => setShowSubmitModal(false)} style={{ flex: 1, padding: "0.75rem", background: "none", border: "1px solid #333", color: "#8888A8", borderRadius: "0.5rem" }}>Cancel</button>
-                                        <button onClick={handleSubmit} style={{ flex: 1, padding: "0.75rem", background: "#6C63FF", color: "#fff", border: "none", borderRadius: "0.5rem", fontWeight: 700 }}>Submit</button>
-                                    </div>
-                                </motion.div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.875rem", background: "rgba(207,163,85,0.04)", border: "1px solid rgba(207,163,85,0.08)", borderRadius: "0.75rem" }} dir="rtl">
+                        {["اتكلم بصوت واضح وقريّب من الميك", "بُص في الكاميرا أثناء الإجابة", "مفيش موبايل أو ملاحظات معاك"].map(r => (
+                            <div key={r} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.78rem", color: "#8b8b73" }}>
+                                <CheckCircle2 size={13} color="#cfa355" /> {r}
                             </div>
-                        )}
+                        ))}
+                    </div>
+
+                    <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                        onClick={startExam}
+                        style={{ padding: "1rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", fontWeight: 800, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "0.5rem" }}>
+                        <ArrowRight size={18} /> ابدأ الامتحان
+                    </motion.button>
+                </div>
+            </motion.div>
+        </div>
+    );
+
+    if (phase === "processing") return (
+        <div style={C.center}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                style={{ textAlign: "center", padding: "3rem", maxWidth: 480 }}>
+                <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 2rem" }}>
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                        style={{ position: "absolute", inset: 0, border: "3px solid rgba(207,163,85,0.15)", borderTopColor: "#cfa355", borderRadius: "50%" }} />
+                    <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}
+                        style={{ position: "absolute", inset: 16, background: "linear-gradient(135deg, #cfa355, #e8c97a)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Sparkles size={22} color="#0a0a0a" />
                     </motion.div>
-                ) : step === "processing" ? (
-                    <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0F0F1A" }}>
-                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ width: 60, height: 60, borderRadius: "50%", border: "3px solid rgba(108,99,255,0.1)", borderTopColor: "#6C63FF", marginBottom: "2rem" }} />
-                        <h2 style={{ color: "#fff" }}>AI Analysis in Progress</h2>
-                        <p style={{ color: "#8888A8" }}>Evaluating your response...</p>
+                </div>
+                <h2 style={{ color: "#e5e5e0", fontSize: "1.4rem", fontWeight: 800, marginBottom: "0.75rem" }} dir="rtl">
+                    جاري التحليل والتصحيح...
+                </h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem", textAlign: "right", padding: "1rem", background: "#141414", border: "1px solid rgba(207,163,85,0.1)", borderRadius: "0.875rem" }}>
+                    {[
+                        "تحويل الصوت إلى نص (Whisper)...",
+                        "تحليل محتوى الإجابة (SBERT/NLP)...",
+                        "تقييم نزاهة الامتحان (Vision AI)...",
+                        "حساب الدرجة النهائية...",
+                    ].map((step, i) => (
+                        <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.5 }}
+                            style={{ display: "flex", alignItems: "center", gap: "0.625rem", fontSize: "0.82rem", color: "#cfa355" }} dir="rtl">
+                            <Loader2 size={12} style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                            {step}
+                        </motion.div>
+                    ))}
+                </div>
+                <p style={{ color: "#3a3a2a", fontSize: "0.7rem", marginTop: "1rem" }} dir="rtl">
+                    في المرة الأولى قد يأخذ دقيقة لتحميل نموذج Whisper
+                </p>
+            </motion.div>
+        </div>
+    );
+
+    if (phase === "failed") return (
+        <div style={C.center}>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                style={{ textAlign: "center", padding: "3rem", maxWidth: 440, background: "#141414", borderRadius: "1.5rem", border: "1px solid rgba(224,85,85,0.25)" }}>
+                <AlertCircle size={48} color="#e05555" style={{ margin: "0 auto 1rem" }} />
+                <h2 style={{ color: "#e5e5e0", fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.5rem" }} dir="rtl">
+                    حدث خطأ أثناء الإرسال
+                </h2>
+                <p style={{ color: "#8b8b73", marginBottom: errorMsg ? "0.5rem" : "1.5rem" }} dir="rtl">
+                    مشكلة في الاتصال بالسيرفر — الإجابة لم تُرسل.
+                </p>
+                {errorMsg && (
+                    <p style={{ color: "#e05555", fontSize: "0.75rem", background: "rgba(224,85,85,0.1)", padding: "0.75rem", borderRadius: "0.5rem", marginBottom: "1.5rem", wordBreak: "break-all", textAlign: "left" }}>
+                        {errorMsg}
+                    </p>
+                )}
+                <button onClick={() => navigate("/dashboard")}
+                    style={{ padding: "0.85rem 2rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", cursor: "pointer", fontWeight: 800, fontSize: "0.95rem", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                    الرجوع للداشبورد <ArrowRight size={16} />
+                </button>
+            </motion.div>
+        </div>
+    );
+
+    if (phase === "done") return (
+        <div style={{ ...C.center, padding: "1.5rem" }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 180, damping: 20 }}
+                style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+                {/* Header */}
+                <div style={{ textAlign: "center" }}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.2 }}
+                        style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(94,194,105,0.1)", border: "2px solid rgba(94,194,105,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                        <CheckCircle2 size={40} color="#5ec269" />
                     </motion.div>
+                    <h2 style={{ color: "#e5e5e0", fontSize: "1.5rem", fontWeight: 800 }} dir="rtl">تم تسليم الامتحان!</h2>
+                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", marginTop: "0.25rem" }} dir="rtl">
+                        هتلاقي نتيجتك النهائية في «درجاتي» لما الدكتور يعرضها
+                    </p>
+                </div>
+
+                {result && (
+                  <>
+                    {/* Overall score */}
+                    <div style={{ background: "#141414", border: `2px solid ${scoreColor(result.overall_score)}44`, borderRadius: "1.25rem", padding: "1.5rem", textAlign: "center" }}>
+                        <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em", color: "#5a5a4a", marginBottom: "0.5rem" }}>
+                            الدرجة الإجمالية
+                        </p>
+                        <div style={{ fontSize: "3.5rem", fontWeight: 900, color: scoreColor(result.overall_score), fontFamily: "'Orbitron', monospace", lineHeight: 1 }}>
+                            {Math.round(result.overall_score)}
+                        </div>
+                        <div style={{ color: scoreColor(result.overall_score), fontWeight: 700, marginTop: "0.25rem" }}>
+                            {scoreLabel(result.overall_score)}
+                        </div>
+                        <p style={{ fontSize: "0.65rem", color: "#3a3a2a", marginTop: "0.5rem" }} dir="rtl">
+                            80% محتوى + 10% طلاقة + 10% نزاهة
+                        </p>
+                    </div>
+
+                    {/* Score breakdown */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                        {[
+                            { label: "المحتوى", value: result.nlp_score, note: "NLP/SBERT" },
+                            { label: "الطلاقة", value: result.speech_score, note: "Whisper" },
+                            { label: "النزاهة", value: result.facial_score, note: "Vision AI" },
+                        ].map(({ label, value, note }) => (
+                            <div key={label} style={{ background: "#141414", border: `1px solid ${scoreColor(value)}33`, borderRadius: "1rem", padding: "1rem", textAlign: "center" }}>
+                                <p style={{ fontSize: "0.6rem", color: "#5a5a4a", marginBottom: "0.4rem" }}>{label}</p>
+                                <div style={{ fontSize: "1.6rem", fontWeight: 800, color: scoreColor(value) }}>
+                                    {Math.round(value)}
+                                </div>
+                                <p style={{ fontSize: "0.55rem", color: "#3a3a2a", marginTop: "0.2rem" }}>{note}</p>
+                            </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Transcript */}
+                {result?.transcript && (
+                    <div style={{ background: "#141414", border: "1px solid rgba(207,163,85,0.1)", borderRadius: "1.25rem", padding: "1.25rem" }}>
+                        <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", color: "#5a5a4a", marginBottom: "0.75rem" }} dir="rtl">
+                            إجابتك — نص Whisper
+                        </p>
+                        <p style={{ color: "#d0d0c0", fontSize: "0.9rem", lineHeight: 1.8 }} dir="rtl">
+                            {result.transcript}
+                        </p>
+                    </div>
+                )}
+
+                {/* Next-exam CTA: only shows if there are MORE pending assignments
+                    for this student (lecturer assigned multiple questions). */}
+                {remainingExams.filter(r => r.exam_token !== examToken).length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                        <button onClick={goToNextExam}
+                            style={{ padding: "1rem 2rem", background: "linear-gradient(135deg, #1a6e1a, #2a8a2a)", border: "none", borderRadius: "0.75rem", color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                            dir="rtl">
+                            <ArrowRight size={18} style={{ transform: "scaleX(-1)" }} /> السؤال التالي ({remainingExams.filter(r => r.exam_token !== examToken).length} متبقي)
+                        </button>
+                        <button onClick={() => navigate("/dashboard")}
+                            style={{ padding: "0.7rem 2rem", background: "transparent", border: "1px solid rgba(207,163,85,0.3)", borderRadius: "0.75rem", color: "#cfa355", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                            الرجوع للداشبورد
+                        </button>
+                    </div>
                 ) : (
-                    <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="oiq-auth-bg" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+                    <button onClick={() => navigate("/dashboard")}
+                        style={{ padding: "0.85rem 2rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", cursor: "pointer", fontWeight: 800, fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                        الرجوع للداشبورد <ArrowRight size={16} />
+                    </button>
+                )}
+            </motion.div>
+        </div>
+    );
 
-                        <StepIndicator currentStep={step} />
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Main exam screen: preview + recording
+    //  (video element is always mounted here so the ref is always valid)
+    // ═══════════════════════════════════════════════════════════════════════════
+    return (
+        <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
 
-                        {step === "auth_check" ? (
-                            <div className="oiq-card" style={{ textAlign: "center" }}>
-                                <div className="oiq-logo-mark">
-                                    <h1>OralIQ <Sparkles size={14} color="#00D4AA" /></h1>
-                                    <span>INTERVIEW & ORAL EXAM PLATFORM</span>
-                                </div>
-                                <h2 style={{ color: "#E8E8F0", margin: "1.5rem 0 0.5rem" }}>Exam Invitation</h2>
-                                <p style={{ color: "#8888A8", fontSize: "0.9rem", marginBottom: "2rem" }}>Please sign in to continue your exam.</p>
-                                <button onClick={() => navigate(`/login?redirect=/exam/start`)} className="oiq-btn" style={{ width: "100%" }}>Sign In</button>
-                            </div>
-                        ) : step === "student_info" ? (
-                            <div className="oiq-card" style={{ maxWidth: 520, padding: "3rem" }}>
-                                <div className="oiq-logo-mark">
-                                    <h1>OralIQ</h1>
-                                </div>
-                                <h2 style={{ color: "#E8E8F0", marginTop: "1rem", fontSize: "1.75rem" }}>Check-In</h2>
+            {/* Header */}
+            <header style={{ height: 60, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2rem", background: "#141414", borderBottom: "1px solid rgba(207,163,85,0.1)" }}>
+                <Logo size={22} showText />
 
-                                <form onSubmit={handleInfoSubmit} style={{ marginTop: "2rem" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem", padding: "1.5rem", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(108,99,255,0.1)", borderRadius: "1rem" }}>
-                                        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg, #6C63FF, #00D4AA)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "1.5rem", fontWeight: 800 }}>
-                                            {studentName ? studentName[0] : <User />}
-                                        </div>
-                                        <div>
-                                            <p style={{ color: "#8888A8", fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase" }}>Student</p>
-                                            <p style={{ color: "#E8E8F0", fontSize: "1.1rem", fontWeight: 700 }}>{studentName || "Identity Verification"}</p>
-                                        </div>
-                                    </div>
+                {/* Timer — only in recording */}
+                <AnimatePresence>
+                    {phase === "recording" && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                            style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: timeLeft < 30 ? "#e05555" : "#e8c97a", fontWeight: 800, fontFamily: "monospace", fontSize: "1.1rem" }}>
+                            <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 1 }}
+                                style={{ width: 8, height: 8, borderRadius: "50%", background: timeLeft < 30 ? "#e05555" : "#5ec269" }} />
+                            {fmt(timeLeft / 60)}:{fmt(timeLeft % 60)}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                                    <div className="oiq-field">
-                                        <User size={18} />
-                                        <input type="text" className="oiq-input" placeholder="Full Name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
-                                    </div>
-                                    <div className="oiq-field">
-                                        <Hash size={18} />
-                                        <input type="text" className="oiq-input" placeholder="Student ID" value={studentId} onChange={e => setStudentId(e.target.value)} required />
-                                    </div>
+                {/* MediaPipe status — preview only */}
+                {phase === "preview" && (
+                    <span style={{ fontSize: "0.72rem", color: "#5ec269" }}>✅ المراقبة شغّالة</span>
+                )}
 
-                                    {infoError && <p style={{ color: "#FF4D6D", fontSize: "0.85rem", marginTop: "1rem", textAlign: "center" }}>{infoError}</p>}
+                <span style={{ color: "#8b8b73", fontSize: "0.8rem" }}>{studentName}</span>
+            </header>
 
-                                    <button type="submit" className="oiq-btn" style={{ marginTop: "1.5rem", height: "56px", fontSize: "1.1rem" }}>
-                                        Continue <ArrowRight size={20} style={{ marginLeft: "0.5rem" }} />
-                                    </button>
-                                </form>
-                            </div>
-                        ) : step === "question_preview" ? (
-                            <div className="oiq-card" style={{ maxWidth: 640, padding: "3rem" }}>
-                                <div className="oiq-logo-mark"><h1>OralIQ</h1></div>
+            {/* Body — centered layout: small square camera + question (recording only) + controls */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem", gap: "1.5rem", overflow: "auto" }}>
 
-                                <div style={{ background: "rgba(108,99,255,0.05)", padding: "2rem", borderRadius: "1.25rem", border: "1px solid rgba(108,99,255,0.15)", margin: "2rem 0" }}>
-                                    <p style={{ fontSize: "0.75rem", color: "#6C63FF", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>{question?.category || "GENERAL"}</p>
-                                    <h3 style={{ color: "#E8E8F0", fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.5 }}>
-                                        The question will appear when you start.
-                                    </h3>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "1.5rem" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#8888A8", fontSize: "0.85rem" }}>
-                                            <Sparkles size={14} color="#00D4AA" /> Duration: <strong>{(question?.timeLimit ?? 120) / 60} mins</strong>
-                                        </div>
-                                    </div>
-                                </div>
+                {/* Camera — small square in a framed card; red glow if any violation is active */}
+                <div style={{
+                    position: "relative", width: 440, height: 440, borderRadius: "1.25rem",
+                    overflow: "hidden", background: "#000",
+                    border: liveAlert ? "2px solid rgba(224,85,85,0.85)" : "2px solid rgba(207,163,85,0.25)",
+                    boxShadow: liveAlert
+                        ? "0 0 40px rgba(224,85,85,0.35)"
+                        : "0 0 30px rgba(207,163,85,0.08)",
+                    transition: "border-color 0.15s, box-shadow 0.15s",
+                }}>
+                    {/* video always rendered — srcObject set via useEffect([stream]) */}
+                    <video ref={videoRef} muted playsInline
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: stream ? "block" : "none", transform: "scaleX(-1)" }} />
 
-                                <div style={{ background: "rgba(0,212,170,0.05)", border: "1px solid rgba(0,212,170,0.2)", borderRadius: "1rem", padding: "1.25rem", marginBottom: "2.5rem" }}>
-                                    <p style={{ color: "#00D4AA", fontSize: "0.9rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                        Read the question carefully. When you press "I'm Ready", your camera will open and the timer will start.
-                                    </p>
-                                </div>
+                    {/* Landmark overlay — drawn by drawLandmarks() each MediaPipe frame.
+                        Mirrored (scaleX(-1)) to align with the mirrored video. */}
+                    <canvas
+                        ref={canvasRef}
+                        width={440}
+                        height={440}
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", transform: "scaleX(-1)" }}
+                    />
 
-                                <button onClick={handleReadyClick} className="oiq-btn" style={{ height: "64px", fontSize: "1.2rem", background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}>
-                                    <Camera size={24} style={{ marginRight: "0.75rem" }} /> I'm Ready — Start Recording
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="oiq-card" style={{ textAlign: "center", maxWidth: 480, padding: "3.5rem 2rem" }}>
-                                <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(0,212,170,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 2rem" }}>
-                                    <CheckCircle2 size={40} color="#00D4AA" />
-                                </div>
-                                <h1 style={{ color: "#fff", fontSize: "2rem", fontWeight: 800 }}>Submitted!</h1>
-                                <p style={{ color: "#8888A8", margin: "1rem 0 2.5rem", fontSize: "1rem" }}>Well done, {studentName}. Your oral exam has been recorded and sent for AI evaluation.</p>
+                    {!stream && (
+                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Camera size={42} color="#2a2a2a" />
+                        </div>
+                    )}
 
-                                <div style={{ background: "rgba(0,212,170,0.05)", padding: "2.5rem 2rem", borderRadius: "1.25rem", border: "1px solid rgba(0,212,170,0.25)", marginBottom: "2rem" }}>
-                                    <h3 style={{ color: "#00D4AA", fontSize: "1.75rem", fontWeight: 900, marginBottom: "0.5rem" }}>تم بنجاح</h3>
-                                    <p style={{ color: "#E8E8F0", fontSize: "1.1rem" }}>انتظر نتيجة الدكتور</p>
-                                </div>
+                    {/* Student name overlay */}
+                    <div style={{ position: "absolute", bottom: "0.6rem", left: "0.6rem", background: "rgba(0,0,0,0.65)", color: "#cfa355", fontSize: "0.65rem", padding: "0.2rem 0.55rem", borderRadius: "0.25rem", fontWeight: 700 }}>
+                        {studentName}
+                    </div>
 
-                                <button onClick={() => navigate("/dashboard")} style={{ padding: "0.9rem 2.5rem", background: "rgba(255,255,255,0.05)", color: "#E8E8F0", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "0.75rem", cursor: "pointer", fontWeight: 700, fontSize: "1rem" }}>
-                                    Return to Dashboard
-                                </button>
-                            </div>
+                    {/* REC badge */}
+                    {phase === "recording" && (
+                        <div style={{ position: "absolute", top: "0.6rem", right: "0.6rem", display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.6rem", background: "rgba(224,85,85,0.9)", borderRadius: "999px" }}>
+                            <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}
+                                style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />
+                            <span style={{ color: "#fff", fontSize: "0.68rem", fontWeight: 800 }}>REC</span>
+                        </div>
+                    )}
+
+                    {/* Live alert popup — same style as original repo */}
+                    <AnimatePresence>
+                        {liveAlert && (
+                            <motion.div
+                                initial={{ y: 20, opacity: 0, x: "-50%" }}
+                                animate={{ y: 0, opacity: 1, x: "-50%" }}
+                                exit={{ y: 20, opacity: 0, x: "-50%" }}
+                                style={{ position: "absolute", bottom: "1.5rem", left: "50%", background: "rgba(224,85,85,0.92)", color: "#fff", padding: "0.6rem 1.2rem", borderRadius: "0.75rem", fontWeight: 700, fontSize: "0.82rem", backdropFilter: "blur(8px)", whiteSpace: "nowrap" }}>
+                                {liveAlert}
+                            </motion.div>
                         )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Accumulated cheat seconds debug strip */}
+                <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#8b8b73" }}>
+                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face"].map(k => {
+                        const v = antiCheatAlertsRef.current[k] || 0;
+                        return v > 0 ? (
+                            <span key={k} style={{ padding: "0.2rem 0.55rem", background: "#141414", borderRadius: "0.35rem" }}>
+                                {k.replace("gaze_","")}:<span style={{ color: v > 2 ? "#e05555" : "#e8c97a" }}>{v.toFixed(1)}s</span>
+                            </span>
+                        ) : null;
+                    })}
+                </div>
+
+                {/* Question — ONLY visible while actively recording */}
+                {phase === "recording" && question && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                        style={{ width: "100%", maxWidth: 600, background: "rgba(207,163,85,0.06)", border: "1px solid rgba(207,163,85,0.2)", borderRadius: "1rem", padding: "1.25rem" }}
+                        dir="rtl">
+                        <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#cfa355", marginBottom: "0.5rem" }}>
+                            السؤال
+                        </p>
+                        <p style={{ fontSize: "1rem", color: "#e5e5e0", lineHeight: 1.8, fontWeight: 500 }}>
+                            {question.text}
+                        </p>
                     </motion.div>
                 )}
-            </AnimatePresence>
+
+                {/* Preview hint — only when ready to start recording */}
+                {phase === "preview" && (
+                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", maxWidth: 480, textAlign: "center", lineHeight: 1.7 }} dir="rtl">
+                        لما تكون جاهز اضغط <strong style={{ color: "#cfa355" }}>ابدأ التسجيل</strong> — السؤال هيظهرلك على طول.
+                    </p>
+                )}
+
+                {/* Error */}
+                {errorMsg && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#e05555", fontSize: "0.8rem", background: "rgba(224,85,85,0.1)", padding: "0.75rem 1rem", borderRadius: "0.5rem" }}
+                        dir="rtl">
+                        <AlertCircle size={14} /> {errorMsg}
+                    </motion.div>
+                )}
+
+                {/* Controls */}
+                <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {phase === "preview" && (
+                        <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                            onClick={startRecording}
+                            style={{ width: "100%", padding: "1.1rem", background: "linear-gradient(135deg, #1a6e1a, #145514)", border: "none", borderRadius: "1rem", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem", fontSize: "1rem", fontWeight: 700, boxShadow: "0 0 20px rgba(26,110,26,0.4)" }}>
+                            <Mic size={22} /> ابدأ التسجيل
+                        </motion.button>
+                    )}
+
+                    {phase === "recording" && (
+                        <>
+                            <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                                onClick={stopAndSubmit}
+                                style={{ width: "100%", padding: "1.1rem", background: "linear-gradient(135deg, #e05555, #c04444)", border: "none", borderRadius: "1rem", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem", fontSize: "1rem", fontWeight: 700, boxShadow: "0 0 24px rgba(224,85,85,0.5)" }}>
+                                <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>
+                                    <MicOff size={22} />
+                                </motion.div>
+                                أنهِ الإجابة وأرسل
+                            </motion.button>
+                            <p style={{ textAlign: "center", fontSize: "0.72rem", color: "#e05555" }} dir="rtl">
+                                🔴 جاري التسجيل — اضغط لما تخلص
+                            </p>
+                        </>
+                    )}
+                </div>
+
+                {/* Rules */}
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+                    {["بُص في الكاميرا", "تكلم بوضوح", "مفيش موبايل أو ورق"].map(r => (
+                        <span key={r} style={{ fontSize: "0.65rem", color: "#8b8b73", background: "rgba(255,255,255,0.04)", padding: "0.25rem 0.6rem", borderRadius: "0.35rem" }}>
+                            {r}
+                        </span>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }
+
+// ─── Style constants ──────────────────────────────────────────────────────────
+
+const C = {
+    center: {
+        minHeight: "100vh",
+        background: "#0a0a0a",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    } as React.CSSProperties,
+
+    input: {
+        padding: "0.875rem 1rem",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(207,163,85,0.18)",
+        borderRadius: "0.75rem",
+        color: "#e5e5e0",
+        fontSize: "0.95rem",
+        outline: "none",
+        width: "100%",
+        boxSizing: "border-box",
+        fontFamily: "inherit",
+    } as React.CSSProperties,
+};

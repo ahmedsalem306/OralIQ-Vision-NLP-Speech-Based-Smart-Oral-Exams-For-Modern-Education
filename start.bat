@@ -12,7 +12,7 @@ echo [1/3] Starting Backend Server...
 cd /d "%~dp0backend"
 
 :: Activate venv and start uvicorn in a new window
-start "Interview-AI Backend" cmd /k "call venv\Scripts\activate.bat && echo. && echo Backend starting on http://localhost:8000 && echo. && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+start "Interview-AI Backend" cmd /k "call venv\Scripts\activate.bat && echo. && echo Backend starting on http://localhost:8000 && echo. && python run.py"
 
 :: Give backend a moment to start
 timeout /t 3 /nobreak >nul

@@ -20,8 +20,8 @@
 
 ### ج. تحليل الفيديو وتعبيرات الوش (Computer Vision & Facial Analysis)
 *   **المهمة:** التأكد من انتباه الطالب (مش بيبص بره كتير - Cheating Detection - Gaze Tracking) وتحليل مشاعره (واثق، متوتر، إلخ).
-*   **الموديل المقترح:** **MediaPipe Face Mesh** (from Google).
-    *   **المميزات:** خفيف جدااا وسريع، بيطلع نقط الوش (Landmarks) بدقة عالية. نقدر منه نحسب اتجاه العين (Eye Gaze) واتجاه الراس (Head Pose).
+*   **الموديل المقترح:** **YOLO26** (Nano version — NMS-Free, End-to-End).
+    *   **المميزات:** أسرع وأدق من YOLOv8، لا يحتاج NMS (أقل تأخير)، بيكشف هاتف/كتاب/أشخاص بدقة عالية. بالإضافة لـ **MediaPipe Face Mesh** (from Google) لتتبع اتجاه العين والرأس.
 
 ---
 
