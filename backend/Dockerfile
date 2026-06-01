@@ -2,8 +2,8 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# HF Spaces run on shared CPU; "small" keeps speech AI reliable without exhausting RAM.
-ENV WHISPER_MODEL=small
+# HF Spaces run on shared CPU; "medium" gives better Arabic/English accuracy.
+ENV WHISPER_MODEL=medium
 ENV HF_HOME=/tmp/huggingface
 ENV TRANSFORMERS_CACHE=/tmp/huggingface/transformers
 

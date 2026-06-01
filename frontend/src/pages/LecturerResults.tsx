@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Users, TrendingUp, Clock, Award, ChevronRight, Share2, CheckCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 interface ExamSubmission {
     id: number;
@@ -64,6 +65,7 @@ function ScoreBadge({ score }: { score: number | null }) {
 }
 
 export default function LecturerResults() {
+    const { t, dir } = useI18n();
     const [results, setResults] = useState<ExamSubmission[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -113,7 +115,7 @@ export default function LecturerResults() {
     if (loading) return (
         <div style={{ color: "#8b8b73", padding: "2rem", display: "flex", alignItems: "center", gap: "1rem" }}>
             <div style={{ width: 24, height: 24, border: "2px solid rgba(207,163,85,0.1)", borderTopColor: "#cfa355", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            Loading results...
+            {dir === "rtl" ? "جاري تحميل النتائج..." : "Loading results..."}
         </div>
     );
 
@@ -125,16 +127,16 @@ export default function LecturerResults() {
             style={{ display: "flex", flexDirection: "column", gap: "2rem", fontFamily: "'Inter', sans-serif" }}
         >
             <motion.div variants={itemVariants}>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>Exam Results</h1>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>{t("nav.results")}</h1>
                 <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>AI-analyzed performance reports for all your students</p>
             </motion.div>
 
             <motion.div variants={itemVariants} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
                 {[
-                    { icon: Users, label: "Total Students", value: totalStudents, color: "#cfa355" },
-                    { icon: TrendingUp, label: "Average Score", value: `${avgScore}%`, color: "#e8c97a" },
-                    { icon: Award, label: "Top Score", value: `${topScore}%`, color: "#e8c97a" },
-                    { icon: Clock, label: "This Week", value: thisWeekCount, color: "#e05555" },
+                    { icon: Users, label: dir === "rtl" ? "إجمالي الطلاب" : "Total Students", value: totalStudents, color: "#cfa355" },
+                    { icon: TrendingUp, label: t("overview.avgScore"), value: `${avgScore}%`, color: "#e8c97a" },
+                    { icon: Award, label: dir === "rtl" ? "أعلى درجة" : "Top Score", value: `${topScore}%`, color: "#e8c97a" },
+                    { icon: Clock, label: dir === "rtl" ? "هذا الأسبوع" : "This Week", value: thisWeekCount, color: "#e05555" },
                 ].map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
@@ -157,8 +159,8 @@ export default function LecturerResults() {
 
             <motion.div variants={itemVariants} style={{ background: "#141414", border: "1px solid rgba(207,163,85,0.15)", borderRadius: "1.25rem", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }}>
                 <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid rgba(207,163,85,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0" }}>Student Submissions</h2>
-                    <span style={{ fontSize: "0.8rem", color: "#8b8b73" }}>{totalStudents} results · Live Data</span>
+                    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0" }}>{dir === "rtl" ? "إجابات الطلاب" : "Student Submissions"}</h2>
+                    <span style={{ fontSize: "0.8rem", color: "#8b8b73" }}>{totalStudents} {t("nav.results")}</span>
                 </div>
 
                 {totalStudents === 0 ? (
@@ -168,7 +170,14 @@ export default function LecturerResults() {
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
                             <thead>
                                 <tr style={{ borderBottom: "1px solid rgba(207,163,85,0.1)" }}>
-                                    {["Student", "Date", "Overall", "Actions", "Status", ""].map(h => (
+                                    {[
+                                        dir === "rtl" ? "الطالب" : "Student",
+                                        dir === "rtl" ? "التاريخ" : "Date",
+                                        t("exam.finalScore"),
+                                        dir === "rtl" ? "الإجراءات" : "Actions",
+                                        dir === "rtl" ? "الحالة" : "Status",
+                                        "",
+                                    ].map(h => (
                                         <th key={h} style={{ padding: "1rem 1.5rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 700, color: "#8b8b73", textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</th>
                                     ))}
                                 </tr>
@@ -210,7 +219,7 @@ export default function LecturerResults() {
                                                             style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.8rem", background: "rgba(207,163,85,0.1)", border: "1px solid rgba(207,163,85,0.3)", borderRadius: "0.5rem", color: "#cfa355", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer" }}
                                                         >
                                                             {postingId === r.id ? <Loader2 size={12} className="animate-spin" /> : <Share2 size={12} />}
-                                                            Post Grade
+                                                            {dir === "rtl" ? "نشر الدرجة" : "Post Grade"}
                                                         </motion.button>
                                                     )}
                                                 </td>
@@ -235,11 +244,11 @@ export default function LecturerResults() {
                                                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "2rem" }}>
                                                                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                                                                     <div>
-                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#cfa355", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Question Content</p>
+                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#cfa355", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>{t("dashboard.questions.question")}</p>
                                                                         <p style={{ fontSize: "0.95rem", color: "#e5e5e0", lineHeight: 1.6 }}>{r.question_text}</p>
                                                                     </div>
                                                                     <div>
-                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#e8c97a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Student Transcript (Arabic)</p>
+                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#e8c97a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>{dir === "rtl" ? "تفريغ إجابة الطالب" : "Student Transcript"}</p>
                                                                         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "1rem", padding: "1.25rem", color: "#e5e5e0", fontSize: "1rem", lineHeight: 1.8, direction: "rtl" }}>
                                                                             {r.transcript || "No transcription available."}
                                                                         </div>
@@ -247,13 +256,13 @@ export default function LecturerResults() {
                                                                 </div>
                                                                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                                                                     <div>
-                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#e8c97a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Fluency & Pace</p>
+                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#e8c97a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>{t("exam.fluency")}</p>
                                                                         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "1rem", padding: "1.25rem", color: "#e5e5e0", fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap", direction: "rtl" }}>
                                                                             {r.fluency_report}
                                                                         </div>
                                                                     </div>
                                                                     <div>
-                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#e05555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Integrity Assessment</p>
+                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#e05555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>{t("exam.integrity")}</p>
                                                                         <div style={{ background: "rgba(255,77,109,0.05)", border: "1px solid rgba(255,77,109,0.2)", borderRadius: "1rem", padding: "1.25rem", color: "#e05555", fontSize: "0.9rem", lineHeight: 1.6, direction: "rtl" }}>
                                                                             {r.cheat_report}
                                                                         </div>

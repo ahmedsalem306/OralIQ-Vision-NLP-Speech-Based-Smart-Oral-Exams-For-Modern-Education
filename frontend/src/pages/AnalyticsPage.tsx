@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Award, Target } from "lucide-react";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 interface Submission {
     id: number;
@@ -10,6 +11,7 @@ interface Submission {
 }
 
 export default function AnalyticsPage() {
+    const { t, dir } = useI18n();
     const [submissions, setSubmissions] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -20,7 +22,7 @@ export default function AnalyticsPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    if (loading) return <div style={{ color: "#8b8b73", padding: "2rem" }}>Loading analytics...</div>;
+    if (loading) return <div style={{ color: "#8b8b73", padding: "2rem" }}>{dir === "rtl" ? "جاري تحميل التحليلات..." : "Loading analytics..."}</div>;
 
     // ── Compute KPIs ─────────────────────────────────────────────────────────
     const scores = submissions.map(s => s.overall_score || 0);
@@ -76,17 +78,17 @@ export default function AnalyticsPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem", fontFamily: "'Inter', sans-serif" }}>
             <div>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>Analytics</h1>
-                <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>Performance insights across all your exams</p>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>{t("nav.analytics")}</h1>
+                <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>{dir === "rtl" ? "رؤى الأداء عبر كل الامتحانات" : "Performance insights across all your exams"}</p>
             </div>
 
             {/* KPI Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
                 {[
-                    { icon: TrendingUp, label: "Avg Score", value: `${avgScore}%`, sub: "Across all exams", color: "#e8c97a" },
-                    { icon: Award, label: "Top Score", value: `${topPerformerScore}%`, sub: "Highest achieved", color: "#cfa355" },
-                    { icon: Target, label: "Pass Rate", value: `${passRate}%`, sub: "Scored 60%+", color: "#e8c97a" },
-                    { icon: TrendingDown, label: "Needs Help", value: belowThreshold, sub: "Scored < 60%", color: "#e05555" },
+                    { icon: TrendingUp, label: t("overview.avgScore"), value: `${avgScore}%`, sub: dir === "rtl" ? "كل الامتحانات" : "Across all exams", color: "#e8c97a" },
+                    { icon: Award, label: dir === "rtl" ? "أعلى درجة" : "Top Score", value: `${topPerformerScore}%`, sub: dir === "rtl" ? "أعلى إنجاز" : "Highest achieved", color: "#cfa355" },
+                    { icon: Target, label: dir === "rtl" ? "نسبة النجاح" : "Pass Rate", value: `${passRate}%`, sub: "60%+", color: "#e8c97a" },
+                    { icon: TrendingDown, label: dir === "rtl" ? "يحتاجون دعم" : "Needs Help", value: belowThreshold, sub: "< 60%", color: "#e05555" },
                 ].map((kpi, idx) => {
                     const Icon = kpi.icon;
                     return (

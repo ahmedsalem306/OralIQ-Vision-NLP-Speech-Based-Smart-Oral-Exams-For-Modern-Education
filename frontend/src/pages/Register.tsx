@@ -3,6 +3,8 @@ import api from "../lib/api";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GraduationCap, BookOpen } from "lucide-react";
+import LanguageToggle from "../components/LanguageToggle";
+import { useI18n } from "../i18n";
 
 const inp: React.CSSProperties = {
     width: "100%",
@@ -19,6 +21,7 @@ const inp: React.CSSProperties = {
 };
 
 export default function RegisterPage() {
+    const { t, dir } = useI18n();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
@@ -44,7 +47,7 @@ export default function RegisterPage() {
             navigate(redirectTo);
         } catch (err: unknown) {
             const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string };
-            setError(axiosErr?.response?.data?.detail || axiosErr?.message || "Registration failed. Please try again.");
+            setError(axiosErr?.response?.data?.detail || axiosErr?.message || t("auth.registerFailed"));
         } finally {
             setLoading(false);
         }
@@ -75,7 +78,7 @@ export default function RegisterPage() {
                             transition={{ duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] }}
                             style={{ fontFamily: "'Amiamie', 'Orbitron', sans-serif", fontSize: "clamp(2.8rem, 4.5vw, 4.5rem)", fontWeight: 900, lineHeight: 1.04, marginBottom: "1.375rem" }}
                         >
-                            <span style={{ color: "#e5e5e0" }}>Join</span>
+                            <span style={{ color: "#e5e5e0" }}>{t("auth.hero.title1")}</span>
                             <br />
                             <span style={{
                                 background: "linear-gradient(135deg, #cfa355 0%, #e8c97a 50%, #cfa355 100%)",
@@ -83,9 +86,9 @@ export default function RegisterPage() {
                                 WebkitBackgroundClip: "text",
                                 WebkitTextFillColor: "transparent",
                                 backgroundClip: "text",
-                            }}>OralIQ</span>
+                            }}>{t("auth.hero.title2")}</span>
                             <br />
-                            <span style={{ color: "#3a3a2a", fontWeight: 300 }}>Today</span>
+                            <span style={{ color: "#3a3a2a", fontWeight: 300 }}>{t("auth.hero.title3")}</span>
                         </motion.h1>
 
                         <motion.p
@@ -94,7 +97,7 @@ export default function RegisterPage() {
                             transition={{ delay: 0.35 }}
                             style={{ color: "#3a3a2a", fontSize: "0.875rem", lineHeight: 1.85, maxWidth: 360, marginBottom: "2.25rem" }}
                         >
-                            Whether you're a student or lecturer, OralIQ transforms oral examinations with AI-powered analysis and instant feedback.
+                            {t("auth.hero.description")}
                         </motion.p>
 
                         {/* Role descriptions */}
@@ -105,8 +108,8 @@ export default function RegisterPage() {
                             style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
                         >
                             {[
-                                { icon: GraduationCap, title: "Students", desc: "Take AI-evaluated oral exams with instant scoring" },
-                                { icon: BookOpen, title: "Lecturers", desc: "Create, assign, and analyze student exam performance" },
+                                { icon: GraduationCap, title: t("auth.role.student"), desc: t("auth.role.studentSub") },
+                                { icon: BookOpen, title: t("auth.role.lecturer"), desc: t("auth.role.lecturerSub") },
                             ].map(({ icon: Icon, title, desc }, i) => (
                                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "0.875rem" }}>
                                     <div style={{ width: 30, height: 30, borderRadius: "0.5rem", background: `${G}0.06)`, border: `1px solid ${G}0.11)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "0.1rem" }}>
@@ -151,17 +154,21 @@ export default function RegisterPage() {
                         <p style={{ fontFamily: "'Orbitron', sans-serif", fontSize: "1.25rem", fontWeight: 900, background: "linear-gradient(135deg, #cfa355, #e8c97a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>OralIQ</p>
                     </div>
 
-                    <div style={{ marginBottom: "2rem" }}>
-                        <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.375rem" }}>Create account</h2>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+                        <LanguageToggle compact />
+                    </div>
+
+                    <div style={{ marginBottom: "2rem", textAlign: dir === "rtl" ? "right" : "left" }}>
+                        <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.375rem" }}>{t("auth.create.title")}</h2>
                         <p style={{ fontSize: "0.85rem", color: "#3a3a2a" }}>
-                            {forcedRole === "student" ? "Register as a student to access your exam" : "Join OralIQ and start your journey"}
+                            {forcedRole === "student" ? t("auth.create.studentInvite") : t("auth.create.subtitle")}
                         </p>
                     </div>
 
                     {forcedRole === "student" && (
                         <div style={{ background: "rgba(207,163,85,0.06)", border: "1px solid rgba(207,163,85,0.18)", borderRadius: "0.75rem", padding: "0.75rem 1rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                             <span style={{ fontSize: "0.8rem", color: "#cfa355" }}>📋</span>
-                            <p style={{ fontSize: "0.8rem", color: "#b8934a", margin: 0 }}>You've been invited to take an exam. Create a student account to continue.</p>
+                            <p style={{ fontSize: "0.8rem", color: "#b8934a", margin: 0 }}>{t("auth.create.studentInvite")}</p>
                         </div>
                     )}
 
@@ -176,11 +183,11 @@ export default function RegisterPage() {
                         {/* Role selector — hidden when role is forced via URL (e.g. exam invite) */}
                         {!forcedRole && (
                             <div>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.5rem" }}>I am a…</label>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.5rem" }}>{t("auth.role.label")}</label>
                                 <div style={{ display: "flex", gap: "0.625rem" }}>
                                     {[
-                                        { value: "student", label: "Student", sub: "Take exams" },
-                                        { value: "lecturer", label: "Lecturer", sub: "Set exams" },
+                                        { value: "student", label: t("auth.role.student"), sub: t("auth.role.studentSub") },
+                                        { value: "lecturer", label: t("auth.role.lecturer"), sub: t("auth.role.lecturerSub") },
                                     ].map(opt => (
                                         <button key={opt.value} type="button" onClick={() => setRole(opt.value)}
                                             style={{
@@ -199,21 +206,21 @@ export default function RegisterPage() {
                         )}
 
                         <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>Full name</label>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>{t("auth.fullName")}</label>
                             <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
                                 placeholder="Your full name" required style={inp}
                                 onFocus={e => (e.target.style.borderColor = "rgba(207,163,85,0.38)")}
                                 onBlur={e => (e.target.style.borderColor = "rgba(207,163,85,0.12)")} />
                         </div>
                         <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>Email address</label>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>{t("auth.email")}</label>
                             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                                 placeholder="you@example.com" required style={inp}
                                 onFocus={e => (e.target.style.borderColor = "rgba(207,163,85,0.38)")}
                                 onBlur={e => (e.target.style.borderColor = "rgba(207,163,85,0.12)")} />
                         </div>
                         <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>Password</label>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>{t("auth.password")}</label>
                             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                                 placeholder="••••••••" required style={inp}
                                 onFocus={e => (e.target.style.borderColor = "rgba(207,163,85,0.38)")}
@@ -233,16 +240,16 @@ export default function RegisterPage() {
                             {loading ? (
                                 <>
                                     <span style={{ width: 15, height: 15, border: "2px solid rgba(10,10,10,0.2)", borderTopColor: "#0a0a0a", borderRadius: "50%", animation: "spin 0.6s linear infinite", display: "inline-block" }} />
-                                    Creating account…
+                                    {t("auth.create.loading")}
                                 </>
-                            ) : "Create Account"}
+                            ) : t("auth.create.button")}
                         </button>
                     </form>
 
                     <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: `1px solid ${G}0.06)`, textAlign: "center" }}>
                         <p style={{ fontSize: "0.83rem", color: "#3a3a2a" }}>
-                            Already have an account?{" "}
-                            <Link to={`/login?redirect=${encodeURIComponent(redirectTo)}`} style={{ color: "#cfa355", fontWeight: 600, textDecoration: "none" }}>Sign in</Link>
+                            {t("auth.hasAccount")}{" "}
+                            <Link to={`/login?redirect=${encodeURIComponent(redirectTo)}`} style={{ color: "#cfa355", fontWeight: 600, textDecoration: "none" }}>{t("auth.signIn.button")}</Link>
                         </p>
                     </div>
                     <p style={{ textAlign: "center", marginTop: "2rem", fontSize: "0.65rem", color: "#1a1a0a" }}>© 2026 OralIQ. All rights reserved.</p>

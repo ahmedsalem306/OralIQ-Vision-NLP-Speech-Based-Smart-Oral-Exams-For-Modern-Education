@@ -3,6 +3,8 @@ import api from "../lib/api";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Brain, Mic, Shield } from "lucide-react";
+import LanguageToggle from "../components/LanguageToggle";
+import { useI18n } from "../i18n";
 
 const inp: React.CSSProperties = {
     width: "100%",
@@ -19,6 +21,7 @@ const inp: React.CSSProperties = {
 };
 
 export default function LoginPage() {
+    const { t, dir } = useI18n();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -39,7 +42,7 @@ export default function LoginPage() {
             localStorage.setItem("token", response.data.access_token);
             navigate(redirectTo);
         } catch {
-            setError("Invalid email or password. Please try again.");
+            setError(t("auth.invalidLogin"));
         } finally {
             setLoading(false);
         }
@@ -72,7 +75,7 @@ export default function LoginPage() {
                             transition={{ duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] }}
                             style={{ fontFamily: "'Amiamie', 'Orbitron', sans-serif", fontSize: "clamp(2.8rem, 4.5vw, 4.5rem)", fontWeight: 900, lineHeight: 1.04, marginBottom: "1.375rem" }}
                         >
-                            <span style={{ color: "#e5e5e0" }}>AI Oral</span>
+                            <span style={{ color: "#e5e5e0" }}>{t("auth.hero.title1")}</span>
                             <br />
                             <span style={{
                                 background: "linear-gradient(135deg, #cfa355 0%, #e8c97a 50%, #cfa355 100%)",
@@ -80,9 +83,9 @@ export default function LoginPage() {
                                 WebkitBackgroundClip: "text",
                                 WebkitTextFillColor: "transparent",
                                 backgroundClip: "text",
-                            }}>Exam</span>
+                            }}>{t("auth.hero.title2")}</span>
                             <br />
-                            <span style={{ color: "#3a3a2a", fontWeight: 300 }}>Platform</span>
+                            <span style={{ color: "#3a3a2a", fontWeight: 300 }}>{t("auth.hero.title3")}</span>
                         </motion.h1>
 
                         <motion.p
@@ -91,8 +94,7 @@ export default function LoginPage() {
                             transition={{ delay: 0.35 }}
                             style={{ color: "#3a3a2a", fontSize: "0.875rem", lineHeight: 1.85, maxWidth: 360, marginBottom: "2.25rem" }}
                         >
-                            Conduct AI-powered oral exams with real-time speech recognition,
-                            NLP-based grading, and facial integrity monitoring.
+                            {t("auth.hero.description")}
                         </motion.p>
 
                         {/* Feature bullets */}
@@ -103,9 +105,9 @@ export default function LoginPage() {
                             style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}
                         >
                             {[
-                                { icon: Mic, text: "Real-time speech recognition & fluency scoring" },
-                                { icon: Brain, text: "Gemini AI evaluates answer quality and relevance" },
-                                { icon: Shield, text: "Facial analysis with anti-cheat integrity checks" },
+                                { icon: Mic, text: t("auth.hero.speech") },
+                                { icon: Brain, text: t("auth.hero.nlp") },
+                                { icon: Shield, text: t("auth.hero.integrity") },
                             ].map(({ icon: Icon, text }, i) => (
                                 <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
                                     <div style={{ width: 30, height: 30, borderRadius: "0.5rem", background: `${G}0.06)`, border: `1px solid ${G}0.11)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -147,9 +149,13 @@ export default function LoginPage() {
                         <p style={{ fontFamily: "'Orbitron', sans-serif", fontSize: "1.25rem", fontWeight: 900, background: "linear-gradient(135deg, #cfa355, #e8c97a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>OralIQ</p>
                     </div>
 
-                    <div style={{ marginBottom: "2.25rem" }}>
-                        <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.375rem" }}>Sign in</h2>
-                        <p style={{ fontSize: "0.85rem", color: "#3a3a2a" }}>Continue to your dashboard</p>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+                        <LanguageToggle compact />
+                    </div>
+
+                    <div style={{ marginBottom: "2.25rem", textAlign: dir === "rtl" ? "right" : "left" }}>
+                        <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.375rem" }}>{t("auth.signIn.title")}</h2>
+                        <p style={{ fontSize: "0.85rem", color: "#3a3a2a" }}>{t("auth.signIn.subtitle")}</p>
                     </div>
 
                     {error && (
@@ -161,7 +167,7 @@ export default function LoginPage() {
 
                     <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
                         <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>Email address</label>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>{t("auth.email")}</label>
                             <input
                                 type="email" value={email}
                                 onChange={e => setEmail(e.target.value)}
@@ -172,7 +178,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>Password</label>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "#3a3a2a", display: "block", marginBottom: "0.4rem" }}>{t("auth.password")}</label>
                             <input
                                 type="password" value={password}
                                 onChange={e => setPassword(e.target.value)}
@@ -196,16 +202,16 @@ export default function LoginPage() {
                             {loading ? (
                                 <>
                                     <span style={{ width: 15, height: 15, border: "2px solid rgba(10,10,10,0.2)", borderTopColor: "#0a0a0a", borderRadius: "50%", animation: "spin 0.6s linear infinite", display: "inline-block" }} />
-                                    Signing in…
+                                    {t("auth.signIn.loading")}
                                 </>
-                            ) : "Sign In"}
+                            ) : t("auth.signIn.button")}
                         </button>
                     </form>
 
                     <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: `1px solid ${G}0.06)`, textAlign: "center" }}>
                         <p style={{ fontSize: "0.83rem", color: "#3a3a2a" }}>
-                            Don't have an account?{" "}
-                            <Link to={`/register?redirect=${encodeURIComponent(redirectTo)}`} style={{ color: "#cfa355", fontWeight: 600, textDecoration: "none" }}>Sign up</Link>
+                            {t("auth.noAccount")}{" "}
+                            <Link to={`/register?redirect=${encodeURIComponent(redirectTo)}`} style={{ color: "#cfa355", fontWeight: 600, textDecoration: "none" }}>{t("auth.signUp.link")}</Link>
                         </p>
                     </div>
                     <p style={{ textAlign: "center", marginTop: "2rem", fontSize: "0.65rem", color: "#1a1a0a" }}>© 2026 OralIQ. All rights reserved.</p>

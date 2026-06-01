@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Logo from "../components/Logo";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ type AlertKey = "gaze_left" | "gaze_right" | "gaze_up" | "gaze_down"
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ExamRoom() {
+    const { t, dir } = useI18n();
     const navigate = useNavigate();
     const examToken = localStorage.getItem("pendingExamToken") || "";
 
@@ -122,7 +124,7 @@ export default function ExamRoom() {
                     .catch(() => {});
 
                 if (!examToken) {
-                    setErrorMsg("مفيش امتحان متاح. ارجع للداشبورد.");
+                setErrorMsg(t("exam.noQuestion"));
                     setPhase("info");
                     return;
                 }
@@ -130,7 +132,7 @@ export default function ExamRoom() {
                     const { data } = await api.get(`/questions/by-token/${examToken}`);
                     setQuestion(buildQ(data));
                 } catch {
-                    setErrorMsg("رابط الامتحان غير صالح أو السؤال غير متاح حالياً.");
+                    setErrorMsg(t("exam.noQuestion"));
                 }
             })
             .then(() => setPhase("info"))
@@ -141,7 +143,7 @@ export default function ExamRoom() {
                     navigate("/login", { replace: true });
                     return;
                 }
-                setErrorMsg("حصل خطأ في تحميل الامتحان. حاول مرة تانية.");
+                setErrorMsg(t("exam.noQuestion"));
                 setPhase("info");
             });
     }, []);
@@ -349,17 +351,32 @@ export default function ExamRoom() {
     // ── START EXAM: info → preview ────────────────────────────────────────────
     const startExam = useCallback(async () => {
         if (!studentName.trim() || !studentId.trim()) {
-            setErrorMsg("لازم تدخل اسمك ورقمك الأول.");
+            setErrorMsg(t("exam.needData"));
             return;
         }
-        if (!question) { setErrorMsg("مفيش سؤال متاح."); return; }
+        if (!question) { setErrorMsg(t("exam.noQuestion")); return; }
         setErrorMsg("");
 
         let s: MediaStream;
         try {
-            s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            try {
+                s = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "user",
+                        width: { ideal: 960 },
+                        height: { ideal: 960 },
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    },
+                });
+            } catch {
+                s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            }
         } catch {
-            setErrorMsg("محتاج إذن الكاميرا والميكروفون.");
+            setErrorMsg(t("exam.permission"));
             return;
         }
 
@@ -512,28 +529,28 @@ export default function ExamRoom() {
 
                 <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.85rem", borderRadius: "999px", background: "rgba(207,163,85,0.08)", border: "1px solid rgba(207,163,85,0.18)", marginBottom: "1rem" }}>
                     <Sparkles size={12} color="#cfa355" />
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#cfa355", letterSpacing: "0.05em" }}>امتحان شفوي</span>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#cfa355", letterSpacing: "0.05em" }}>{t("exam.badge")}</span>
                 </div>
 
-                <h2 style={{ color: "#e5e5e0", fontSize: "1.5rem", fontWeight: 800, marginBottom: "0.4rem" }}>أهلاً بيك</h2>
-                <p style={{ color: "#8b8b73", fontSize: "0.875rem", marginBottom: "1.75rem", lineHeight: 1.7 }} dir="rtl">
-                    دخّل بياناتك ثم اضغط ابدأ. السؤال هيظهرلك أول ما يبدأ التسجيل.
+                <h2 style={{ color: "#e5e5e0", fontSize: "1.5rem", fontWeight: 800, marginBottom: "0.4rem" }}>{t("exam.welcome")}</h2>
+                <p style={{ color: "#8b8b73", fontSize: "0.875rem", marginBottom: "1.75rem", lineHeight: 1.7 }} dir={dir}>
+                    {t("exam.info")}
                 </p>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
                     <input value={studentName} onChange={e => setStudentName(e.target.value)}
-                        placeholder="الاسم الكامل" dir="rtl" style={C.input} />
+                        placeholder={t("exam.namePlaceholder")} dir={dir} style={C.input} />
                     <input value={studentId} onChange={e => setStudentId(e.target.value)}
-                        placeholder="رقم الطالب" dir="rtl" style={C.input} />
+                        placeholder={t("exam.idPlaceholder")} dir={dir} style={C.input} />
 
                     {errorMsg && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#e05555", fontSize: "0.85rem" }} dir="rtl">
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#e05555", fontSize: "0.85rem" }} dir={dir}>
                             <AlertCircle size={16} /> {errorMsg}
                         </div>
                     )}
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.875rem", background: "rgba(207,163,85,0.04)", border: "1px solid rgba(207,163,85,0.08)", borderRadius: "0.75rem" }} dir="rtl">
-                        {["اتكلم بصوت واضح وقريّب من الميك", "بُص في الكاميرا أثناء الإجابة", "مفيش موبايل أو ملاحظات معاك"].map(r => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.875rem", background: "rgba(207,163,85,0.04)", border: "1px solid rgba(207,163,85,0.08)", borderRadius: "0.75rem" }} dir={dir}>
+                        {[t("exam.ruleMic"), t("exam.ruleCamera"), t("exam.ruleNoPhone")].map(r => (
                             <div key={r} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.78rem", color: "#8b8b73" }}>
                                 <CheckCircle2 size={13} color="#cfa355" /> {r}
                             </div>
@@ -543,7 +560,7 @@ export default function ExamRoom() {
                     <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                         onClick={startExam}
                         style={{ padding: "1rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", fontWeight: 800, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "0.5rem" }}>
-                        <ArrowRight size={18} /> ابدأ الامتحان
+                        <ArrowRight size={18} /> {t("exam.start")}
                     </motion.button>
                 </div>
             </motion.div>
@@ -563,24 +580,24 @@ export default function ExamRoom() {
                     </motion.div>
                 </div>
                 <h2 style={{ color: "#e5e5e0", fontSize: "1.4rem", fontWeight: 800, marginBottom: "0.75rem" }} dir="rtl">
-                    جاري التحليل والتصحيح...
+                    {t("exam.processing")}
                 </h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem", textAlign: "right", padding: "1rem", background: "#141414", border: "1px solid rgba(207,163,85,0.1)", borderRadius: "0.875rem" }}>
                     {[
-                        "تحويل الصوت إلى نص (Whisper)...",
-                        "تحليل محتوى الإجابة (SBERT/NLP)...",
-                        "تقييم نزاهة الامتحان (Vision AI)...",
-                        "حساب الدرجة النهائية...",
+                        dir === "rtl" ? "تحويل الصوت إلى نص (Whisper)..." : "Transcribing speech (Whisper)...",
+                        dir === "rtl" ? "تحليل محتوى الإجابة (SBERT/NLP)..." : "Analyzing answer content (SBERT/NLP)...",
+                        dir === "rtl" ? "تقييم نزاهة الامتحان (Vision AI)..." : "Checking exam integrity (Vision AI)...",
+                        dir === "rtl" ? "حساب الدرجة النهائية..." : "Calculating final score...",
                     ].map((step, i) => (
                         <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.5 }}
-                            style={{ display: "flex", alignItems: "center", gap: "0.625rem", fontSize: "0.82rem", color: "#cfa355" }} dir="rtl">
+                            style={{ display: "flex", alignItems: "center", gap: "0.625rem", fontSize: "0.82rem", color: "#cfa355" }} dir={dir}>
                             <Loader2 size={12} style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
                             {step}
                         </motion.div>
                     ))}
                 </div>
-                <p style={{ color: "#3a3a2a", fontSize: "0.7rem", marginTop: "1rem" }} dir="rtl">
-                    في المرة الأولى قد يأخذ دقيقة لتحميل نموذج Whisper
+                <p style={{ color: "#3a3a2a", fontSize: "0.7rem", marginTop: "1rem" }} dir={dir}>
+                    {dir === "rtl" ? "في المرة الأولى قد يأخذ دقيقة لتحميل نموذج Whisper" : "The first run may take a minute while Whisper loads."}
                 </p>
             </motion.div>
         </div>
@@ -591,11 +608,11 @@ export default function ExamRoom() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 style={{ textAlign: "center", padding: "3rem", maxWidth: 440, background: "#141414", borderRadius: "1.5rem", border: "1px solid rgba(224,85,85,0.25)" }}>
                 <AlertCircle size={48} color="#e05555" style={{ margin: "0 auto 1rem" }} />
-                <h2 style={{ color: "#e5e5e0", fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.5rem" }} dir="rtl">
-                    حدث خطأ أثناء الإرسال
+                <h2 style={{ color: "#e5e5e0", fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.5rem" }} dir={dir}>
+                    {t("exam.failed")}
                 </h2>
-                <p style={{ color: "#8b8b73", marginBottom: errorMsg ? "0.5rem" : "1.5rem" }} dir="rtl">
-                    مشكلة في الاتصال بالسيرفر — الإجابة لم تُرسل.
+                <p style={{ color: "#8b8b73", marginBottom: errorMsg ? "0.5rem" : "1.5rem" }} dir={dir}>
+                    {dir === "rtl" ? "مشكلة في الاتصال بالسيرفر، الإجابة لم ترسل." : "Server connection problem. The answer was not submitted."}
                 </p>
                 {errorMsg && (
                     <p style={{ color: "#e05555", fontSize: "0.75rem", background: "rgba(224,85,85,0.1)", padding: "0.75rem", borderRadius: "0.5rem", marginBottom: "1.5rem", wordBreak: "break-all", textAlign: "left" }}>
@@ -604,7 +621,7 @@ export default function ExamRoom() {
                 )}
                 <button onClick={() => navigate("/dashboard")}
                     style={{ padding: "0.85rem 2rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", cursor: "pointer", fontWeight: 800, fontSize: "0.95rem", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-                    الرجوع للداشبورد <ArrowRight size={16} />
+                    {t("exam.backDashboard")} <ArrowRight size={16} />
                 </button>
             </motion.div>
         </div>
@@ -622,9 +639,9 @@ export default function ExamRoom() {
                         style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(94,194,105,0.1)", border: "2px solid rgba(94,194,105,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
                         <CheckCircle2 size={40} color="#5ec269" />
                     </motion.div>
-                    <h2 style={{ color: "#e5e5e0", fontSize: "1.5rem", fontWeight: 800 }} dir="rtl">تم تسليم الامتحان!</h2>
-                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", marginTop: "0.25rem" }} dir="rtl">
-                        هتلاقي نتيجتك النهائية في «درجاتي» لما الدكتور يعرضها
+                    <h2 style={{ color: "#e5e5e0", fontSize: "1.5rem", fontWeight: 800 }} dir={dir}>{t("exam.done")}</h2>
+                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", marginTop: "0.25rem" }} dir={dir}>
+                        {dir === "rtl" ? "هتلاقي نتيجتك النهائية في درجاتي لما الدكتور يعرضها" : "Your final result appears in My Grades once the lecturer publishes it."}
                     </p>
                 </div>
 
@@ -633,7 +650,7 @@ export default function ExamRoom() {
                     {/* Overall score */}
                     <div style={{ background: "#141414", border: `2px solid ${scoreColor(result.overall_score)}44`, borderRadius: "1.25rem", padding: "1.5rem", textAlign: "center" }}>
                         <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em", color: "#5a5a4a", marginBottom: "0.5rem" }}>
-                            الدرجة الإجمالية
+                            {t("exam.finalScore")}
                         </p>
                         <div style={{ fontSize: "3.5rem", fontWeight: 900, color: scoreColor(result.overall_score), fontFamily: "'Orbitron', monospace", lineHeight: 1 }}>
                             {Math.round(result.overall_score)}
@@ -642,16 +659,16 @@ export default function ExamRoom() {
                             {scoreLabel(result.overall_score)}
                         </div>
                         <p style={{ fontSize: "0.65rem", color: "#3a3a2a", marginTop: "0.5rem" }} dir="rtl">
-                            80% محتوى + 10% طلاقة + 10% نزاهة
+                            {dir === "rtl" ? "80% محتوى + 10% طلاقة + 10% نزاهة" : "80% content + 10% fluency + 10% integrity"}
                         </p>
                     </div>
 
                     {/* Score breakdown */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
                         {[
-                            { label: "المحتوى", value: result.nlp_score, note: "NLP/SBERT" },
-                            { label: "الطلاقة", value: result.speech_score, note: "Whisper" },
-                            { label: "النزاهة", value: result.facial_score, note: "Vision AI" },
+                            { label: t("exam.content"), value: result.nlp_score, note: "NLP/SBERT" },
+                            { label: t("exam.fluency"), value: result.speech_score, note: "Whisper" },
+                            { label: t("exam.integrity"), value: result.facial_score, note: "Vision AI" },
                         ].map(({ label, value, note }) => (
                             <div key={label} style={{ background: "#141414", border: `1px solid ${scoreColor(value)}33`, borderRadius: "1rem", padding: "1rem", textAlign: "center" }}>
                                 <p style={{ fontSize: "0.6rem", color: "#5a5a4a", marginBottom: "0.4rem" }}>{label}</p>
@@ -669,9 +686,9 @@ export default function ExamRoom() {
                 {result?.transcript && (
                     <div style={{ background: "#141414", border: "1px solid rgba(207,163,85,0.1)", borderRadius: "1.25rem", padding: "1.25rem" }}>
                         <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", color: "#5a5a4a", marginBottom: "0.75rem" }} dir="rtl">
-                            إجابتك — نص Whisper
+                            {dir === "rtl" ? "إجابتك - نص Whisper" : "Your Answer - Whisper transcript"}
                         </p>
-                        <p style={{ color: "#d0d0c0", fontSize: "0.9rem", lineHeight: 1.8 }} dir="rtl">
+                        <p style={{ color: "#d0d0c0", fontSize: "0.9rem", lineHeight: 1.8 }} dir={dir}>
                             {result.transcript}
                         </p>
                     </div>
@@ -684,17 +701,17 @@ export default function ExamRoom() {
                         <button onClick={goToNextExam}
                             style={{ padding: "1rem 2rem", background: "linear-gradient(135deg, #1a6e1a, #2a8a2a)", border: "none", borderRadius: "0.75rem", color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
                             dir="rtl">
-                            <ArrowRight size={18} style={{ transform: "scaleX(-1)" }} /> السؤال التالي ({remainingExams.filter(r => r.exam_token !== examToken).length} متبقي)
+                            <ArrowRight size={18} style={{ transform: "scaleX(-1)" }} /> {dir === "rtl" ? `السؤال التالي (${remainingExams.filter(r => r.exam_token !== examToken).length} متبقي)` : `Next question (${remainingExams.filter(r => r.exam_token !== examToken).length} left)`}
                         </button>
                         <button onClick={() => navigate("/dashboard")}
                             style={{ padding: "0.7rem 2rem", background: "transparent", border: "1px solid rgba(207,163,85,0.3)", borderRadius: "0.75rem", color: "#cfa355", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                            الرجوع للداشبورد
+                            {t("exam.backDashboard")}
                         </button>
                     </div>
                 ) : (
                     <button onClick={() => navigate("/dashboard")}
                         style={{ padding: "0.85rem 2rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", cursor: "pointer", fontWeight: 800, fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                        الرجوع للداشبورد <ArrowRight size={16} />
+                        {t("exam.backDashboard")} <ArrowRight size={16} />
                     </button>
                 )}
             </motion.div>
@@ -810,7 +827,7 @@ export default function ExamRoom() {
                         style={{ width: "100%", maxWidth: 600, background: "rgba(207,163,85,0.06)", border: "1px solid rgba(207,163,85,0.2)", borderRadius: "1rem", padding: "1.25rem" }}
                         dir="rtl">
                         <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#cfa355", marginBottom: "0.5rem" }}>
-                            السؤال
+                            {t("exam.question")}
                         </p>
                         <p style={{ fontSize: "1rem", color: "#e5e5e0", lineHeight: 1.8, fontWeight: 500 }}>
                             {question.text}
@@ -820,8 +837,8 @@ export default function ExamRoom() {
 
                 {/* Preview hint — only when ready to start recording */}
                 {phase === "preview" && (
-                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", maxWidth: 480, textAlign: "center", lineHeight: 1.7 }} dir="rtl">
-                        لما تكون جاهز اضغط <strong style={{ color: "#cfa355" }}>ابدأ التسجيل</strong> — السؤال هيظهرلك على طول.
+                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", maxWidth: 480, textAlign: "center", lineHeight: 1.7 }} dir={dir}>
+                        {t("exam.previewHint")}
                     </p>
                 )}
 
@@ -829,7 +846,7 @@ export default function ExamRoom() {
                 {errorMsg && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                         style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#e05555", fontSize: "0.8rem", background: "rgba(224,85,85,0.1)", padding: "0.75rem 1rem", borderRadius: "0.5rem" }}
-                        dir="rtl">
+                        dir={dir}>
                         <AlertCircle size={14} /> {errorMsg}
                     </motion.div>
                 )}
@@ -841,7 +858,7 @@ export default function ExamRoom() {
                             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                             onClick={startRecording}
                             style={{ width: "100%", padding: "1.1rem", background: "linear-gradient(135deg, #1a6e1a, #145514)", border: "none", borderRadius: "1rem", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem", fontSize: "1rem", fontWeight: 700, boxShadow: "0 0 20px rgba(26,110,26,0.4)" }}>
-                            <Mic size={22} /> ابدأ التسجيل
+                            <Mic size={22} /> {t("exam.start")}
                         </motion.button>
                     )}
 
@@ -854,10 +871,10 @@ export default function ExamRoom() {
                                 <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>
                                     <MicOff size={22} />
                                 </motion.div>
-                                أنهِ الإجابة وأرسل
+                                {t("exam.stop")}
                             </motion.button>
-                            <p style={{ textAlign: "center", fontSize: "0.72rem", color: "#e05555" }} dir="rtl">
-                                🔴 جاري التسجيل — اضغط لما تخلص
+                            <p style={{ textAlign: "center", fontSize: "0.72rem", color: "#e05555" }} dir={dir}>
+                                {t("exam.recording")}
                             </p>
                         </>
                     )}
@@ -865,7 +882,7 @@ export default function ExamRoom() {
 
                 {/* Rules */}
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-                    {["بُص في الكاميرا", "تكلم بوضوح", "مفيش موبايل أو ورق"].map(r => (
+                    {[t("exam.ruleCamera"), t("exam.ruleMic"), t("exam.ruleNoPhone")].map(r => (
                         <span key={r} style={{ fontSize: "0.65rem", color: "#8b8b73", background: "rgba(255,255,255,0.04)", padding: "0.25rem 0.6rem", borderRadius: "0.35rem" }}>
                             {r}
                         </span>

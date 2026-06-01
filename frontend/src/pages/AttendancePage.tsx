@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Users, Clock, CheckCircle2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 interface AttendanceRecord {
     id: number;
@@ -30,6 +31,7 @@ const itemVariants = {
 };
 
 export default function AttendancePage() {
+    const { t, dir } = useI18n();
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -64,7 +66,7 @@ export default function AttendancePage() {
     if (loading && attendance.length === 0) return (
         <div style={{ color: "#8b8b73", padding: "2rem", display: "flex", alignItems: "center", gap: "1rem" }}>
             <div style={{ width: 24, height: 24, border: "2px solid rgba(207,163,85,0.2)", borderTopColor: "#cfa355", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            Loading attendance...
+            {dir === "rtl" ? "جاري تحميل الحضور..." : "Loading attendance..."}
         </div>
     );
 
@@ -78,9 +80,9 @@ export default function AttendancePage() {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
                 <motion.div variants={itemVariants}>
-                    <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>Exam Attendance</h1>
+                    <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>{t("nav.attendance")}</h1>
                     <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>
-                        Live tracking — {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {dir === "rtl" ? "متابعة مباشرة" : "Live tracking"} — {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                 </motion.div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 1rem", background: "rgba(0,212,170,0.1)", border: "1px solid rgba(0,212,170,0.25)", borderRadius: "999px" }}>

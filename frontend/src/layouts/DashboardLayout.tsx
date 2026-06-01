@@ -8,20 +8,11 @@ import { cn } from "../lib/utils";
 import api from "../lib/api";
 import Logo from "../components/Logo";
 import { motion, AnimatePresence } from "framer-motion";
-
-const PAGE_TITLES: Record<string, string> = {
-    "/dashboard": "Overview",
-    "/dashboard/questions": "Exam Questions",
-    "/dashboard/results": "Results",
-    "/dashboard/analytics": "Analytics",
-    "/dashboard/attendance": "Attendance",
-    "/dashboard/settings": "Settings",
-    "/dashboard/grades": "My Grades",
-    "/dashboard/messages": "Messages",
-    "/dashboard/students": "Students",
-};
+import LanguageToggle from "../components/LanguageToggle";
+import { useI18n } from "../i18n";
 
 export function DashboardLayout() {
+    const { t, dir } = useI18n();
     const [isOpen, setIsOpen] = useState(false);
     const [user, setUser] = useState<{ full_name: string; email: string; role: string } | null>(null);
     const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -63,34 +54,44 @@ export function DashboardLayout() {
     };
 
     const isLecturer = user?.role === "lecturer" || user?.role === "hr" || user?.role === "admin";
-    const pageTitle = PAGE_TITLES[location.pathname] || "Dashboard";
+    const pageTitle = ({
+        "/dashboard": t("nav.overview"),
+        "/dashboard/questions": t("nav.questions"),
+        "/dashboard/results": t("nav.results"),
+        "/dashboard/analytics": t("nav.analytics"),
+        "/dashboard/attendance": t("nav.attendance"),
+        "/dashboard/settings": t("nav.settings"),
+        "/dashboard/grades": t("nav.grades"),
+        "/dashboard/messages": t("nav.messages"),
+        "/dashboard/students": t("nav.students"),
+    } as Record<string, string>)[location.pathname] || "Dashboard";
     const G = "rgba(207,163,85,";
 
     const navGroups = [
         {
-            label: "Platform",
+            label: t("nav.platform"),
             items: [
-                { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+                { icon: LayoutDashboard, label: t("nav.overview"), href: "/dashboard" },
                 ...(isLecturer
-                    ? [{ icon: ClipboardList, label: "Exam Questions", href: "/dashboard/questions" }]
+                    ? [{ icon: ClipboardList, label: t("nav.questions"), href: "/dashboard/questions" }]
                     : [
-                        { icon: Award, label: "My Grades", href: "/dashboard/grades" },
-                        { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
+                        { icon: Award, label: t("nav.grades"), href: "/dashboard/grades" },
+                        { icon: MessageSquare, label: t("nav.messages"), href: "/dashboard/messages" },
                     ]),
             ],
         },
         ...(isLecturer ? [{
-            label: "Analytics",
+            label: t("nav.analytics"),
             items: [
-                { icon: BarChart2, label: "Results", href: "/dashboard/results" },
-                { icon: TrendingUp, label: "Analytics", href: "/dashboard/analytics" },
-                { icon: Users, label: "Attendance", href: "/dashboard/attendance" },
+                { icon: BarChart2, label: t("nav.results"), href: "/dashboard/results" },
+                { icon: TrendingUp, label: t("nav.analytics"), href: "/dashboard/analytics" },
+                { icon: Users, label: t("nav.attendance"), href: "/dashboard/attendance" },
             ],
         }] : []),
         {
-            label: "Account",
+            label: t("nav.account"),
             items: [
-                { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+                { icon: Settings, label: t("nav.settings"), href: "/dashboard/settings" },
             ],
         },
     ];
@@ -113,8 +114,8 @@ export function DashboardLayout() {
 
             {/* ── Sidebar ── */}
             <aside className={cn(
-                "fixed inset-y-0 left-0 z-50 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static",
-                isOpen ? "translate-x-0" : "-translate-x-full"
+                `fixed inset-y-0 ${dir === "rtl" ? "right-0" : "left-0"} z-50 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static`,
+                isOpen ? "translate-x-0" : (dir === "rtl" ? "translate-x-full" : "-translate-x-full")
             )} style={{ width: 220, background: "#0d0d0d", borderRight: `1px solid ${G}0.07)`, flexShrink: 0 }}>
 
                 {/* Logo */}
@@ -181,12 +182,12 @@ export function DashboardLayout() {
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <span style={{ fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", padding: "0.18rem 0.5rem", borderRadius: "999px", background: `${G}0.07)`, color: "#b8934a", border: `1px solid ${G}0.13)` }}>
-                                {isLecturer ? "Lecturer" : "Student"}
+                                {isLecturer ? t("auth.role.lecturer") : t("auth.role.student")}
                             </span>
                             <button onClick={handleLogout}
                                 style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "none", border: "none", cursor: "pointer", color: "#3a3a2a", fontSize: "0.72rem", fontWeight: 500, padding: 0 }}
                                 className="hover:text-[#c04444]">
-                                <LogOut size={12} /> Sign out
+                                <LogOut size={12} /> {t("nav.signOut")}
                             </button>
                         </div>
                     </div>
@@ -212,6 +213,7 @@ export function DashboardLayout() {
                         <ChevronRight size={11} style={{ color: "#2a2a1a" }} />
                         <span style={{ fontSize: "0.825rem", fontWeight: 600, color: "#7a7a60" }}>{pageTitle}</span>
                     </div>
+                    <LanguageToggle compact />
                     {/* Mobile avatar only */}
                     <div className="md:hidden" style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #cfa355, #e8c97a)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
                         {avatarInner}

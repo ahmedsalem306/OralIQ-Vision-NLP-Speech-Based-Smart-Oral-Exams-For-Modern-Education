@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Award, Lock, BookOpen, Star, TrendingUp, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 interface Grade {
     id: number;
@@ -28,6 +29,7 @@ const itemVariants = {
 };
 
 export default function MyGrades() {
+    const { t, dir } = useI18n();
     const [grades, setGrades] = useState<Grade[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -58,7 +60,7 @@ export default function MyGrades() {
     if (loading) return (
         <div style={{ color: "#8b8b73", padding: "2rem", display: "flex", alignItems: "center", gap: "1rem" }}>
             <div style={{ width: 24, height: 24, border: "2px solid rgba(207,163,85,0.1)", borderTopColor: "#cfa355", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            Fetching your results...
+            {t("grades.loading")}
         </div>
     );
 
@@ -74,16 +76,16 @@ export default function MyGrades() {
             style={{ display: "flex", flexDirection: "column", gap: "2rem", fontFamily: "'Inter', sans-serif" }}
         >
             <motion.div variants={itemVariants}>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>My Grades</h1>
-                <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>Completed assessments released by your professor</p>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>{t("grades.title")}</h1>
+                <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>{t("grades.subtitle")}</p>
             </motion.div>
 
             {grades.length > 0 && (
                 <motion.div variants={itemVariants} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
                     {[
-                        { label: "Exams Verified", value: grades.length, color: "#cfa355", icon: BookOpen },
-                        { label: "Average Performance", value: `${avgScore}%`, color: "#e8c97a", icon: TrendingUp },
-                        { label: "Highest Achievement", value: `${topScore}%`, color: "#e8c97a", icon: Award },
+                        { label: t("overview.myExams"), value: grades.length, color: "#cfa355", icon: BookOpen },
+                        { label: t("overview.avgScore"), value: `${avgScore}%`, color: "#e8c97a", icon: TrendingUp },
+                        { label: dir === "rtl" ? "أعلى درجة" : "Highest Score", value: `${topScore}%`, color: "#e8c97a", icon: Award },
                     ].map((stat, i) => {
                         const Icon = stat.icon;
                         return (
@@ -111,9 +113,9 @@ export default function MyGrades() {
                     style={{ textAlign: "center", padding: "5rem 2rem", background: "#141414", border: "1px dashed rgba(207,163,85,0.2)", borderRadius: "1.5rem" }}
                 >
                     <Award size={56} color="#393632" style={{ margin: "0 auto 1.5rem", opacity: 0.5 }} />
-                    <h3 style={{ color: "#e5e5e0", fontWeight: 700, fontSize: "1.25rem", marginBottom: "0.75rem" }}>No Grades Published</h3>
+                    <h3 style={{ color: "#e5e5e0", fontWeight: 700, fontSize: "1.25rem", marginBottom: "0.75rem" }}>{t("grades.emptyTitle")}</h3>
                     <p style={{ color: "#8b8b73", fontSize: "0.95rem", maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
-                        Completed exams will appear here once your professor verifies and publishes the final scores.
+                        {t("grades.emptySubtitle")}
                     </p>
                 </motion.div>
             ) : (
@@ -156,7 +158,7 @@ export default function MyGrades() {
                                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
                                             <div style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", borderRadius: "999px", background: "rgba(207,163,85,0.1)", border: "1px solid rgba(207,163,85,0.2)" }}>
                                                 <Star size={10} color="#cfa355" fill="#cfa355" />
-                                                <span style={{ fontSize: "0.65rem", fontWeight: 800, color: "#cfa355", textTransform: "uppercase" }}>Exam Result</span>
+                                                <span style={{ fontSize: "0.65rem", fontWeight: 800, color: "#cfa355", textTransform: "uppercase" }}>{dir === "rtl" ? "نتيجة الامتحان" : "Exam Result"}</span>
                                             </div>
                                             <span style={{ fontSize: "0.75rem", color: "#8b8b73" }}>Submitted {date}</span>
                                         </div>
@@ -185,9 +187,9 @@ export default function MyGrades() {
 
                                     <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", borderLeft: "1px solid rgba(255,255,255,0.05)", paddingLeft: "2rem" }}>
                                         {[
-                                            { label: "Content", value: grade.nlp_score },
-                                            { label: "Fluency", value: grade.speech_score },
-                                            { label: "Integrity", value: grade.facial_score },
+                                            { label: t("exam.content"), value: grade.nlp_score },
+                                            { label: t("exam.fluency"), value: grade.speech_score },
+                                            { label: t("exam.integrity"), value: grade.facial_score },
                                         ].map((s, i) => (
                                             <div key={i} style={{ textAlign: "center" }}>
                                                 <p style={{ fontSize: "0.6rem", color: "#8b8b73", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>{s.label}</p>
@@ -199,7 +201,7 @@ export default function MyGrades() {
                                     </div>
 
                                     <div style={{ textAlign: "right", minWidth: 100, borderLeft: "1px solid rgba(255,255,255,0.05)", paddingLeft: "2rem" }}>
-                                        <p style={{ fontSize: "0.6rem", color: "#8b8b73", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Final Score</p>
+                                        <p style={{ fontSize: "0.6rem", color: "#8b8b73", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>{t("exam.finalScore")}</p>
                                         <p style={{ fontSize: "2rem", fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
                                             {grade.overall_score !== null ? `${Math.round(grade.overall_score)}%` : "—"}
                                         </p>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MessageSquare, ArrowRight, BookOpen, Clock, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 interface AssignedExam {
     id: number;
@@ -29,6 +30,7 @@ interface ExamMessage {
 const G = "rgba(207,163,85,";
 
 export default function MessagesPage() {
+    const { t } = useI18n();
     const [messages, setMessages] = useState<ExamMessage[]>([]);
     const [user, setUser] = useState<{ role: string } | null>(null);
     const [loading, setLoading] = useState(true);
@@ -57,8 +59,8 @@ export default function MessagesPage() {
                             msgs.push({
                                 id: `exam-${a.id}`,
                                 type: "exam_invite",
-                                title: "New Exam Invitation",
-                                body: `${a.assigned_by_name || "Your lecturer"} assigned you: ${a.question_text || "Oral exam"}`,
+                                title: t("messages.inviteTitle"),
+                                body: `${a.assigned_by_name || "Your lecturer"} - ${a.question_text || "Oral exam"}`,
                                 token: a.exam_token!,
                                 createdAt: a.assigned_at || new Date().toISOString(),
                                 read: false,
@@ -70,8 +72,8 @@ export default function MessagesPage() {
                         msgs.push({
                             id: `exam-${token}`,
                             type: "exam_invite",
-                            title: "New Exam Invitation",
-                            body: "You have been invited to take an oral exam. Click \"Start Exam\" when you're ready.",
+                            title: t("messages.inviteTitle"),
+                            body: t("auth.create.studentInvite"),
                             token,
                             createdAt: new Date().toISOString(),
                             read: false,
@@ -115,9 +117,9 @@ export default function MessagesPage() {
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2rem" }}>
                 <div>
-                    <h1 style={{ color: "#e5e5e0", fontSize: "1.75rem", fontWeight: 800, fontFamily: "'Amiamie', serif", marginBottom: "0.25rem" }}>Messages</h1>
+                    <h1 style={{ color: "#e5e5e0", fontSize: "1.75rem", fontWeight: 800, fontFamily: "'Amiamie', serif", marginBottom: "0.25rem" }}>{t("messages.title")}</h1>
                     <p style={{ color: "#8b8b73", fontSize: "0.85rem" }}>
-                        {unreadCount > 0 ? `You have ${unreadCount} new message${unreadCount > 1 ? "s" : ""}` : "No new messages"}
+                        {unreadCount > 0 ? `${unreadCount} ${t("messages.title")}` : t("messages.none")}
                     </p>
                 </div>
                 {unreadCount > 0 && (
@@ -133,7 +135,7 @@ export default function MessagesPage() {
                     <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                         style={{ textAlign: "center", padding: "4rem 2rem", color: "#8b8b73" }}>
                         <div style={{ width: 30, height: 30, border: `2px solid ${G}0.12)`, borderTopColor: "#cfa355", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 1rem" }} />
-                        Loading messages...
+                        {t("messages.loading")}
                     </motion.div>
                 ) : messages.length === 0 ? (
                     <motion.div key="empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -141,11 +143,11 @@ export default function MessagesPage() {
                         <div style={{ width: 80, height: 80, borderRadius: "1.5rem", background: `${G}0.06)`, border: `1px solid ${G}0.12)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
                             <MessageSquare size={36} color="#cfa355" strokeWidth={1.5} />
                         </div>
-                        <h3 style={{ color: "#e5e5e0", fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.5rem" }}>All caught up!</h3>
+                        <h3 style={{ color: "#e5e5e0", fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{t("messages.emptyTitle")}</h3>
                         <p style={{ color: "#8b8b73", fontSize: "0.9rem", maxWidth: 360, margin: "0 auto" }}>
                             {isStudent
-                                ? "When your professor assigns you an exam, it will appear here."
-                                : "No new notifications at this time."}
+                                ? t("messages.emptyStudent")
+                                : t("messages.emptyDefault")}
                         </p>
                     </motion.div>
                 ) : (
@@ -183,11 +185,11 @@ export default function MessagesPage() {
                                         {msg.type === "exam_invite" && (
                                             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => handleStartExam(msg.token)}
                                                 style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1.5rem", background: "linear-gradient(135deg, #cfa355, #e8c97a)", color: "#0a0a0a", border: "none", borderRadius: "0.75rem", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                                START EXAM <ArrowRight size={16} />
+                                                {t("messages.startExam")} <ArrowRight size={16} />
                                             </motion.button>
                                         )}
                                         <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", color: "#8b8b73" }}>
-                                            <Clock size={12} /> Just now
+                                            <Clock size={12} /> {t("messages.justNow")}
                                         </span>
                                     </div>
                                 </div>

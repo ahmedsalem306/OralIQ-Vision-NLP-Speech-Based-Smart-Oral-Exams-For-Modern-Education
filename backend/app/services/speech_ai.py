@@ -44,9 +44,9 @@ class SpeechAnalyzer:
 
     MAX_RETRIES = 3
     RETRY_DELAY = 2
-    # "small" is the safest default for Hugging Face Spaces CPU/RAM limits.
-    # Override locally with WHISPER_MODEL=medium if you want higher accuracy.
-    MODEL_SIZE = os.environ.get("WHISPER_MODEL", "small")
+    # "medium" gives much better Arabic/English oral-answer accuracy.
+    # Override with WHISPER_MODEL=small if HF CPU-basic runs out of memory.
+    MODEL_SIZE = os.environ.get("WHISPER_MODEL", "medium")
 
     def __init__(self):
         self._model = None
@@ -88,9 +88,10 @@ class SpeechAnalyzer:
     def _transcribe(self, audio_path: str, hint: str = "", word_timestamps: bool = False):
         """Run a transcription, return (full_text, segments_list, info)."""
         prompt = (hint + " " + self.filler_prompt).strip()
+        language_hint = os.environ.get("WHISPER_LANGUAGE", "").strip() or None
         segments_iter, info = self.model.transcribe(
             audio_path,
-            language="ar",  # primary language; faster-whisper still handles English code-switching
+            language=language_hint,  # None lets Whisper detect Arabic/English automatically.
             initial_prompt=prompt,
             word_timestamps=word_timestamps,
             vad_filter=True,            # skip pure-silence regions

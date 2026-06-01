@@ -6,6 +6,7 @@ import {
     CheckCircle2, Mic, BookOpen, Plus, TrendingUp, Award
 } from "lucide-react";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 interface AssignedExam {
     id: number;
@@ -47,6 +48,7 @@ function StatTile({ label, value, icon: Icon, color, delay = 0 }: { label: strin
 }
 
 export default function Overview() {
+    const { t, dir } = useI18n();
     const navigate = useNavigate();
     const [user, setUser] = useState<{ full_name: string; role: string } | null>(null);
     const [stats, setStats] = useState({ exams: 0, submissions: 0, avgScore: 0, pending: 0, completed: 0 });
@@ -119,10 +121,10 @@ export default function Overview() {
             {/* Page header */}
             <div style={{ marginBottom: "2rem" }}>
                 <h1 style={{ fontSize: "1.375rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.2rem" }}>
-                    {isLecturer ? "Platform Overview" : "My Exams"}
+                    {isLecturer ? t("overview.lecturerTitle") : t("overview.studentTitle")}
                 </h1>
                 <p style={{ color: "#4a4a3a", fontSize: "0.85rem" }}>
-                    Welcome back, <span style={{ color: "#cfa355" }}>{user?.full_name}</span>
+                    {t("overview.welcome")}, <span style={{ color: "#cfa355" }}>{user?.full_name}</span>
                 </p>
             </div>
 
@@ -130,16 +132,16 @@ export default function Overview() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(175px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
                 {isLecturer ? (
                     <>
-                        <StatTile label="Exams Created" value={stats.exams} icon={ClipboardList} color="#cfa355" delay={0} />
-                        <StatTile label="Submissions" value={stats.submissions} icon={Users} color="#e8c97a" delay={0.05} />
-                        <StatTile label="Avg Score" value={stats.avgScore ? `${stats.avgScore}%` : "—"} icon={BarChart2} color="#5ec269" delay={0.1} />
-                        <StatTile label="Pending AI" value={stats.pending} icon={Clock} color="#e0a030" delay={0.15} />
+                        <StatTile label={t("overview.examsCreated")} value={stats.exams} icon={ClipboardList} color="#cfa355" delay={0} />
+                        <StatTile label={t("overview.submissions")} value={stats.submissions} icon={Users} color="#e8c97a" delay={0.05} />
+                        <StatTile label={t("overview.avgScore")} value={stats.avgScore ? `${stats.avgScore}%` : "—"} icon={BarChart2} color="#5ec269" delay={0.1} />
+                        <StatTile label={t("overview.pendingAi")} value={stats.pending} icon={Clock} color="#e0a030" delay={0.15} />
                     </>
                 ) : (
                     <>
-                        <StatTile label="Pending Exams" value={stats.pending} icon={Clock} color="#e0a030" delay={0} />
-                        <StatTile label="Completed" value={stats.completed} icon={CheckCircle2} color="#5ec269" delay={0.05} />
-                        <StatTile label="Total Assigned" value={stats.submissions} icon={ClipboardList} color="#cfa355" delay={0.1} />
+                        <StatTile label={t("overview.myExams")} value={stats.pending} icon={Clock} color="#e0a030" delay={0} />
+                        <StatTile label={dir === "rtl" ? "مكتملة" : "Completed"} value={stats.completed} icon={CheckCircle2} color="#5ec269" delay={0.05} />
+                        <StatTile label={dir === "rtl" ? "إجمالي المرسل" : "Total Assigned"} value={stats.submissions} icon={ClipboardList} color="#cfa355" delay={0.1} />
                     </>
                 )}
             </div>
@@ -151,15 +153,15 @@ export default function Overview() {
                     <div style={{ display: "flex", gap: "0.625rem", marginBottom: "2rem", flexWrap: "wrap" }}>
                         <button onClick={() => navigate("/dashboard/questions")}
                             style={{ display: "flex", alignItems: "center", gap: "0.45rem", padding: "0.6rem 1.1rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.65rem", color: "#0a0a0a", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                            <Plus size={14} /> New Exam
+                            <Plus size={14} /> {t("dashboard.questions.new")}
                         </button>
                         <button onClick={() => navigate("/dashboard/results")}
                             style={{ display: "flex", alignItems: "center", gap: "0.45rem", padding: "0.6rem 1.1rem", background: `${G}0.05)`, border: `1px solid ${G}0.14)`, borderRadius: "0.65rem", color: "#cfa355", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                            <BarChart2 size={14} /> Results
+                            <BarChart2 size={14} /> {t("nav.results")}
                         </button>
                         <button onClick={() => navigate("/dashboard/analytics")}
                             style={{ display: "flex", alignItems: "center", gap: "0.45rem", padding: "0.6rem 1.1rem", background: `${G}0.05)`, border: `1px solid ${G}0.14)`, borderRadius: "0.65rem", color: "#cfa355", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                            <TrendingUp size={14} /> Analytics
+                            <TrendingUp size={14} /> {t("nav.analytics")}
                         </button>
                     </div>
 
@@ -167,7 +169,7 @@ export default function Overview() {
                     {recentSubs.length > 0 ? (
                         <div>
                             <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#3a3a2a", marginBottom: "0.875rem" }}>
-                                Recent Submissions
+                                {dir === "rtl" ? "آخر الإجابات" : "Recent Submissions"}
                             </p>
                             <div style={{ background: "#141414", border: `1px solid ${G}0.08)`, borderRadius: "0.875rem", overflow: "hidden" }}>
                                 {recentSubs.map((s, i) => (
@@ -203,14 +205,14 @@ export default function Overview() {
                             </div>
                             <button onClick={() => navigate("/dashboard/results")}
                                 style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.75rem", color: "#cfa355", background: "none", border: "none", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, padding: 0 }}>
-                                View all results <ArrowRight size={12} />
+                                {dir === "rtl" ? "عرض كل النتائج" : "View all results"} <ArrowRight size={12} />
                             </button>
                         </div>
                     ) : (
                         <div style={{ textAlign: "center", padding: "3rem 2rem", background: "#141414", border: `1px dashed ${G}0.1)`, borderRadius: "0.875rem" }}>
                             <Award size={30} color="#2a2a1a" style={{ marginBottom: "0.75rem" }} />
-                            <p style={{ color: "#4a4a3a", fontSize: "0.875rem" }}>No submissions yet.</p>
-                            <p style={{ color: "#2a2a1a", fontSize: "0.775rem", marginTop: "0.3rem" }}>Create an exam and assign it to students to get started.</p>
+                            <p style={{ color: "#4a4a3a", fontSize: "0.875rem" }}>{dir === "rtl" ? "لا توجد إجابات بعد." : "No submissions yet."}</p>
+                            <p style={{ color: "#2a2a1a", fontSize: "0.775rem", marginTop: "0.3rem" }}>{dir === "rtl" ? "أنشئ امتحاناً وأرسله للطلاب للبدء." : "Create an exam and assign it to students to get started."}</p>
                         </div>
                     )}
                 </>
@@ -221,13 +223,13 @@ export default function Overview() {
                 assignedExams.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "4rem 2rem", background: "#141414", border: `1px solid ${G}0.07)`, borderRadius: "0.875rem" }}>
                         <BookOpen size={34} color="#2a2a1a" style={{ marginBottom: "1rem" }} />
-                        <p style={{ color: "#4a4a3a", fontSize: "0.9rem", marginBottom: "0.3rem" }}>No pending exams.</p>
-                        <p style={{ color: "#2a2a1a", fontSize: "0.775rem" }}>Your lecturer will assign you an exam soon.</p>
+                        <p style={{ color: "#4a4a3a", fontSize: "0.9rem", marginBottom: "0.3rem" }}>{dir === "rtl" ? "لا توجد امتحانات معلقة." : "No pending exams."}</p>
+                        <p style={{ color: "#2a2a1a", fontSize: "0.775rem" }}>{dir === "rtl" ? "سيظهر هنا أي امتحان يرسله المحاضر." : "Your lecturer will assign you an exam soon."}</p>
                     </div>
                 ) : (
                     <div>
                         <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#3a3a2a", marginBottom: "0.875rem" }}>
-                            Pending Exams
+                            {dir === "rtl" ? "امتحانات معلقة" : "Pending Exams"}
                         </p>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                             {assignedExams.map((exam, i) => (
@@ -247,7 +249,7 @@ export default function Overview() {
                                     </div>
                                     <button onClick={() => startExam(exam.exam_token)}
                                         style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.575rem 1.1rem", background: "linear-gradient(135deg, #cfa355, #e0b86b)", border: "none", borderRadius: "0.6rem", color: "#0a0a0a", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>
-                                        Start <ArrowRight size={13} />
+                                        {t("overview.startExam")} <ArrowRight size={13} />
                                     </button>
                                 </motion.div>
                             ))}

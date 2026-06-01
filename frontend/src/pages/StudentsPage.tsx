@@ -1,4 +1,5 @@
 import { Users, BookOpen, TrendingUp, Clock } from "lucide-react";
+import { useI18n } from "../i18n";
 
 const mockStudents = [
     { id: 1, name: "Mohamed Ali", email: "m.ali@uni.edu", exams: 3, avgScore: 82, lastExam: "2026-02-18" },
@@ -9,25 +10,26 @@ const mockStudents = [
 ];
 
 export default function StudentsPage() {
+    const { t, dir } = useI18n();
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                    <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>Students</h1>
-                    <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>All students enrolled in your courses</p>
+                    <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>{t("nav.students")}</h1>
+                    <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>{dir === "rtl" ? "كل الطلاب المسجلين في مقرراتك" : "All students enrolled in your courses"}</p>
                 </div>
                 <button style={{ padding: "0.65rem 1.25rem", background: "linear-gradient(135deg, #cfa355, #e8c97a)", color: "#fff", border: "none", borderRadius: "0.75rem", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                    + Invite Student
+                    + {dir === "rtl" ? "دعوة طالب" : "Invite Student"}
                 </button>
             </div>
 
             {/* Stats */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
                 {[
-                    { icon: Users, label: "Total Students", value: mockStudents.length, color: "#cfa355" },
-                    { icon: BookOpen, label: "Total Exams", value: mockStudents.reduce((a, s) => a + s.exams, 0), color: "#e8c97a" },
-                    { icon: TrendingUp, label: "Avg Score", value: `${Math.round(mockStudents.reduce((a, s) => a + s.avgScore, 0) / mockStudents.length)}%`, color: "#e8c97a" },
-                    { icon: Clock, label: "Active Today", value: 2, color: "#e05555" },
+                    { icon: Users, label: dir === "rtl" ? "إجمالي الطلاب" : "Total Students", value: mockStudents.length, color: "#cfa355" },
+                    { icon: BookOpen, label: dir === "rtl" ? "إجمالي الامتحانات" : "Total Exams", value: mockStudents.reduce((a, s) => a + s.exams, 0), color: "#e8c97a" },
+                    { icon: TrendingUp, label: t("overview.avgScore"), value: `${Math.round(mockStudents.reduce((a, s) => a + s.avgScore, 0) / mockStudents.length)}%`, color: "#e8c97a" },
+                    { icon: Clock, label: dir === "rtl" ? "نشط اليوم" : "Active Today", value: 2, color: "#e05555" },
                 ].map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
@@ -47,13 +49,19 @@ export default function StudentsPage() {
             {/* Students Table */}
             <div style={{ background: "#141414", border: "1px solid rgba(207,163,85,0.15)", borderRadius: "1.25rem", overflow: "hidden" }}>
                 <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid rgba(207,163,85,0.1)" }}>
-                    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0" }}>Student List</h2>
+                    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0" }}>{dir === "rtl" ? "قائمة الطلاب" : "Student List"}</h2>
                 </div>
                 <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr style={{ borderBottom: "1px solid rgba(207,163,85,0.1)" }}>
-                                {["Student", "Email", "Exams Taken", "Avg Score", "Last Exam"].map(h => (
+                                {[
+                                    dir === "rtl" ? "الطالب" : "Student",
+                                    t("auth.email"),
+                                    dir === "rtl" ? "الامتحانات" : "Exams Taken",
+                                    t("overview.avgScore"),
+                                    dir === "rtl" ? "آخر امتحان" : "Last Exam",
+                                ].map(h => (
                                     <th key={h} style={{ padding: "0.75rem 1.5rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 700, color: "#8b8b73", textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</th>
                                 ))}
                             </tr>

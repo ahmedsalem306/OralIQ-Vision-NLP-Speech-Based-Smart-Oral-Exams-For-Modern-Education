@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Camera, User, Mail, Lock, Save } from "lucide-react";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
 
 export default function Settings() {
+    const { t } = useI18n();
     const [profilePic, setProfilePic] = useState<string | null>(null);
     const [userEmail, setUserEmail] = useState<string>("");
     const [name, setName] = useState("");
@@ -39,13 +41,13 @@ export default function Settings() {
     return (
         <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
             <div>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>Settings</h1>
-                <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>Manage your account and preferences</p>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#e5e5e0", marginBottom: "0.25rem" }}>{t("settings.title")}</h1>
+                <p style={{ color: "#8b8b73", fontSize: "0.9rem" }}>{t("settings.subtitle")}</p>
             </div>
 
             {/* Profile Picture Card */}
             <div style={{ background: "#141414", border: "1px solid rgba(207,163,85,0.15)", borderRadius: "1.25rem", padding: "2rem" }}>
-                <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0", marginBottom: "1.5rem" }}>Profile Picture</h2>
+                <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0", marginBottom: "1.5rem" }}>{t("settings.profile")}</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
                     <div style={{ position: "relative" }} className="group">
                         <div style={{
@@ -76,7 +78,7 @@ export default function Settings() {
                         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePicChange} />
                     </div>
                     <div>
-                        <p style={{ color: "#e5e5e0", fontWeight: 600, marginBottom: "0.25rem" }}>Upload a new photo</p>
+                        <p style={{ color: "#e5e5e0", fontWeight: 600, marginBottom: "0.25rem" }}>{t("settings.upload")}</p>
                         <p style={{ color: "#8b8b73", fontSize: "0.8rem", marginBottom: "0.75rem" }}>JPG, PNG or GIF. Max 5MB.</p>
                         <button
                             onClick={() => fileInputRef.current?.click()}
@@ -92,7 +94,7 @@ export default function Settings() {
                                 fontFamily: "'Inter', sans-serif",
                             }}
                         >
-                            Choose Photo
+                            {t("settings.choosePhoto")}
                         </button>
                     </div>
                 </div>
@@ -100,18 +102,18 @@ export default function Settings() {
 
             {/* Account Info Card */}
             <form onSubmit={handleSave} style={{ background: "#141414", border: "1px solid rgba(207,163,85,0.15)", borderRadius: "1.25rem", padding: "2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0" }}>Account Information</h2>
+                <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#e5e5e0" }}>{t("settings.accountInfo")}</h2>
 
                 {saved && (
                     <div style={{ background: "rgba(0,212,170,0.1)", border: "1px solid rgba(0,212,170,0.3)", borderRadius: "0.75rem", padding: "0.75rem 1rem", color: "#e8c97a", fontSize: "0.85rem", textAlign: "center" }}>
-                        Changes saved successfully!
+                        {t("settings.saved")}
                     </div>
                 )}
 
                 {[
-                    { icon: User, label: "Full Name", type: "text", placeholder: "Your full name", value: name, onChange: (v: string) => setName(v) },
-                    { icon: Mail, label: "Email", type: "email", placeholder: "your@email.com", value: "", onChange: () => { } },
-                    { icon: Lock, label: "New Password", type: "password", placeholder: "Leave blank to keep current", value: "", onChange: () => { } },
+                    { icon: User, label: t("auth.fullName"), type: "text", placeholder: t("auth.fullName"), value: name, onChange: (v: string) => setName(v) },
+                    { icon: Mail, label: t("auth.email"), type: "email", placeholder: "your@email.com", value: "", onChange: () => { } },
+                    { icon: Lock, label: t("auth.password"), type: "password", placeholder: t("auth.password"), value: "", onChange: () => { } },
                 ].map((field, idx) => {
                     const Icon = field.icon;
                     return (
@@ -154,7 +156,7 @@ export default function Settings() {
                         fontFamily: "'Inter', sans-serif",
                     }}
                 >
-                    <Save size={16} /> Save Changes
+                    <Save size={16} /> {t("settings.save")}
                 </button>
             </form>
         </div>
