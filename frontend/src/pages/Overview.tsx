@@ -91,7 +91,14 @@ export default function Overview() {
                     setLoading(false);
                 }).catch(() => setLoading(false));
             }
-        }).catch(() => navigate("/login"));
+        }).catch((err) => {
+            const status = err?.response?.status;
+            if (status === 401 || status === 403) {
+                localStorage.removeItem("token");
+                navigate("/login", { replace: true });
+            }
+            setLoading(false);
+        });
     }, []);
 
     const isLecturer = user && ["lecturer", "hr", "admin"].includes(user.role);

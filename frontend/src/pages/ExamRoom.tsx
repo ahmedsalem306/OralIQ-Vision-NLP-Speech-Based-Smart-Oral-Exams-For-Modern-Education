@@ -109,7 +109,7 @@ export default function ExamRoom() {
         });
 
         api.get("/users/me")
-            .then(res => {
+            .then(async res => {
                 setStudentName(res.data.full_name || "");
                 // Fetch remaining assignments in parallel (used after submit to chain questions)
                 api.get("/exams/my-assignments")
@@ -124,20 +124,26 @@ export default function ExamRoom() {
                 if (!examToken) {
                     setErrorMsg("مفيش امتحان متاح. ارجع للداشبورد.");
                     setPhase("info");
-                    return Promise.resolve();
+                    return;
                 }
-                return api.get(`/questions/by-token/${examToken}`)
-                    .then(r => setQuestion(buildQ(r.data)))
-                    .catch(() =>
-                        api.get(`/exams/exam-by-token/${examToken}`)
-                            .then(r => {
-                                const qs: any[] = r.data.questions || [];
-                                if (qs.length > 0) setQuestion(buildQ(qs[0]));
-                            })
-                    );
+                try {
+                    const { data } = await api.get(`/questions/by-token/${examToken}`);
+                    setQuestion(buildQ(data));
+                } catch {
+                    setErrorMsg("رابط الامتحان غير صالح أو السؤال غير متاح حالياً.");
+                }
             })
             .then(() => setPhase("info"))
-            .catch(() => { localStorage.removeItem("token"); navigate("/login"); });
+            .catch((err) => {
+                const status = err?.response?.status;
+                if (status === 401 || status === 403) {
+                    localStorage.removeItem("token");
+                    navigate("/login", { replace: true });
+                    return;
+                }
+                setErrorMsg("حصل خطأ في تحميل الامتحان. حاول مرة تانية.");
+                setPhase("info");
+            });
     }, []);
 
     // ── Timer (recording only) ────────────────────────────────────────────────

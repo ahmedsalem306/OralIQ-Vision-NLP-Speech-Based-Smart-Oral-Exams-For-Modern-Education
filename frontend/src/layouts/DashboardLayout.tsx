@@ -36,7 +36,13 @@ export function DashboardLayout() {
                 const saved = localStorage.getItem(`profilePic_${res.data.email}`);
                 if (saved) setProfilePic(saved);
             })
-            .catch(() => navigate("/login"));
+            .catch((err) => {
+                const status = err?.response?.status;
+                if (status === 401 || status === 403) {
+                    localStorage.removeItem("token");
+                    navigate("/login", { replace: true });
+                }
+            });
     }, [navigate]);
 
     const handleLogout = () => {

@@ -4,6 +4,18 @@ import { MessageSquare, ArrowRight, BookOpen, Clock, X, Sparkles } from "lucide-
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../lib/api";
 
+interface AssignedExam {
+    id: number;
+    question_id: number;
+    assigned_at: string | null;
+    status: string;
+    question_text: string | null;
+    question_category: string | null;
+    question_difficulty: string | null;
+    exam_token: string | null;
+    assigned_by_name: string | null;
+}
+
 interface ExamMessage {
     id: string;
     type: "exam_invite";
@@ -19,35 +31,72 @@ const G = "rgba(207,163,85,";
 export default function MessagesPage() {
     const [messages, setMessages] = useState<ExamMessage[]>([]);
     const [user, setUser] = useState<{ role: string } | null>(null);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
-        api.get("/users/me").then(r => setUser(r.data)).catch(() => {});
-    }, []);
+        let cancelled = false;
 
-    // Check for pending exam token and build messages list
-    useEffect(() => {
-        const token = localStorage.getItem("pendingExamToken");
-        const dismissed = JSON.parse(localStorage.getItem("dismissedExamTokens") || "[]");
+        const loadMessages = async () => {
+            setLoading(true);
+            try {
+                const me = await api.get("/users/me");
+                if (cancelled) return;
+                setUser(me.data);
 
-        const msgs: ExamMessage[] = [];
+                const dismissed = JSON.parse(localStorage.getItem("dismissedExamTokens") || "[]");
+                const msgs: ExamMessage[] = [];
 
-        if (token && !dismissed.includes(token)) {
-            msgs.push({
-                id: `exam-${token}`,
-                type: "exam_invite",
-                title: "New Exam Invitation",
-                body: "You have been invited to take an oral exam. Click \"Start Exam\" when you're ready.",
-                token,
-                createdAt: new Date().toISOString(),
-                read: false,
-            });
-        }
+                if (me.data.role === "student") {
+                    const { data } = await api.get("/exams/my-assignments");
+                    if (cancelled) return;
 
-        setMessages(msgs);
+                    (data as AssignedExam[])
+                        .filter(a => a.exam_token && !dismissed.includes(a.exam_token))
+                        .forEach(a => {
+                            msgs.push({
+                                id: `exam-${a.id}`,
+                                type: "exam_invite",
+                                title: "New Exam Invitation",
+                                body: `${a.assigned_by_name || "Your lecturer"} assigned you: ${a.question_text || "Oral exam"}`,
+                                token: a.exam_token!,
+                                createdAt: a.assigned_at || new Date().toISOString(),
+                                read: false,
+                            });
+                        });
+                } else {
+                    const token = localStorage.getItem("pendingExamToken");
+                    if (token && !dismissed.includes(token)) {
+                        msgs.push({
+                            id: `exam-${token}`,
+                            type: "exam_invite",
+                            title: "New Exam Invitation",
+                            body: "You have been invited to take an oral exam. Click \"Start Exam\" when you're ready.",
+                            token,
+                            createdAt: new Date().toISOString(),
+                            read: false,
+                        });
+                    }
+                }
+
+                setMessages(msgs);
+            } catch (err: any) {
+                const status = err?.response?.status;
+                if (status === 401 || status === 403) {
+                    localStorage.removeItem("token");
+                    navigate("/login", { replace: true });
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        loadMessages();
+        return () => { cancelled = true; };
     }, []);
 
     const handleStartExam = (token: string) => {
+        localStorage.setItem("pendingExamToken", token);
         navigate("/exam/start");
     };
 
@@ -80,7 +129,13 @@ export default function MessagesPage() {
 
             {/* Messages List */}
             <AnimatePresence mode="popLayout">
-                {messages.length === 0 ? (
+                {loading ? (
+                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        style={{ textAlign: "center", padding: "4rem 2rem", color: "#8b8b73" }}>
+                        <div style={{ width: 30, height: 30, border: `2px solid ${G}0.12)`, borderTopColor: "#cfa355", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 1rem" }} />
+                        Loading messages...
+                    </motion.div>
+                ) : messages.length === 0 ? (
                     <motion.div key="empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                         style={{ textAlign: "center", padding: "4rem 2rem" }}>
                         <div style={{ width: 80, height: 80, borderRadius: "1.5rem", background: `${G}0.06)`, border: `1px solid ${G}0.12)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
