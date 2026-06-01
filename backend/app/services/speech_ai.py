@@ -46,7 +46,10 @@ class SpeechAnalyzer:
     RETRY_DELAY = 2
     # "medium" gives much better Arabic/English oral-answer accuracy.
     # Override with WHISPER_MODEL=small if HF CPU-basic runs out of memory.
-    MODEL_SIZE = os.environ.get("WHISPER_MODEL", "medium")
+    requested_model = os.environ.get("WHISPER_MODEL", "medium").strip() or "medium"
+    if os.environ.get("SPACE_ID") and requested_model == "small":
+        requested_model = "medium"
+    MODEL_SIZE = requested_model
 
     def __init__(self):
         self._model = None
