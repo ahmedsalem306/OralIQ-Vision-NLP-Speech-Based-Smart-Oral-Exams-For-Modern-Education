@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libgomp1 \
+    build-essential \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements

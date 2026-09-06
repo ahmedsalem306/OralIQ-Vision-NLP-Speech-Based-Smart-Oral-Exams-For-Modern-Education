@@ -19,3 +19,6 @@ httpx
 moviepy
 email-validator
 faster-whisper
+resemblyzer
+scipy
+webrtcvad
