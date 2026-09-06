@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Check, Trash2, Link2, BookOpen, ChevronDown, ChevronUp, UserPlus, X, Search } from "lucide-react";
+import { Plus, Copy, Check, Trash2, Link2, BookOpen, ChevronDown, ChevronUp, UserPlus, X, Search, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
+import VoiceRecordButton from "../components/VoiceRecordButton";
 
 interface Question {
     id: number; text: string; model_answer: string; keywords: string;
@@ -22,9 +23,10 @@ export default function Dashboard() {
     const [copiedId, setCopiedId] = useState<number | null>(null);
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [assignQuestion, setAssignQuestion] = useState<Question | null>(null);
-    const [students, setStudents] = useState<{ id: number; full_name: string; email: string }[]>([]);
+    const [students, setStudents] = useState<{ id: number; full_name: string; email: string; has_voiceprint?: boolean; voice_locked?: boolean; voice_reenroll_allowed?: boolean }[]>([]);
     const [studentSearch, setStudentSearch] = useState("");
     const [assigning, setAssigning] = useState(false);
+    const [allowingVoice, setAllowingVoice] = useState<number | null>(null);
     const [assignedTo, setAssignedTo] = useState<number | null>(null);
     const [text, setText] = useState("");
     const [modelAnswer, setModelAnswer] = useState("");
@@ -57,7 +59,30 @@ export default function Dashboard() {
     const resetFormFields = () => { setText(""); setModelAnswer(""); setKeywords(""); };
     const resetForm = () => { resetFormFields(); setCategory("general"); setDifficulty("medium"); setDurationMinutes(2); setExamQuestions([]); setActiveGroupToken(null); };
     const openAssign = async (q: Question) => { setAssignQuestion(q); setAssignedTo(null); setStudentSearch(""); if (!students.length) { try { const r = await api.get("/exams/students"); setStudents(r.data); } catch { setStudents([]); } } };
-    const handleAssign = async (sid: number) => { if (!assignQuestion) return; setAssigning(true); try { await api.post("/exams/assign", { question_id: assignQuestion.id, student_id: sid }); setAssignedTo(sid); } catch { alert("Failed."); } finally { setAssigning(false); } };
+    const handleAllowVoiceReenroll = async (sid: number) => {
+        setAllowingVoice(sid);
+        try {
+            await api.post(`/voice/allow-reenroll/${sid}`);
+            setStudents(prev => prev.map(s => s.id === sid ? { ...s, voice_reenroll_allowed: true } : s));
+            alert("تم السماح للطالب بإعادة تسجيل بصمة الصوت");
+        } catch (e: any) {
+            alert(e?.response?.data?.detail || "فشل");
+        } finally {
+            setAllowingVoice(null);
+        }
+    };
+    const handleAssign = async (sid: number) => {
+        if (!assignQuestion) return;
+        setAssigning(true);
+        try {
+            await api.post("/exams/assign", { question_id: assignQuestion.id, student_id: sid });
+            setAssignedTo(sid);
+        } catch {
+            alert("Failed.");
+        } finally {
+            setAssigning(false);
+        }
+    };
     const filteredStudents = students.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase()));
 
     const inp: React.CSSProperties = { width: "100%", padding: "0.75rem 1rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${G}0.15)`, borderRadius: "0.75rem", color: "#f0f0f0", fontSize: "0.9rem", fontFamily: "'Inter',sans-serif", outline: "none", boxSizing: "border-box" };
@@ -87,8 +112,28 @@ export default function Dashboard() {
                                 <BookOpen size={20} color="#ffffff" /> {t("dashboard.questions.new")}
                             </h2>
                             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                                <div><label style={lbl}>{t("dashboard.questions.question")} *</label><textarea value={text} onChange={e => setText(e.target.value)} placeholder={t("dashboard.questions.question")} rows={3} style={{ ...inp, resize: "vertical" }} /></div>
-                                <div><label style={lbl}>{t("dashboard.questions.answer")} *</label><textarea value={modelAnswer} onChange={e => setModelAnswer(e.target.value)} placeholder={t("dashboard.questions.answer")} rows={3} style={{ ...inp, resize: "vertical" }} /></div>
+                                <div>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                                        <label style={{ ...lbl, marginBottom: 0 }}>{t("dashboard.questions.question")} *</label>
+                                        <VoiceRecordButton
+                                            label="سجّل السؤال"
+                                            hint="سؤال امتحان شفوي"
+                                            onTranscribed={txt => setText(prev => prev ? `${prev} ${txt}` : txt)}
+                                        />
+                                    </div>
+                                    <textarea value={text} onChange={e => setText(e.target.value)} placeholder={t("dashboard.questions.question")} rows={3} style={{ ...inp, resize: "vertical" }} />
+                                </div>
+                                <div>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                                        <label style={{ ...lbl, marginBottom: 0 }}>{t("dashboard.questions.answer")} *</label>
+                                        <VoiceRecordButton
+                                            label="سجّل الإجابة"
+                                            hint="إجابة نموذجية للسؤال"
+                                            onTranscribed={txt => setModelAnswer(prev => prev ? `${prev} ${txt}` : txt)}
+                                        />
+                                    </div>
+                                    <textarea value={modelAnswer} onChange={e => setModelAnswer(e.target.value)} placeholder={t("dashboard.questions.answer")} rows={3} style={{ ...inp, resize: "vertical" }} />
+                                </div>
                                 <div><label style={lbl}>{t("dashboard.questions.keywords")}</label><input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="AI, NLP, speech" style={inp} /></div>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                                     <div><label style={lbl}>{t("dashboard.questions.category")}</label><select value={category} onChange={e => setCategory(e.target.value)} style={sel}><option value="general" style={{ background: "#141414" }}>General</option><option value="technical" style={{ background: "#141414" }}>Technical</option><option value="behavioral" style={{ background: "#141414" }}>Behavioral</option><option value="hr" style={{ background: "#141414" }}>HR</option></select></div>
@@ -198,9 +243,25 @@ export default function Dashboard() {
                             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                                 {filteredStudents.length === 0 ? (<p style={{ textAlign: "center", color: "#808080", padding: "2rem", fontSize: "0.875rem" }}>{t("dashboard.questions.noStudents")}</p>) : filteredStudents.map(s => {
                                     const done = assignedTo === s.id;
-                                    return (<div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.85rem 1rem", background: done ? `${G}0.04)` : "rgba(255,255,255,0.015)", border: `1px solid ${done ? `${G}0.2)` : `${G}0.06)`}`, borderRadius: "0.75rem", transition: "all 0.2s" }}>
-                                        <div><p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f0f0f0", marginBottom: "0.15rem" }}>{s.full_name}</p><p style={{ fontSize: "0.75rem", color: "#808080" }}>{s.email}</p></div>
-                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleAssign(s.id)} disabled={assigning || done} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.9rem", background: done ? `${G}0.08)` : "#ffffff", border: done ? `1px solid ${G}0.2)` : "none", borderRadius: "0.6rem", color: done ? "#ffffff" : "#0a0a0a", fontSize: "0.8rem", fontWeight: 700, cursor: done ? "default" : "pointer", fontFamily: "'Inter',sans-serif", opacity: assigning ? 0.6 : 1 }}>{done ? <><Check size={13} /> {t("dashboard.questions.copied")}</> : t("dashboard.questions.assign")}</motion.button>
+                                    return (<div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.85rem 1rem", background: done ? `${G}0.04)` : "rgba(255,255,255,0.015)", border: `1px solid ${done ? `${G}0.2)` : `${G}0.06)`}`, borderRadius: "0.75rem", transition: "all 0.2s", flexWrap: "wrap" }}>
+                                        <div style={{ flex: 1, minWidth: 140 }}>
+                                            <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f0f0f0", marginBottom: "0.15rem" }}>{s.full_name}</p>
+                                            <p style={{ fontSize: "0.75rem", color: "#808080" }}>{s.email}</p>
+                                            {s.has_voiceprint && (
+                                                <p style={{ fontSize: "0.65rem", color: s.voice_reenroll_allowed ? "#4ade80" : "#808080", marginTop: "0.25rem" }}>
+                                                    {s.voice_reenroll_allowed ? "✅ مسموح بإعادة تسجيل البصمة" : "🔒 البصمة مقفولة"}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                                            {s.has_voiceprint && s.voice_locked && !s.voice_reenroll_allowed && (
+                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleAllowVoiceReenroll(s.id)} disabled={allowingVoice === s.id}
+                                                    style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.45rem 0.75rem", background: "rgba(255,160,0,0.1)", border: "1px solid rgba(255,160,0,0.25)", borderRadius: "0.6rem", color: "#ffa000", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", fontFamily: "'Inter',sans-serif" }}>
+                                                    <ShieldCheck size={12} /> {allowingVoice === s.id ? "..." : "السماح بإعادة البصمة"}
+                                                </motion.button>
+                                            )}
+                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleAssign(s.id)} disabled={assigning || done} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.9rem", background: done ? `${G}0.08)` : "#ffffff", border: done ? `1px solid ${G}0.2)` : "none", borderRadius: "0.6rem", color: done ? "#ffffff" : "#0a0a0a", fontSize: "0.8rem", fontWeight: 700, cursor: done ? "default" : "pointer", fontFamily: "'Inter',sans-serif", opacity: assigning ? 0.6 : 1 }}>{done ? <><Check size={13} /> {t("dashboard.questions.copied")}</> : t("dashboard.questions.assign")}</motion.button>
+                                        </div>
                                     </div>);
                                 })}
                             </div>

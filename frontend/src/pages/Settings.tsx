@@ -13,6 +13,8 @@ export default function Settings() {
     const [name, setName] = useState("");
     const [saved, setSaved] = useState(false);
     const [hasVoiceprint, setHasVoiceprint] = useState<boolean | null>(null);
+    const [canReenroll, setCanReenroll] = useState(true);
+    const [voiceLocked, setVoiceLocked] = useState(false);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
     const [pendingExam, setPendingExam] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +30,8 @@ export default function Settings() {
         api.get("/voice/status")
             .then(res => {
                 setHasVoiceprint(res.data.has_voiceprint);
-                // If voice is enrolled AND there's a pending exam, show the banner
+                setCanReenroll(res.data.can_reenroll !== false);
+                setVoiceLocked(!!res.data.voice_locked);
                 if (res.data.has_voiceprint && localStorage.getItem("pendingExamToken")) {
                     setPendingExam(true);
                 }
@@ -134,11 +137,16 @@ export default function Settings() {
                         </h2>
                         <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
                             {hasVoiceprint
-                                ? "مفعّلة — يتم التحقق تلقائياً أثناء الامتحانات ✅"
+                                ? voiceLocked && !canReenroll
+                                    ? "مفعّلة ومقفولة — لا يمكن تغييرها إلا بإذن المحاضر 🔒"
+                                    : voiceLocked && canReenroll
+                                        ? "المحاضر سمح بإعادة التسجيل — سجّل بصمتك الجديدة الآن ✅"
+                                        : "مفعّلة — يتم التحقق تلقائياً أثناء الامتحانات ✅"
                                 : "غير مفعّلة — يجب تسجيلها قبل أداء أي امتحان ⚠️"}
                         </p>
                     </div>
                 </div>
+                {( !hasVoiceprint || canReenroll ) && (
                 <button
                     onClick={() => setShowVoiceModal(true)}
                     style={{
@@ -158,6 +166,12 @@ export default function Settings() {
                     <Mic size={16} />
                     {hasVoiceprint ? "إعادة تسجيل البصمة" : "تسجيل بصمة الصوت الآن"}
                 </button>
+                )}
+                {hasVoiceprint && voiceLocked && !canReenroll && (
+                    <p style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "#ffa000", lineHeight: 1.6 }} dir="rtl">
+                        لحماية نزاهة الامتحان، لا يمكنك تغيير بصمة صوتك. اطلب من المحاضر السماح بإعادة التسجيل إذا احتجت.
+                    </p>
+                )}
             </div>
 
             {/* Pending Exam Banner — shows after voice enrollment if there's an exam waiting */}
@@ -258,7 +272,8 @@ export default function Settings() {
                 onSuccess={() => {
                     setShowVoiceModal(false);
                     setHasVoiceprint(true);
-                    // Check if there's a pending exam
+                    setVoiceLocked(true);
+                    setCanReenroll(false);
                     if (localStorage.getItem("pendingExamToken")) {
                         setPendingExam(true);
                     }

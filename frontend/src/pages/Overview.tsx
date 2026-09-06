@@ -67,6 +67,8 @@ export default function Overview() {
     const [user, setUser] = useState<{ full_name: string; role: string } | null>(null);
     const [stats, setStats] = useState({ exams: 0, submissions: 0, avgScore: 0, pending: 0, completed: 0 });
     const [hasVoiceprint, setHasVoiceprint] = useState<boolean | null>(null);
+    const [canReenroll, setCanReenroll] = useState(true);
+    const [voiceLocked, setVoiceLocked] = useState(false);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
     const [recentSubs, setRecentSubs] = useState<Submission[]>([]);
     const [assignedExams, setAssignedExams] = useState<AssignedExam[]>([]);
@@ -75,7 +77,11 @@ export default function Overview() {
 
     const checkVoiceStatus = () => {
         api.get("/voice/status")
-            .then(res => setHasVoiceprint(res.data.has_voiceprint))
+            .then(res => {
+                setHasVoiceprint(res.data.has_voiceprint);
+                setCanReenroll(res.data.can_reenroll !== false);
+                setVoiceLocked(!!res.data.voice_locked);
+            })
             .catch(() => setHasVoiceprint(false));
     };
 
@@ -297,11 +303,14 @@ export default function Overview() {
                                 </h4>
                                 <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.6)" }}>
                                     {hasVoiceprint
-                                        ? (dir === "rtl" ? "تم حفظ بصمة صوتك للتحقق التلقائي أثناء أداء الامتحانات." : "Your voice fingerprint is stored for automatic exam verification.")
-                                        : (dir === "rtl" ? "يجب تسجيل بصمة صوتك لتأكيد هويتك والتحقق من شخصيتك في الامتحانات." : "Record your 5-second voice print to verify your identity during exams.")}
+                                        ? voiceLocked && !canReenroll
+                                            ? (dir === "rtl" ? "البصمة مقفولة — لا يمكن تغييرها إلا بإذن المحاضر 🔒" : "Voice print locked — lecturer must allow re-enrollment 🔒")
+                                            : (dir === "rtl" ? "تم حفظ بصمة صوتك للتحقق التلقائي أثناء أداء الامتحانات." : "Your voice fingerprint is stored for automatic exam verification.")
+                                        : (dir === "rtl" ? "يجب تسجيل بصمة صوتك لتأكيد هويتك والتحقق من شخصيتك في الامتحانات." : "Record your voice print to verify your identity during exams.")}
                                 </p>
                             </div>
                         </div>
+                        {(!hasVoiceprint || canReenroll) && (
                         <button
                             onClick={() => setShowVoiceModal(true)}
                             style={{
@@ -317,6 +326,7 @@ export default function Overview() {
                                 ? (dir === "rtl" ? "إعادة التسجيل" : "Re-record Voice")
                                 : (dir === "rtl" ? "تسجيل البصمة الآن" : "Record Voice Now")}
                         </button>
+                        )}
                     </div>
 
                     {/* Pending Exam Token Banner */}

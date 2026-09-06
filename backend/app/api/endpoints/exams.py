@@ -88,7 +88,14 @@ def get_students(
     if current_user.role not in ["lecturer", "hr", "admin"]:
         raise HTTPException(status_code=403, detail="Lecturers only")
     students = db.query(User).filter(User.role == "student").all()
-    return [{"id": s.id, "full_name": s.full_name, "email": s.email} for s in students]
+    return [{
+        "id": s.id,
+        "full_name": s.full_name,
+        "email": s.email,
+        "has_voiceprint": bool(s.voice_embedding and len(s.voice_embedding) > 10),
+        "voice_locked": bool(s.voice_locked),
+        "voice_reenroll_allowed": bool(s.voice_reenroll_allowed),
+    } for s in students]
 
 
 # ── POST submit exam WITH audio + AI grading ──────────────────────────────────

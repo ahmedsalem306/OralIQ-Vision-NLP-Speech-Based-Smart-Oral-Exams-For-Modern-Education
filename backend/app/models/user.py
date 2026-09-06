@@ -11,4 +11,6 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     role = Column(String, default="student")  # 'student' or 'hr'
     voice_embedding = Column(Text, nullable=True)  # JSON-encoded array of float embedding
+    voice_locked = Column(Boolean, default=False)  # True after first enrollment — blocks re-enroll
+    voice_reenroll_allowed = Column(Boolean, default=False)  # lecturer can temporarily allow re-enroll
 

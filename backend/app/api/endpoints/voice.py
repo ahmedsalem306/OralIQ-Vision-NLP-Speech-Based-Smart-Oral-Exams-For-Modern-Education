@@ -10,12 +10,26 @@ from app.services.voice_ai import voice_service
 
 router = APIRouter()
 
+
+def _has_voiceprint(user: User) -> bool:
+    return bool(user.voice_embedding and len(user.voice_embedding) > 10)
+
+
+def _can_enroll(user: User) -> bool:
+    """First enrollment always allowed; re-enroll only if lecturer permitted."""
+    if not _has_voiceprint(user):
+        return True
+    if not user.voice_locked:
+        return True
+    return bool(user.voice_reenroll_allowed)
+
+
 @router.get("/status")
 def get_voice_status(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """Returns whether the current logged-in user has enrolled a voice print."""
-    has_print = bool(current_user.voice_embedding and len(current_user.voice_embedding) > 10)
+    has_print = _has_voiceprint(current_user)
     status = voice_service.get_status()
     return {
         "has_voiceprint": has_print,
@@ -24,7 +38,11 @@ def get_voice_status(
         "engine": status["engine"],
         "engine_ready": status["ready"],
         "embedding_dim": status["embedding_dim"],
+        "voice_locked": bool(current_user.voice_locked) if has_print else False,
+        "voice_reenroll_allowed": bool(current_user.voice_reenroll_allowed),
+        "can_reenroll": _can_enroll(current_user),
     }
+
 
 @router.post("/enroll")
 async def enroll_voice_print(
@@ -34,6 +52,12 @@ async def enroll_voice_print(
     audio: UploadFile = File(...),
 ) -> Any:
     """Enrolls a user's voice print from a single audio file (legacy support)."""
+    if not _can_enroll(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="بصمة الصوت مقفولة — اطلب من المحاضر السماح بإعادة التسجيل",
+        )
+
     if not audio or not audio.filename:
         raise HTTPException(status_code=400, detail="Audio file is required")
 
@@ -49,14 +73,19 @@ async def enroll_voice_print(
             raise HTTPException(status_code=422, detail="Could not extract voice features from audio")
 
         current_user.voice_embedding = json.dumps(embedding)
+        current_user.voice_locked = True
+        current_user.voice_reenroll_allowed = False
         db.commit()
         db.refresh(current_user)
 
         return {
             "ok": True,
             "message": "تم تسجيل بصمة الصوت بنجاح!",
-            "has_voiceprint": True
+            "has_voiceprint": True,
+            "voice_locked": True,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Voice Enroll Error] {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Failed to record voice print: {str(e)}")
@@ -77,6 +106,12 @@ async def enroll_voice_print_multi(
     Extracts an embedding from each file, then averages them for a more robust
     voiceprint that captures different speaking patterns.
     """
+    if not _can_enroll(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="بصمة الصوت مقفولة — اطلب من المحاضر السماح بإعادة التسجيل",
+        )
+
     if not audio_files or len(audio_files) == 0:
         raise HTTPException(status_code=400, detail="At least one audio file is required")
 
@@ -84,7 +119,6 @@ async def enroll_voice_print_multi(
     tmp_paths: list[str] = []
 
     try:
-        # Extract embedding from each audio file
         for i, audio in enumerate(audio_files):
             if not audio or not audio.filename:
                 continue
@@ -108,14 +142,8 @@ async def enroll_voice_print_multi(
         if len(embeddings) == 0:
             raise HTTPException(status_code=422, detail="Could not extract voice features from any audio file")
 
-        if len(embeddings) < 2:
-            print(f"[Voice Enroll] Warning: only {len(embeddings)} valid sample(s), ideally need 3")
-
-        # Average all embeddings for a robust voiceprint
         emb_array = np.array(embeddings, dtype=np.float32)
         avg_embedding = np.mean(emb_array, axis=0)
-
-        # L2 normalize the averaged embedding
         norm = np.linalg.norm(avg_embedding)
         if norm > 0:
             avg_embedding = avg_embedding / norm
@@ -123,8 +151,9 @@ async def enroll_voice_print_multi(
         final_embedding = avg_embedding.tolist()
         print(f"[Voice Enroll] Final embedding: {len(final_embedding)}-dim from {len(embeddings)} samples")
 
-        # Save to database
         current_user.voice_embedding = json.dumps(final_embedding)
+        current_user.voice_locked = True
+        current_user.voice_reenroll_allowed = False
         db.commit()
         db.refresh(current_user)
 
@@ -135,6 +164,7 @@ async def enroll_voice_print_multi(
             "samples_used": len(embeddings),
             "engine": voice_service.get_status()["engine"],
             "embedding_dim": len(final_embedding),
+            "voice_locked": True,
         }
 
     except HTTPException:
@@ -147,7 +177,7 @@ async def enroll_voice_print_multi(
             if os.path.exists(p):
                 try:
                     os.unlink(p)
-                except:
+                except OSError:
                     pass
 
 
@@ -156,7 +186,59 @@ def delete_voice_print(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """Resets/deletes the user's voice print so they can re-record."""
+    """Resets voice print — only allowed when lecturer granted re-enroll permission."""
+    if _has_voiceprint(current_user) and current_user.voice_locked and not current_user.voice_reenroll_allowed:
+        raise HTTPException(
+            status_code=403,
+            detail="لا يمكن حذف البصمة — اطلب من المحاضر السماح بإعادة التسجيل",
+        )
     current_user.voice_embedding = None
+    current_user.voice_locked = False
+    current_user.voice_reenroll_allowed = False
     db.commit()
     return {"ok": True, "message": "Voice print deleted"}
+
+
+@router.post("/allow-reenroll/{student_id}")
+def allow_voice_reenroll(
+    student_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """Lecturer temporarily allows a student to re-register their voiceprint."""
+    if current_user.role not in ("lecturer", "hr", "admin"):
+        raise HTTPException(status_code=403, detail="Lecturers only")
+
+    student = db.query(User).filter(User.id == student_id, User.role == "student").first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if not _has_voiceprint(student):
+        raise HTTPException(status_code=400, detail="Student has no voiceprint yet")
+
+    student.voice_reenroll_allowed = True
+    db.commit()
+    return {
+        "ok": True,
+        "message": f"تم السماح لـ {student.full_name} بإعادة تسجيل بصمة الصوت",
+        "student_id": student.id,
+        "voice_reenroll_allowed": True,
+    }
+
+
+@router.post("/revoke-reenroll/{student_id}")
+def revoke_voice_reenroll(
+    student_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """Lecturer revokes re-enroll permission before student uses it."""
+    if current_user.role not in ("lecturer", "hr", "admin"):
+        raise HTTPException(status_code=403, detail="Lecturers only")
+
+    student = db.query(User).filter(User.id == student_id, User.role == "student").first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student.voice_reenroll_allowed = False
+    db.commit()
+    return {"ok": True, "message": "تم إلغاء السماح بإعادة التسجيل", "student_id": student.id}

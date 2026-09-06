@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.api_router import api_router
-from app.core.database import engine, Base
+from app.core.database import engine, Base, run_migrations
 from app.models.user import User  # noqa: F401 — ensures all models are registered
 import os
 import time
@@ -132,7 +132,7 @@ app = FastAPI(
     title="OralIQ API",
     description="Production-grade backend for OralIQ Smart Oral Exams",
     version="2.0.0",
-    on_startup=[lambda: Base.metadata.create_all(bind=engine)],
+    on_startup=[lambda: (Base.metadata.create_all(bind=engine), run_migrations())],
     docs_url="/docs" if os.environ.get("ENV", "dev") == "dev" else None,
     redoc_url=None,
 )

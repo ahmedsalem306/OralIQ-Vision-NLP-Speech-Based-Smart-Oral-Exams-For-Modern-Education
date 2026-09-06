@@ -65,6 +65,8 @@ export default function ExamRoom() {
     const antiCheatAlertsRef = useRef<Record<string, number>>({});
     const lastFrameTimeRef = useRef<number>(performance.now());
     const lastAlertTimeRef = useRef<number>(0);
+    const rafRef = useRef<number | null>(null);
+    const faceMeshActiveRef = useRef(false);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -215,6 +217,24 @@ export default function ExamRoom() {
     };
 
     const initFaceMesh = async () => {
+        // Stop any previous detection loop before starting a new one
+        faceMeshActiveRef.current = false;
+        if (rafRef.current !== null) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+        }
+
+        const syncCanvasSize = () => {
+            const canvas = canvasRef.current;
+            const video = videoRef.current;
+            if (!canvas || !video) return;
+            const w = video.clientWidth || video.videoWidth || 440;
+            const h = video.clientHeight || video.videoHeight || 440;
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+        };
         // ── hidden canvas for CLAHE-like preprocessing ────────────────────────
         const procCanvas = document.createElement("canvas");
         procCanvas.width  = 640;
@@ -270,19 +290,30 @@ export default function ExamRoom() {
         }
 
         faceMesh.onResults((results: any) => {
+            const phase = phaseRef.current;
+            if (phase !== "recording" && phase !== "preview") return;
+
             const now = performance.now();
             const dt = (now - lastFrameTimeRef.current) / 1000;
-            if (phaseRef.current !== "recording") return;
+            const isRecording = phase === "recording";
+
+            syncCanvasSize();
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                accumulateDistraction("no_face", dt);
+                if (isRecording) accumulateDistraction("no_face", dt);
                 bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 gazeCenter.samples = 0;
                 gazeCenter.h = 0.5;
                 gazeCenter.v = 0.5;
+                // Clear canvas when no face
+                const canvas = canvasRef.current;
+                if (canvas) {
+                    const ctx = canvas.getContext("2d");
+                    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
                 return;
             }
-            if (results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
+            if (isRecording && results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
 
             const lm = results.multiFaceLandmarks[0];
 
@@ -335,10 +366,12 @@ export default function ExamRoom() {
             const gazeDown  = irisDown  || hV > 2.15;
             const gazeUp    = irisUp    || hV < 0.42;
 
-            if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
-            else if (gazeRight) accumulateDistraction("gaze_right", dt);
-            if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
-            else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+            if (isRecording) {
+                if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
+                else if (gazeRight) accumulateDistraction("gaze_right", dt);
+                if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
+                else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+            }
 
             // ── canvas overlay ────────────────────────────────────────────────
             const canvas = canvasRef.current;
@@ -397,12 +430,13 @@ export default function ExamRoom() {
         });
 
         const runDetection = async () => {
+            if (!faceMeshActiveRef.current) return;
             try {
                 const video = videoRef.current;
                 if (video && video.readyState >= 2) {
                     const now = performance.now();
+                    syncCanvasSize();
 
-                    // ── CLAHE-like preprocessing: boost contrast/brightness ────
                     procCanvas.width  = video.videoWidth  || 640;
                     procCanvas.height = video.videoHeight || 480;
                     procCtx.filter = "contrast(1.25) brightness(1.05)";
@@ -428,9 +462,12 @@ export default function ExamRoom() {
             } catch (e) {
                 console.warn("[runDetection] frame error:", e);
             }
-            requestAnimationFrame(runDetection);
+            if (faceMeshActiveRef.current) {
+                rafRef.current = requestAnimationFrame(runDetection);
+            }
         };
-        requestAnimationFrame(runDetection);
+        faceMeshActiveRef.current = true;
+        rafRef.current = requestAnimationFrame(runDetection);
     };
 
     // ── START EXAM: info → preview ────────────────────────────────────────────
@@ -601,6 +638,8 @@ export default function ExamRoom() {
     // ── Cleanup on unmount ────────────────────────────────────────────────────
     useEffect(() => {
         return () => {
+            faceMeshActiveRef.current = false;
+            if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
             stream?.getTracks().forEach(t => t.stop());
         };
     }, [stream]);
