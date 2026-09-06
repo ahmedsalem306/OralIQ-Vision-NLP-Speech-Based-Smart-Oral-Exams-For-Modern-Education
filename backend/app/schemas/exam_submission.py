@@ -17,6 +17,7 @@ class ExamSubmissionOut(BaseModel):
     nlp_score: Optional[float] = None
     facial_score: Optional[float] = None
     speech_score: Optional[float] = None
+    voice_score: Optional[float] = None
     overall_score: Optional[float] = None
     cheat_report: Optional[str] = None
     fluency_report: Optional[str] = None

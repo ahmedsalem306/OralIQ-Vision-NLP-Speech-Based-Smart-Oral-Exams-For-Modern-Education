@@ -20,6 +20,7 @@ class ExamSubmission(Base):
     nlp_score = Column(Float, nullable=True)       # 0-100 answer quality
     facial_score = Column(Float, nullable=True)    # 0-100 integrity
     speech_score = Column(Float, nullable=True)    # 0-100 fluency
+    voice_score = Column(Float, nullable=True)     # 0-100 voice match similarity
     overall_score = Column(Float, nullable=True)   # 0-100 combined
     cheat_report = Column(Text, nullable=True)     # Arabic anti-cheat report
     fluency_report = Column(Text, nullable=True)   # Arabic fluency report

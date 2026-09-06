@@ -113,19 +113,21 @@ async def submit_exam(
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # Defaults
+    # Defaults — must be defined BEFORE the try block so they're always available
     transcript = None
     nlp_score = None
     speech_score = None
+    voice_score = None
     facial_score = 100.0
-    cheat_report = "✅ لم يتم رصد أي مخالفات"
+    cheat_report = None
     fluency_report = None
-
+    overall = None
     # ---- AI Pipeline ----
     try:
-        # 1) Transcribe + Fluency analysis with Whisper
+        # 1) Transcribe + Fluency analysis with Whisper & Voice Biometrics
         if audio and audio.filename:
             from app.services.speech_ai import speech_analyzer
+            from app.services.voice_ai import voice_service
 
             suffix = os.path.splitext(audio.filename)[1] or ".webm"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -140,6 +142,18 @@ async def submit_exam(
                 transcript = fluency["transcript"]
                 speech_score = fluency["speech_score"]
                 fluency_report = fluency["fluency_report"]
+
+                # Voice print verification if user enrolled
+                if current_user.voice_embedding:
+                    try:
+                        stored_emb = json.loads(current_user.voice_embedding)
+                        voice_res = voice_service.verify_voice(tmp_path, stored_emb)
+                        voice_score = voice_res["similarity_score"]
+                        if not voice_res["is_match"]:
+                            cheat_report = (cheat_report or "") + f" | 🚨 {voice_res['report']}"
+                    except Exception as ve:
+                        print(f"[Voice Verify Error] {ve}")
+
             finally:
                 os.unlink(tmp_path)
 
@@ -156,9 +170,12 @@ async def submit_exam(
                 from app.services.face_ai import face_analyzer
                 cheat_result = face_analyzer.calculate_cheat_score(alerts)
                 facial_score = cheat_result["facial_score"]
-                cheat_report = cheat_result["report"]
-        except (json.JSONDecodeError, Exception):
-            pass
+                face_report = cheat_result.get("report")
+                # Append to existing cheat_report (which may contain voice verification warnings)
+                if face_report:
+                    cheat_report = (cheat_report + " | " + face_report) if cheat_report else face_report
+        except (json.JSONDecodeError, Exception) as cheat_err:
+            print(f"[Anti-cheat Error] {cheat_err}")
 
     except Exception as e:
         print(f"[AI Pipeline Error] {traceback.format_exc()}")
@@ -218,6 +235,7 @@ async def submit_exam(
         transcript=transcript,
         nlp_score=nlp_score,
         speech_score=speech_score,
+        voice_score=voice_score,
         facial_score=facial_score,
         overall_score=overall,
         cheat_report=cheat_report,

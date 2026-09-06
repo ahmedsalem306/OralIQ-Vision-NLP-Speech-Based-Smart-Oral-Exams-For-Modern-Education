@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, Text
 from app.core.database import Base
 
 class User(Base):
@@ -10,3 +10,5 @@ class User(Base):
     full_name = Column(String)
     is_active = Column(Boolean, default=True)
     role = Column(String, default="student")  # 'student' or 'hr'
+    voice_embedding = Column(Text, nullable=True)  # JSON-encoded array of float embedding
+
