@@ -7,9 +7,13 @@ import {
 import { cn } from "../lib/utils";
 import api from "../lib/api";
 import Logo from "../components/Logo";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import LanguageToggle from "../components/LanguageToggle";
 import { useI18n } from "../i18n";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 export function DashboardLayout() {
     const { t, dir } = useI18n();
@@ -19,6 +23,7 @@ export function DashboardLayout() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const location = useLocation();
     const navigate = useNavigate();
+    const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         api.get("/users/me")
@@ -36,10 +41,16 @@ export function DashboardLayout() {
             });
     }, [navigate]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        navigate("/login");
-    };
+    // Animate page content on route change
+    useGSAP(() => {
+        if (!contentRef.current) return;
+        gsap.fromTo(contentRef.current,
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
+        );
+    }, { dependencies: [location.pathname], scope: contentRef });
+
+    const handleLogout = () => { localStorage.removeItem("token"); navigate("/login"); };
 
     const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -65,7 +76,6 @@ export function DashboardLayout() {
         "/dashboard/messages": t("nav.messages"),
         "/dashboard/students": t("nav.students"),
     } as Record<string, string>)[location.pathname] || "Dashboard";
-    const G = "rgba(207,163,85,";
 
     const navGroups = [
         {
@@ -98,16 +108,16 @@ export function DashboardLayout() {
 
     const avatarInner = profilePic
         ? <img src={profilePic} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
-        : <span style={{ color: "#0a0a0a", fontWeight: 800, fontSize: "0.9rem" }}>{user?.full_name?.[0]?.toUpperCase() || "U"}</span>;
+        : <span style={{ color: "#0a0a0a", fontWeight: 800, fontSize: "0.85rem" }}>{user?.full_name?.[0]?.toUpperCase() || "U"}</span>;
 
     return (
-        <div className="noise-overlay" style={{ minHeight: "100vh", background: "#0a0a0a", color: "#e5e5e0", display: "flex" }}>
+        <div className="noise-overlay" style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f0f0f0", display: "flex" }}>
             {/* Mobile overlay */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div className="fixed inset-0 z-40 md:hidden"
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+                        style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
                         onClick={() => setIsOpen(false)} />
                 )}
             </AnimatePresence>
@@ -116,42 +126,59 @@ export function DashboardLayout() {
             <aside className={cn(
                 `fixed inset-y-0 ${dir === "rtl" ? "right-0" : "left-0"} z-50 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static`,
                 isOpen ? "translate-x-0" : (dir === "rtl" ? "translate-x-full" : "-translate-x-full")
-            )} style={{ width: 220, background: "#0d0d0d", borderRight: `1px solid ${G}0.07)`, flexShrink: 0 }}>
-
+            )} style={{
+                width: 230, background: "#0d0d0d",
+                borderRight: "1px solid rgba(255,255,255,0.04)", flexShrink: 0,
+            }}>
                 {/* Logo */}
-                <div style={{ height: 60, display: "flex", alignItems: "center", padding: "0 1.125rem", borderBottom: `1px solid ${G}0.06)`, flexShrink: 0 }}>
-                    <Logo size={26} showText showSubtitle={false} />
+                <div style={{
+                    height: 64, display: "flex", alignItems: "center",
+                    padding: "0 1.25rem",
+                    borderBottom: "1px solid rgba(255,255,255,0.04)", flexShrink: 0,
+                }}>
+                    <span style={{
+                        fontFamily: "'Antonio', sans-serif", fontSize: "1.3rem",
+                        fontWeight: 700, color: "#fff", textTransform: "uppercase",
+                        letterSpacing: "0.02em",
+                    }}>ORALIQ</span>
                     <button className="ml-auto md:hidden" onClick={() => setIsOpen(false)}
-                        style={{ background: "none", border: "none", color: "#5a5a4a", cursor: "pointer", padding: "0.25rem" }}>
+                        style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", padding: "0.25rem" }}>
                         <X size={16} />
                     </button>
                 </div>
 
                 {/* Nav groups */}
-                <nav style={{ flex: 1, padding: "0.625rem 0.5rem", overflowY: "auto" }}>
+                <nav style={{ flex: 1, padding: "0.75rem 0.625rem", overflowY: "auto" }}>
                     {navGroups.map((group, gi) => (
-                        <div key={gi} style={{ marginBottom: "0.375rem" }}>
-                            <p style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: `${G}0.28)`, padding: "0.625rem 0.75rem 0.3rem" }}>
-                                {group.label}
-                            </p>
+                        <div key={gi} style={{ marginBottom: "0.5rem" }}>
+                            <p style={{
+                                fontFamily: "'Antonio', sans-serif",
+                                fontSize: "0.6rem", fontWeight: 700,
+                                letterSpacing: "0.2em", textTransform: "uppercase",
+                                color: "rgba(255,255,255,0.15)",
+                                padding: "0.75rem 0.75rem 0.35rem",
+                            }}>{group.label}</p>
                             {group.items.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = location.pathname === item.href;
                                 return (
                                     <Link key={item.href} to={item.href} onClick={() => setIsOpen(false)}
                                         style={{
-                                            display: "flex", alignItems: "center", gap: "0.6rem",
-                                            padding: "0.525rem 0.75rem", borderRadius: "0.55rem", marginBottom: "0.075rem",
-                                            fontSize: "0.835rem", fontWeight: isActive ? 600 : 400,
+                                            display: "flex", alignItems: "center", gap: "0.7rem",
+                                            padding: "0.6rem 0.75rem", borderRadius: "0.6rem", marginBottom: "0.1rem",
+                                            fontSize: "0.85rem", fontWeight: isActive ? 600 : 400,
                                             textDecoration: "none", transition: "all 0.15s",
-                                            background: isActive ? `${G}0.09)` : "transparent",
-                                            color: isActive ? "#dbb870" : "#5a5a4a",
+                                            background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                                            color: isActive ? "#fff" : "rgba(255,255,255,0.35)",
                                         }}
-                                        className={!isActive ? "hover:text-[#9a8a5a] hover:bg-[rgba(207,163,85,0.04)]" : ""}>
-                                        <Icon size={14} />
+                                        className={!isActive ? "hover:text-white/60 hover:bg-white/[0.03]" : ""}>
+                                        <Icon size={15} />
                                         <span style={{ flex: 1 }}>{item.label}</span>
                                         {isActive && (
-                                            <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cfa355", flexShrink: 0 }} />
+                                            <div style={{
+                                                width: 5, height: 5, borderRadius: "50%",
+                                                background: "#fff", flexShrink: 0,
+                                            }} />
                                         )}
                                     </Link>
                                 );
@@ -160,33 +187,59 @@ export function DashboardLayout() {
                     ))}
                 </nav>
 
-                {/* User card at bottom */}
+                {/* User card */}
                 {user && (
-                    <div style={{ margin: "0.625rem", padding: "0.875rem", background: `${G}0.03)`, border: `1px solid ${G}0.07)`, borderRadius: "0.875rem", flexShrink: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.75rem" }}>
+                    <div style={{
+                        margin: "0.75rem", padding: "1rem",
+                        background: "rgba(255,255,255,0.02)",
+                        border: "1px solid rgba(255,255,255,0.05)",
+                        borderRadius: "1rem", flexShrink: 0,
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.85rem" }}>
                             <div
-                                style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #cfa355, #e8c97a)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, cursor: "pointer", position: "relative" }}
+                                style={{
+                                    width: 34, height: 34, borderRadius: "50%",
+                                    background: "#fff", display: "flex", alignItems: "center",
+                                    justifyContent: "center", overflow: "hidden", flexShrink: 0,
+                                    cursor: "pointer", position: "relative",
+                                }}
                                 onClick={() => fileInputRef.current?.click()}
                                 className="group/av"
                             >
                                 {avatarInner}
-                                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s" }} className="group-hover/av:opacity-100">
+                                <div style={{
+                                    position: "absolute", inset: 0, borderRadius: "50%",
+                                    background: "rgba(0,0,0,0.6)", display: "flex",
+                                    alignItems: "center", justifyContent: "center",
+                                    opacity: 0, transition: "opacity 0.15s",
+                                }} className="group-hover/av:opacity-100">
                                     <Camera size={11} color="white" />
                                 </div>
                             </div>
                             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfilePicChange} />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#c8c8c0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.full_name}</p>
-                                <p style={{ fontSize: "0.62rem", color: "#4a4a3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+                                <p style={{ fontSize: "0.8rem", fontWeight: 700, color: "#e0e0e0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.full_name}</p>
+                                <p style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.25)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
                             </div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", padding: "0.18rem 0.5rem", borderRadius: "999px", background: `${G}0.07)`, color: "#b8934a", border: `1px solid ${G}0.13)` }}>
+                            <span style={{
+                                fontFamily: "'Antonio', sans-serif",
+                                fontSize: "0.6rem", fontWeight: 700,
+                                textTransform: "uppercase", letterSpacing: "0.1em",
+                                padding: "0.2rem 0.55rem", borderRadius: "999px",
+                                background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                            }}>
                                 {isLecturer ? t("auth.role.lecturer") : t("auth.role.student")}
                             </span>
                             <button onClick={handleLogout}
-                                style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "none", border: "none", cursor: "pointer", color: "#3a3a2a", fontSize: "0.72rem", fontWeight: 500, padding: 0 }}
-                                className="hover:text-[#c04444]">
+                                style={{
+                                    display: "flex", alignItems: "center", gap: "0.3rem",
+                                    background: "none", border: "none", cursor: "pointer",
+                                    color: "rgba(255,255,255,0.2)", fontSize: "0.72rem", fontWeight: 500, padding: 0,
+                                }}
+                                className="hover:text-red-400">
                                 <LogOut size={12} /> {t("nav.signOut")}
                             </button>
                         </div>
@@ -198,33 +251,40 @@ export function DashboardLayout() {
             <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
                 {/* Header */}
                 <header style={{
-                    height: 60, display: "flex", alignItems: "center",
+                    height: 64, display: "flex", alignItems: "center",
                     padding: "0 1.75rem", gap: "0.75rem",
-                    borderBottom: `1px solid ${G}0.06)`,
-                    background: "rgba(10,10,10,0.92)", backdropFilter: "blur(16px)",
+                    borderBottom: "1px solid rgba(255,255,255,0.04)",
+                    background: "rgba(10,10,10,0.95)", backdropFilter: "blur(20px)",
                     position: "sticky", top: 0, zIndex: 30,
                 }}>
                     <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}
-                        style={{ background: "none", border: "none", color: `${G}0.6)`, cursor: "pointer", padding: "0.25rem", flexShrink: 0 }}>
+                        style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", padding: "0.25rem", flexShrink: 0 }}>
                         <Menu size={19} />
                     </button>
                     <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                        <span style={{ fontSize: "0.72rem", color: "#2a2a1a", fontWeight: 500 }}>OralIQ</span>
-                        <ChevronRight size={11} style={{ color: "#2a2a1a" }} />
-                        <span style={{ fontSize: "0.825rem", fontWeight: 600, color: "#7a7a60" }}>{pageTitle}</span>
+                        <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.15)", fontWeight: 500 }}>OralIQ</span>
+                        <ChevronRight size={11} style={{ color: "rgba(255,255,255,0.15)" }} />
+                        <span style={{
+                            fontFamily: "'Antonio', sans-serif",
+                            fontSize: "0.9rem", fontWeight: 600, color: "rgba(255,255,255,0.6)",
+                            textTransform: "uppercase", letterSpacing: "0.02em",
+                        }}>{pageTitle}</span>
                     </div>
                     <LanguageToggle compact />
-                    {/* Mobile avatar only */}
-                    <div className="md:hidden" style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #cfa355, #e8c97a)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                    {/* Mobile avatar */}
+                    <div className="md:hidden" style={{
+                        width: 30, height: 30, borderRadius: "50%",
+                        background: "#fff", display: "flex", alignItems: "center",
+                        justifyContent: "center", overflow: "hidden", flexShrink: 0,
+                    }}>
                         {avatarInner}
                     </div>
                 </header>
 
                 {/* Page content */}
-                <motion.div className="oiq-dashboard-page" style={{ flex: 1, padding: "2rem 1.75rem", overflowY: "auto" }}
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+                <div ref={contentRef} className="oiq-dashboard-page" style={{ flex: 1, padding: "2rem 1.75rem", overflowY: "auto" }}>
                     <Outlet />
-                </motion.div>
+                </div>
             </main>
         </div>
     );

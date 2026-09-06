@@ -18,6 +18,8 @@ class Question(Base):
     # Ownership & sharing
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     exam_token = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    group_token = Column(String, index=True, nullable=True)  # shared across questions in the same exam bundle
+    order_index = Column(Integer, default=0)  # question order within the group
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

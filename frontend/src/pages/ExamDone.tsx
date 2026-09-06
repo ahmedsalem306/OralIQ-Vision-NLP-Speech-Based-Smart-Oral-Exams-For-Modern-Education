@@ -9,16 +9,16 @@ export default function ExamDone() {
 
             {/* Success icon */}
             <div style={{ width: 100, height: 100, borderRadius: "50%", background: "rgba(0,212,170,0.12)", border: "2px solid rgba(0,212,170,0.3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "2rem", boxShadow: "0 0 40px rgba(0,212,170,0.2)" }}>
-                <CheckCircle2 size={50} color="#e8c97a" />
+                <CheckCircle2 size={50} color="#e0e0e0" />
             </div>
 
-            <h1 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 900, color: "#e5e5e0", marginBottom: "1rem" }}>
+            <h1 style={{ fontFamily: "'Antonio', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 900, color: "#f0f0f0", marginBottom: "1rem" }}>
                 Exam Submitted!
             </h1>
-            <p style={{ color: "#8b8b73", fontSize: "1rem", maxWidth: 480, lineHeight: 1.8, marginBottom: "0.75rem" }}>
+            <p style={{ color: "#808080", fontSize: "1rem", maxWidth: 480, lineHeight: 1.8, marginBottom: "0.75rem" }}>
                 Your answers have been recorded and are being analyzed by our AI system.
             </p>
-            <p style={{ color: "#e8c97a", fontSize: "0.9rem", fontWeight: 600, marginBottom: "3rem" }}>
+            <p style={{ color: "#e0e0e0", fontSize: "0.9rem", fontWeight: 600, marginBottom: "3rem" }}>
                 Results will be sent to your professor shortly.
             </p>
 
@@ -32,23 +32,23 @@ export default function ExamDone() {
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <div style={{
                             width: 36, height: 36, borderRadius: "50%",
-                            background: s.done ? "rgba(0,212,170,0.2)" : s.active ? "rgba(207,163,85,0.2)" : "rgba(255,255,255,0.05)",
-                            border: `1px solid ${s.done ? "rgba(0,212,170,0.4)" : s.active ? "rgba(207,163,85,0.4)" : "rgba(255,255,255,0.1)"}`,
+                            background: s.done ? "rgba(0,212,170,0.2)" : s.active ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.05)",
+                            border: `1px solid ${s.done ? "rgba(0,212,170,0.4)" : s.active ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)"}`,
                             display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: "0.75rem", fontWeight: 700,
-                            color: s.done ? "#e8c97a" : s.active ? "#cfa355" : "#8b8b73",
+                            color: s.done ? "#e0e0e0" : s.active ? "#ffffff" : "#808080",
                         }}>
                             {s.done ? <CheckCircle2 size={16} /> : s.step}
                         </div>
-                        <span style={{ fontSize: "0.85rem", color: s.done ? "#e8c97a" : s.active ? "#cfa355" : "#8b8b73", fontWeight: s.active ? 600 : 400 }}>
+                        <span style={{ fontSize: "0.85rem", color: s.done ? "#e0e0e0" : s.active ? "#ffffff" : "#808080", fontWeight: s.active ? 600 : 400 }}>
                             {s.label}
                         </span>
-                        {i < 2 && <ArrowRight size={14} color="#393632" />}
+                        {i < 2 && <ArrowRight size={14} color="#404040" />}
                     </div>
                 ))}
             </div>
 
-            <Link to="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.85rem 2rem", background: "linear-gradient(135deg, #cfa355, #e8c97a)", color: "#fff", fontWeight: 700, borderRadius: "0.75rem", textDecoration: "none", fontSize: "0.9rem", boxShadow: "0 4px 20px rgba(207,163,85,0.35)" }}>
+            <Link to="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.85rem 2rem", background: "#ffffff", color: "#fff", fontWeight: 700, borderRadius: "0.75rem", textDecoration: "none", fontSize: "0.9rem", boxShadow: "0 4px 20px rgba(255,255,255,0.35)" }}>
                 Back to Dashboard <ArrowRight size={16} />
             </Link>
         </div>

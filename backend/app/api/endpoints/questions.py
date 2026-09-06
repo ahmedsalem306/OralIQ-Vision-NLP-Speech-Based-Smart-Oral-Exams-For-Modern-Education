@@ -41,6 +41,18 @@ def create_question(
         creator_id=current_user.id,
     )
     db.add(question)
+    db.flush()  # get the exam_token auto-generated
+
+    # If group_token provided → add to existing group, else start new group
+    if question_in.group_token:
+        question.group_token = question_in.group_token
+        # Set order_index based on existing questions in the group
+        count = db.query(Question).filter(Question.group_token == question_in.group_token).count()
+        question.order_index = count - 1  # this question was already flushed
+    else:
+        question.group_token = question.exam_token  # first question = group leader
+        question.order_index = 0
+
     db.commit()
     db.refresh(question)
     return question
@@ -70,3 +82,19 @@ def get_question_by_token(
     if not question:
         raise HTTPException(status_code=404, detail="Exam not found")
     return question
+
+# ── GET all questions in a group (PUBLIC) ──────────────────────────────────────
+@router.get("/by-group/{group_token}", response_model=List[QuestionOut])
+def get_questions_by_group(
+    group_token: str,
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    questions = (
+        db.query(Question)
+        .filter(Question.group_token == group_token)
+        .order_by(Question.order_index)
+        .all()
+    )
+    if not questions:
+        raise HTTPException(status_code=404, detail="Exam group not found")
+    return questions

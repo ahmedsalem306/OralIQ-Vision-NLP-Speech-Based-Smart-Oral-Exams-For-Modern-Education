@@ -27,7 +27,7 @@ interface ExamMessage {
     read: boolean;
 }
 
-const G = "rgba(207,163,85,";
+const G = "rgba(255,255,255,";
 
 export default function MessagesPage() {
     const { t } = useI18n();
@@ -117,13 +117,13 @@ export default function MessagesPage() {
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2rem" }}>
                 <div>
-                    <h1 style={{ color: "#e5e5e0", fontSize: "1.75rem", fontWeight: 800, fontFamily: "'Amiamie', serif", marginBottom: "0.25rem" }}>{t("messages.title")}</h1>
-                    <p style={{ color: "#8b8b73", fontSize: "0.85rem" }}>
+                    <h1 style={{ color: "#f0f0f0", fontSize: "1.75rem", fontWeight: 800, fontFamily: "'Amiamie', serif", marginBottom: "0.25rem" }}>{t("messages.title")}</h1>
+                    <p style={{ color: "#808080", fontSize: "0.85rem" }}>
                         {unreadCount > 0 ? `${unreadCount} ${t("messages.title")}` : t("messages.none")}
                     </p>
                 </div>
                 {unreadCount > 0 && (
-                    <div style={{ background: "linear-gradient(135deg, #cfa355, #e8c97a)", color: "#0a0a0a", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.9rem" }}>
+                    <div style={{ background: "#ffffff", color: "#0a0a0a", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.9rem" }}>
                         {unreadCount}
                     </div>
                 )}
@@ -133,18 +133,18 @@ export default function MessagesPage() {
             <AnimatePresence mode="popLayout">
                 {loading ? (
                     <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        style={{ textAlign: "center", padding: "4rem 2rem", color: "#8b8b73" }}>
-                        <div style={{ width: 30, height: 30, border: `2px solid ${G}0.12)`, borderTopColor: "#cfa355", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 1rem" }} />
+                        style={{ textAlign: "center", padding: "4rem 2rem", color: "#808080" }}>
+                        <div style={{ width: 30, height: 30, border: `2px solid ${G}0.12)`, borderTopColor: "#ffffff", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 1rem" }} />
                         {t("messages.loading")}
                     </motion.div>
                 ) : messages.length === 0 ? (
                     <motion.div key="empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                         style={{ textAlign: "center", padding: "4rem 2rem" }}>
                         <div style={{ width: 80, height: 80, borderRadius: "1.5rem", background: `${G}0.06)`, border: `1px solid ${G}0.12)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
-                            <MessageSquare size={36} color="#cfa355" strokeWidth={1.5} />
+                            <MessageSquare size={36} color="#ffffff" strokeWidth={1.5} />
                         </div>
-                        <h3 style={{ color: "#e5e5e0", fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{t("messages.emptyTitle")}</h3>
-                        <p style={{ color: "#8b8b73", fontSize: "0.9rem", maxWidth: 360, margin: "0 auto" }}>
+                        <h3 style={{ color: "#f0f0f0", fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{t("messages.emptyTitle")}</h3>
+                        <p style={{ color: "#808080", fontSize: "0.9rem", maxWidth: 360, margin: "0 auto" }}>
                             {isStudent
                                 ? t("messages.emptyStudent")
                                 : t("messages.emptyDefault")}
@@ -157,11 +157,11 @@ export default function MessagesPage() {
 
                             {/* Unread indicator */}
                             {!msg.read && (
-                                <div style={{ position: "absolute", top: "1.5rem", right: "1.5rem", width: 10, height: 10, borderRadius: "50%", background: "#cfa355", boxShadow: "0 0 12px rgba(207,163,85,0.5)" }} />
+                                <div style={{ position: "absolute", top: "1.5rem", right: "1.5rem", width: 10, height: 10, borderRadius: "50%", background: "#ffffff", boxShadow: "0 0 12px rgba(255,255,255,0.5)" }} />
                             )}
 
                             {/* Dismiss button */}
-                            <button onClick={() => handleDismiss(msg)} style={{ position: "absolute", top: "0.75rem", right: "0.75rem", background: "none", border: "none", cursor: "pointer", padding: "0.35rem", color: "#8b8b73", opacity: 0.6, transition: "opacity 0.15s" }}
+                            <button onClick={() => handleDismiss(msg)} style={{ position: "absolute", top: "0.75rem", right: "0.75rem", background: "none", border: "none", cursor: "pointer", padding: "0.35rem", color: "#808080", opacity: 0.6, transition: "opacity 0.15s" }}
                                 onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
                                 onMouseLeave={e => (e.currentTarget.style.opacity = "0.6")}>
                                 <X size={16} />
@@ -170,25 +170,25 @@ export default function MessagesPage() {
                             <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start" }}>
                                 {/* Icon */}
                                 <div style={{ width: 52, height: 52, borderRadius: "1rem", background: `${G}0.08)`, border: `1px solid ${G}0.15)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                    {msg.type === "exam_invite" ? <BookOpen size={24} color="#cfa355" /> : <MessageSquare size={24} color="#cfa355" />}
+                                    {msg.type === "exam_invite" ? <BookOpen size={24} color="#ffffff" /> : <MessageSquare size={24} color="#ffffff" />}
                                 </div>
 
                                 {/* Content */}
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
-                                        <h3 style={{ color: "#e5e5e0", fontSize: "1rem", fontWeight: 700 }}>{msg.title}</h3>
-                                        <Sparkles size={14} color="#cfa355" />
+                                        <h3 style={{ color: "#f0f0f0", fontSize: "1rem", fontWeight: 700 }}>{msg.title}</h3>
+                                        <Sparkles size={14} color="#ffffff" />
                                     </div>
-                                    <p style={{ color: "#8b8b73", fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "1rem" }}>{msg.body}</p>
+                                    <p style={{ color: "#808080", fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "1rem" }}>{msg.body}</p>
 
                                     <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                                         {msg.type === "exam_invite" && (
                                             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => handleStartExam(msg.token)}
-                                                style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1.5rem", background: "linear-gradient(135deg, #cfa355, #e8c97a)", color: "#0a0a0a", border: "none", borderRadius: "0.75rem", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                                style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1.5rem", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: "0.75rem", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                                 {t("messages.startExam")} <ArrowRight size={16} />
                                             </motion.button>
                                         )}
-                                        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", color: "#8b8b73" }}>
+                                        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", color: "#808080" }}>
                                             <Clock size={12} /> {t("messages.justNow")}
                                         </span>
                                     </div>

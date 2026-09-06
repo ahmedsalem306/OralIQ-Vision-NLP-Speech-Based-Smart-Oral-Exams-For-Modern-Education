@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
 import ReactLenis from "lenis/react";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
@@ -24,7 +25,7 @@ function App() {
                 {/* Public */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/" element={<LandingPage />} />
 
                 {/* Exam invite link — saves token, redirects to login or dashboard */}
                 <Route path="/exam/:token" element={<ExamInvite />} />

@@ -11,11 +11,13 @@ class QuestionBase(BaseModel):
     duration_minutes: int = 2
 
 class QuestionCreate(QuestionBase):
-    pass
+    group_token: Optional[str] = None  # if provided, add to existing exam group
 
 class QuestionOut(QuestionBase):
     id: int
     exam_token: str
+    group_token: Optional[str] = None
+    order_index: int = 0
     creator_id: Optional[int] = None
     created_at: Optional[datetime] = None
 

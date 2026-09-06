@@ -46,7 +46,7 @@ function AvatarFace({ isSpeaking, isMouthOpen }: { isSpeaking: boolean; isMouthO
                             style={{
                                 position: "absolute", inset: -20,
                                 borderRadius: "50%",
-                                background: "radial-gradient(circle, rgba(207,163,85,0.25) 0%, transparent 70%)",
+                                background: "radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%)",
                             }}
                         />
                         <motion.div
@@ -57,7 +57,7 @@ function AvatarFace({ isSpeaking, isMouthOpen }: { isSpeaking: boolean; isMouthO
                             style={{
                                 position: "absolute", inset: -35,
                                 borderRadius: "50%",
-                                border: "1.5px solid rgba(207,163,85,0.15)",
+                                border: "1.5px solid rgba(255,255,255,0.15)",
                             }}
                         />
                     </>
@@ -65,20 +65,20 @@ function AvatarFace({ isSpeaking, isMouthOpen }: { isSpeaking: boolean; isMouthO
             </AnimatePresence>
 
             {/* Main avatar SVG */}
-            <svg viewBox="0 0 200 200" width="200" height="200" style={{ filter: "drop-shadow(0 8px 32px rgba(207,163,85,0.2))" }}>
+            <svg viewBox="0 0 200 200" width="200" height="200" style={{ filter: "drop-shadow(0 8px 32px rgba(255,255,255,0.2))" }}>
                 {/* Head circle */}
                 <defs>
                     <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#cfa355" />
-                        <stop offset="50%" stopColor="#e8c97a" />
-                        <stop offset="100%" stopColor="#cfa355" />
+                        <stop offset="0%" stopColor="#ffffff" />
+                        <stop offset="50%" stopColor="#e0e0e0" />
+                        <stop offset="100%" stopColor="#ffffff" />
                     </linearGradient>
                     <linearGradient id="faceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" stopColor="#1a1a1a" />
                         <stop offset="100%" stopColor="#0f0f0f" />
                     </linearGradient>
                     <radialGradient id="cheekGlow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="rgba(207,163,85,0.15)" />
+                        <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
                         <stop offset="100%" stopColor="transparent" />
                     </radialGradient>
                 </defs>
@@ -90,44 +90,44 @@ function AvatarFace({ isSpeaking, isMouthOpen }: { isSpeaking: boolean; isMouthO
                 <circle cx="100" cy="90" r="72" fill="url(#faceGrad)" stroke="url(#headGrad)" strokeWidth="2.5" />
 
                 {/* Inner face circle (subtle depth) */}
-                <circle cx="100" cy="88" r="62" fill="none" stroke="rgba(207,163,85,0.06)" strokeWidth="1" />
+                <circle cx="100" cy="88" r="62" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
 
                 {/* Cheek glow */}
                 <circle cx="65" cy="100" r="15" fill="url(#cheekGlow)" />
                 <circle cx="135" cy="100" r="15" fill="url(#cheekGlow)" />
 
                 {/* Eyebrows */}
-                <path d="M 62 62 Q 72 56, 82 62" stroke="#cfa355" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7" />
-                <path d="M 118 62 Q 128 56, 138 62" stroke="#cfa355" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7" />
+                <path d="M 62 62 Q 72 56, 82 62" stroke="#ffffff" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7" />
+                <path d="M 118 62 Q 128 56, 138 62" stroke="#ffffff" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7" />
 
                 {/* Left eye */}
-                <ellipse cx="75" cy="78" rx="12" ry="10" fill="#1f1f1f" stroke="rgba(207,163,85,0.2)" strokeWidth="1" />
-                <circle cx="75" cy="78" r="5" fill="#e8c97a" />
+                <ellipse cx="75" cy="78" rx="12" ry="10" fill="#1f1f1f" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                <circle cx="75" cy="78" r="5" fill="#e0e0e0" />
                 <circle cx="75" cy="78" r="2.5" fill="#0a0a0a" />
                 <circle cx="77" cy="76" r="1.5" fill="rgba(255,255,255,0.7)" />
 
                 {/* Right eye */}
-                <ellipse cx="125" cy="78" rx="12" ry="10" fill="#1f1f1f" stroke="rgba(207,163,85,0.2)" strokeWidth="1" />
-                <circle cx="125" cy="78" r="5" fill="#e8c97a" />
+                <ellipse cx="125" cy="78" rx="12" ry="10" fill="#1f1f1f" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                <circle cx="125" cy="78" r="5" fill="#e0e0e0" />
                 <circle cx="125" cy="78" r="2.5" fill="#0a0a0a" />
                 <circle cx="127" cy="76" r="1.5" fill="rgba(255,255,255,0.7)" />
 
                 {/* Nose (subtle) */}
-                <path d="M 97 88 Q 100 95, 103 88" stroke="rgba(207,163,85,0.2)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                <path d="M 97 88 Q 100 95, 103 88" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
 
                 {/* Mouth — animated */}
                 {isMouthOpen ? (
                     /* Open mouth (speaking) */
-                    <ellipse cx="100" cy="112" rx="14" ry="9" fill="#1a1a1a" stroke="#cfa355" strokeWidth="1.5">
+                    <ellipse cx="100" cy="112" rx="14" ry="9" fill="#1a1a1a" stroke="#ffffff" strokeWidth="1.5">
                         <animate attributeName="ry" values="9;7;9;11;9" dur="0.3s" repeatCount="indefinite" />
                     </ellipse>
                 ) : (
                     /* Closed mouth (slight smile) */
-                    <path d="M 85 110 Q 100 120, 115 110" stroke="#cfa355" strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <path d="M 85 110 Q 100 120, 115 110" stroke="#ffffff" strokeWidth="2" fill="none" strokeLinecap="round" />
                 )}
 
                 {/* Collar / neck hint */}
-                <path d="M 72 155 Q 100 140, 128 155" stroke="rgba(207,163,85,0.15)" strokeWidth="1.5" fill="none" />
+                <path d="M 72 155 Q 100 140, 128 155" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" fill="none" />
             </svg>
 
             {/* Name badge */}
@@ -136,8 +136,8 @@ function AvatarFace({ isSpeaking, isMouthOpen }: { isSpeaking: boolean; isMouthO
                 bottom: -8,
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "rgba(207,163,85,0.12)",
-                border: "1px solid rgba(207,163,85,0.25)",
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.25)",
                 borderRadius: "999px",
                 padding: "0.25rem 1rem",
                 display: "flex",
@@ -147,13 +147,13 @@ function AvatarFace({ isSpeaking, isMouthOpen }: { isSpeaking: boolean; isMouthO
             }}>
                 <div style={{
                     width: 6, height: 6, borderRadius: "50%",
-                    background: isSpeaking ? "#5ec269" : "#cfa355",
-                    boxShadow: isSpeaking ? "0 0 8px rgba(94,194,105,0.5)" : "none",
+                    background: isSpeaking ? "#4ade80" : "#ffffff",
+                    boxShadow: isSpeaking ? "0 0 8px rgba(74,222,128,0.5)" : "none",
                 }} />
                 <span style={{
                     fontSize: "0.65rem",
                     fontWeight: 800,
-                    color: "#cfa355",
+                    color: "#ffffff",
                     textTransform: "uppercase",
                     letterSpacing: "0.1em",
                 }}>
@@ -177,9 +177,9 @@ function SpeakingWaveform() {
                 justifyContent: "center",
                 gap: "3px",
                 padding: "0.6rem 1.2rem",
-                background: "rgba(207,163,85,0.06)",
+                background: "rgba(255,255,255,0.06)",
                 borderRadius: "999px",
-                border: "1px solid rgba(207,163,85,0.12)",
+                border: "1px solid rgba(255,255,255,0.12)",
             }}
         >
             {[...Array(16)].map((_, i) => (
@@ -189,7 +189,7 @@ function SpeakingWaveform() {
                     transition={{ repeat: Infinity, duration: 0.4 + Math.random() * 0.3, delay: i * 0.04 }}
                     style={{
                         width: 2.5,
-                        background: "linear-gradient(to top, #cfa355, #e8c97a)",
+                        background: "linear-gradient(to top, #ffffff, #e0e0e0)",
                         borderRadius: 4,
                         minHeight: 3,
                     }}
@@ -198,7 +198,7 @@ function SpeakingWaveform() {
             <span style={{
                 fontSize: "0.7rem",
                 fontWeight: 700,
-                color: "#cfa355",
+                color: "#ffffff",
                 marginLeft: "0.5rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
@@ -350,8 +350,8 @@ export default function AvatarExaminer({
                         transition={{ duration: 0.4 }}
                         style={{
                             maxWidth: 460,
-                            background: "rgba(207,163,85,0.05)",
-                            border: "1px solid rgba(207,163,85,0.15)",
+                            background: "rgba(255,255,255,0.05)",
+                            border: "1px solid rgba(255,255,255,0.15)",
                             borderRadius: "1.25rem",
                             padding: "1.25rem 1.75rem",
                             position: "relative",
@@ -366,9 +366,9 @@ export default function AvatarExaminer({
                             transform: "translateX(-50%) rotate(45deg)",
                             width: 16,
                             height: 16,
-                            background: "rgba(207,163,85,0.05)",
-                            borderTop: "1px solid rgba(207,163,85,0.15)",
-                            borderLeft: "1px solid rgba(207,163,85,0.15)",
+                            background: "rgba(255,255,255,0.05)",
+                            borderTop: "1px solid rgba(255,255,255,0.15)",
+                            borderLeft: "1px solid rgba(255,255,255,0.15)",
                         }} />
 
                         {/* Question badge */}
@@ -379,11 +379,11 @@ export default function AvatarExaminer({
                                 gap: "0.3rem",
                                 marginBottom: "0.75rem",
                                 padding: "0.2rem 0.6rem",
-                                background: "rgba(207,163,85,0.12)",
+                                background: "rgba(255,255,255,0.12)",
                                 borderRadius: "999px",
                                 fontSize: "0.65rem",
                                 fontWeight: 800,
-                                color: "#cfa355",
+                                color: "#ffffff",
                                 textTransform: "uppercase",
                                 letterSpacing: "0.08em",
                             }}>
@@ -392,7 +392,7 @@ export default function AvatarExaminer({
                         )}
 
                         <p style={{
-                            color: "#e5e5e0",
+                            color: "#f0f0f0",
                             fontSize: mode === "asking" ? "1rem" : "0.9rem",
                             fontWeight: mode === "asking" ? 700 : 500,
                             lineHeight: 1.7,
@@ -412,16 +412,16 @@ export default function AvatarExaminer({
                 gap: "0.5rem",
                 fontSize: "0.7rem",
                 fontWeight: 700,
-                color: "#8b8b73",
+                color: "#808080",
                 textTransform: "uppercase",
                 letterSpacing: "0.1em",
             }}>
                 <motion.div
                     animate={{
                         background: isSpeaking
-                            ? ["rgba(94,194,105,0.8)", "rgba(94,194,105,0.3)", "rgba(94,194,105,0.8)"]
+                            ? ["rgba(74,222,128,0.8)", "rgba(74,222,128,0.3)", "rgba(74,222,128,0.8)"]
                             : mode === "waiting"
-                                ? ["rgba(207,163,85,0.8)", "rgba(207,163,85,0.3)", "rgba(207,163,85,0.8)"]
+                                ? ["rgba(255,255,255,0.8)", "rgba(255,255,255,0.3)", "rgba(255,255,255,0.8)"]
                                 : "rgba(139,139,115,0.4)",
                     }}
                     transition={{ repeat: Infinity, duration: 1.2 }}
