@@ -481,6 +481,13 @@ export default function ExamRoom() {
         requestAnimationFrame(runDetection);
     };
 
+    // Start face tracking whenever camera is open (preview or recording)
+    useEffect(() => {
+        if (stream && (phase === "preview" || phase === "recording")) {
+            initFaceMesh();
+        }
+    }, [stream, phase]);
+
     // ── START EXAM: info → preview ────────────────────────────────────────────
     const startExam = useCallback(async () => {
         if (!studentName.trim() || !studentId.trim()) {
@@ -536,9 +543,6 @@ export default function ExamRoom() {
         antiCheatAlertsRef.current = {};
         lastFrameTimeRef.current = performance.now();
         lastAlertTimeRef.current = 0;
-
-        // Start FaceMesh + ObjectDetector (exact original pattern: not awaited)
-        initFaceMesh();
     }, [studentName, studentId, question]);
 
     // ── START RECORDING: preview → recording ─────────────────────────────────
@@ -756,7 +760,7 @@ export default function ExamRoom() {
                     <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                         onClick={startExam}
                         style={{ padding: "1rem", background: "#ffffff", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", fontWeight: 800, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "0.5rem" }}>
-                        <ArrowRight size={18} /> {t("exam.start")}
+                        <ArrowRight size={18} /> {t("exam.beginExam")}
                     </motion.button>
                 </div>
             </motion.div>
@@ -916,7 +920,7 @@ export default function ExamRoom() {
                                 }
                             } catch { /* camera may still be available from before */ }
                             setPhase("preview");
-                            initFaceMesh();
+                            phaseRef.current = "preview";
                         }}
                             style={{ padding: "1rem 2rem", background: "linear-gradient(135deg, #1a6e1a, #2a8a2a)", border: "none", borderRadius: "0.75rem", color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
                             dir="rtl">
@@ -1046,48 +1050,28 @@ export default function ExamRoom() {
                     })}
                 </div>
 
-                {/* Question — ONLY visible while actively recording */}
-                {phase === "recording" && question && (
+                {/* Question — visible as soon as camera opens */}
+                {(phase === "preview" || phase === "recording") && question && (
                     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                         style={{ width: "100%", maxWidth: 600, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "1rem", padding: "1.25rem" }}
                         dir="rtl">
+                        {allQuestions.length > 1 && (
+                            <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "#fbbf24", marginBottom: "0.5rem" }}>
+                                سؤال {currentQIndex + 1} من {allQuestions.length}
+                            </p>
+                        )}
                         <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#ffffff", marginBottom: "0.5rem" }}>
                             {t("exam.question")}
                         </p>
                         <p style={{ fontSize: "1rem", color: "#f0f0f0", lineHeight: 1.8, fontWeight: 500 }}>
                             {question.text}
                         </p>
-                    </motion.div>
-                )}
-
-                {/* Preview — question info + hint */}
-                {phase === "preview" && question && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        style={{ width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center" }}>
-                        {allQuestions.length > 1 && (
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.85rem", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: "999px" }}>
-                                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#fbbf24" }}>
-                                    سؤال {currentQIndex + 1} من {allQuestions.length}
-                                </span>
-                            </div>
+                        {phase === "preview" && (
+                            <p style={{ color: "#808080", fontSize: "0.75rem", marginTop: "0.75rem", lineHeight: 1.6 }} dir={dir}>
+                                {t("exam.previewHint")}
+                            </p>
                         )}
-                        <div style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "1rem", padding: "1.25rem" }} dir="rtl">
-                            <p style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#808080", marginBottom: "0.5rem" }}>
-                                السؤال القادم
-                            </p>
-                            <p style={{ fontSize: "1rem", color: "#f0f0f0", lineHeight: 1.8, fontWeight: 500 }}>
-                                {question.text}
-                            </p>
-                        </div>
-                        <p style={{ color: "#808080", fontSize: "0.8rem", textAlign: "center", lineHeight: 1.7 }} dir={dir}>
-                            {t("exam.previewHint")}
-                        </p>
                     </motion.div>
-                )}
-                {phase === "preview" && !question && (
-                    <p style={{ color: "#808080", fontSize: "0.85rem", maxWidth: 480, textAlign: "center", lineHeight: 1.7 }} dir={dir}>
-                        {t("exam.previewHint")}
-                    </p>
                 )}
 
                 {/* Error */}

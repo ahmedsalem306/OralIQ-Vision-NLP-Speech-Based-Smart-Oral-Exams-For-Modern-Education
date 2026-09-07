@@ -95,6 +95,7 @@ type TranslationKey =
     | "exam.ruleMic"
     | "exam.ruleCamera"
     | "exam.ruleNoPhone"
+    | "exam.beginExam"
     | "exam.start"
     | "exam.previewHint"
     | "exam.question"
@@ -208,7 +209,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         "messages.justNow": "الآن",
         "exam.badge": "امتحان شفوي",
         "exam.welcome": "أهلاً بيك",
-        "exam.info": "دخل بياناتك ثم اضغط ابدأ التسجيل. السؤال هيظهر بعد بدء التسجيل.",
+        "exam.info": "دخل بياناتك ثم اضغط بدء الامتحان. السؤال والمراقبة يشتغلوا أول ما الكاميرا تفتح.",
         "exam.namePlaceholder": "الاسم الكامل",
         "exam.idPlaceholder": "رقم الطالب",
         "exam.needData": "لازم تدخل اسمك ورقمك الأول.",
@@ -217,8 +218,9 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         "exam.ruleMic": "اتكلم بصوت واضح وقريب من الميك",
         "exam.ruleCamera": "بص في الكاميرا أثناء الإجابة",
         "exam.ruleNoPhone": "مفيش موبايل أو ملاحظات معاك",
+        "exam.beginExam": "بدء الامتحان",
         "exam.start": "ابدأ التسجيل",
-        "exam.previewHint": "لما تكون جاهز اضغط ابدأ التسجيل، السؤال هيظهرلك على طول.",
+        "exam.previewHint": "اتأكد إن وجهك ظاهر في الكاميرا، ثم اضغط ابدأ التسجيل.",
         "exam.question": "السؤال",
         "exam.recording": "جاري التسجيل، اضغط لما تخلص",
         "exam.stop": "أنه الإجابة وأرسل",
@@ -329,7 +331,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         "messages.justNow": "Just now",
         "exam.badge": "Oral Exam",
         "exam.welcome": "Welcome",
-        "exam.info": "Enter your details, then start recording. The question appears when recording starts.",
+        "exam.info": "Enter your details, then start the exam. The question and monitoring begin as soon as the camera opens.",
         "exam.namePlaceholder": "Full name",
         "exam.idPlaceholder": "Student number",
         "exam.needData": "Please enter your name and student number first.",
@@ -338,8 +340,9 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         "exam.ruleMic": "Speak clearly near the microphone",
         "exam.ruleCamera": "Look at the camera while answering",
         "exam.ruleNoPhone": "No phone or notes with you",
+        "exam.beginExam": "Start exam",
         "exam.start": "Start recording",
-        "exam.previewHint": "When you're ready, press Start Recording. The question will appear immediately.",
+        "exam.previewHint": "Make sure your face is visible, then press Start recording.",
         "exam.question": "Question",
         "exam.recording": "Recording, press when finished",
         "exam.stop": "Finish and submit",
