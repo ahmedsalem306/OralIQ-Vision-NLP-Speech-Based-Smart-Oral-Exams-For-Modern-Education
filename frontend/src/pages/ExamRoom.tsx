@@ -65,11 +65,6 @@ export default function ExamRoom() {
     const antiCheatAlertsRef = useRef<Record<string, number>>({});
     const lastFrameTimeRef = useRef<number>(performance.now());
     const lastAlertTimeRef = useRef<number>(0);
-    const rafRef = useRef<number | null>(null);
-    const faceMeshActiveRef = useRef(false);
-    const faceMeshModuleRef = useRef<any>(null);
-    const objectDetectorRef = useRef<any>(null);
-    const procCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -184,13 +179,6 @@ export default function ExamRoom() {
         loadExam();
     }, []);
 
-    // Preload MediaPipe JS bundle while student fills the info form
-    useEffect(() => {
-        import("@mediapipe/face_mesh")
-            .then(mod => { faceMeshModuleRef.current = mod; })
-            .catch(() => {});
-    }, []);
-
     // ── Timer (recording only) ────────────────────────────────────────────────
     useEffect(() => {
         if (phase !== "recording" || timeLeft <= 0) return;
@@ -227,34 +215,11 @@ export default function ExamRoom() {
     };
 
     const initFaceMesh = async () => {
-        // Stop any previous detection loop before starting a new one
-        faceMeshActiveRef.current = false;
-        if (rafRef.current !== null) {
-            cancelAnimationFrame(rafRef.current);
-            rafRef.current = null;
-        }
-
-        const syncCanvasSize = () => {
-            const canvas = canvasRef.current;
-            const video = videoRef.current;
-            if (!canvas || !video) return;
-            const w = video.clientWidth || video.videoWidth || 440;
-            const h = video.clientHeight || video.videoHeight || 440;
-            if (canvas.width !== w || canvas.height !== h) {
-                canvas.width = w;
-                canvas.height = h;
-            }
-        };
-        // ── hidden canvas for preprocessing (reused) ────────────────────────────
-        if (!procCanvasRef.current) {
-            procCanvasRef.current = document.createElement("canvas");
-        }
-        const procCanvas = procCanvasRef.current;
+        const procCanvas = document.createElement("canvas");
         procCanvas.width  = 640;
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
 
-        // Smaller smoothing makes iris movement feel immediate on mobile.
         const SMOOTH_N = 2;
         const bufHH: number[] = [], bufHV: number[] = [];
         const bufPH: number[] = [], bufPV: number[] = [];
@@ -270,9 +235,8 @@ export default function ExamRoom() {
             return (value - min) / Math.max(max - min, 1e-6);
         };
 
-        const mod = faceMeshModuleRef.current || await import("@mediapipe/face_mesh");
-        faceMeshModuleRef.current = mod;
-        const faceMesh = new mod.FaceMesh({
+        const { FaceMesh } = await import("@mediapipe/face_mesh");
+        const faceMesh = new FaceMesh({
             locateFile: (file: string) =>
                 `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
         });
@@ -283,30 +247,39 @@ export default function ExamRoom() {
             minTrackingConfidence: 0.5,
         });
 
-        faceMesh.onResults((results: any) => {
-            const phase = phaseRef.current;
-            if (phase !== "recording" && phase !== "preview") return;
+        let objectDetector: any = null;
+        try {
+            const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+            objectDetector = await ObjectDetector.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath:
+                        "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                    delegate: "CPU",
+                },
+                scoreThreshold: 0.5,
+                runningMode: "VIDEO",
+            });
+        } catch (e) {
+            console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
+        }
 
+        faceMesh.onResults((results: any) => {
             const now = performance.now();
             const dt = (now - lastFrameTimeRef.current) / 1000;
-            const isRecording = phase === "recording";
-
-            syncCanvasSize();
+            if (phaseRef.current !== "recording") return;
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                if (isRecording) accumulateDistraction("no_face", dt);
+                accumulateDistraction("no_face", dt);
                 bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 gazeCenter.samples = 0;
                 gazeCenter.h = 0.5;
                 gazeCenter.v = 0.5;
-                const canvas = canvasRef.current;
-                if (canvas) {
-                    const ctx = canvas.getContext("2d");
-                    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-                }
                 return;
             }
-            if (isRecording && results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
+            if (results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
 
             const lm = results.multiFaceLandmarks[0];
 
@@ -350,12 +323,10 @@ export default function ExamRoom() {
             const gazeDown  = irisDown  || hV > 2.15;
             const gazeUp    = irisUp    || hV < 0.42;
 
-            if (isRecording) {
-                if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
-                else if (gazeRight) accumulateDistraction("gaze_right", dt);
-                if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
-                else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
-            }
+            if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
+            else if (gazeRight) accumulateDistraction("gaze_right", dt);
+            if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
+            else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
 
             const canvas = canvasRef.current;
             if (canvas) {
@@ -412,46 +383,11 @@ export default function ExamRoom() {
             }
         });
 
-        // ObjectDetector is optional — load in background, never blocks landmarks
-        if (!objectDetectorRef.current) {
-            (async () => {
-                try {
-                    const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
-                    const vision = await FilesetResolver.forVisionTasks(
-                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-                    );
-                    objectDetectorRef.current = await ObjectDetector.createFromOptions(vision, {
-                        baseOptions: {
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
-                            delegate: "CPU",
-                        },
-                        scoreThreshold: 0.5,
-                        runningMode: "VIDEO",
-                    });
-                } catch (e) {
-                    console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
-                }
-            })();
-        }
-
-        // Wait briefly for video dimensions on mobile before starting detection
-        const video = videoRef.current;
-        if (video && video.readyState < 2) {
-            await new Promise<void>(resolve => {
-                const done = () => { video.removeEventListener("loadeddata", done); resolve(); };
-                video.addEventListener("loadeddata", done);
-                setTimeout(resolve, 2000);
-            });
-        }
-
         const runDetection = async () => {
-            if (!faceMeshActiveRef.current) return;
             try {
                 const video = videoRef.current;
                 if (video && video.readyState >= 2) {
                     const now = performance.now();
-                    syncCanvasSize();
 
                     procCanvas.width  = video.videoWidth  || 640;
                     procCanvas.height = video.videoHeight || 480;
@@ -461,8 +397,8 @@ export default function ExamRoom() {
 
                     await faceMesh.send({ image: procCanvas });
 
-                    if (phaseRef.current === "recording" && objectDetectorRef.current) {
-                        const detections = objectDetectorRef.current.detectForVideo(video, now);
+                    if (phaseRef.current === "recording" && objectDetector) {
+                        const detections = objectDetector.detectForVideo(video, now);
                         for (const detection of detections.detections) {
                             const label = (detection.categories[0]?.categoryName || "").toLowerCase();
                             const dt2 = (now - lastFrameTimeRef.current) / 1000;
@@ -478,12 +414,9 @@ export default function ExamRoom() {
             } catch (e) {
                 console.warn("[runDetection] frame error:", e);
             }
-            if (faceMeshActiveRef.current) {
-                rafRef.current = requestAnimationFrame(runDetection);
-            }
+            requestAnimationFrame(runDetection);
         };
-        faceMeshActiveRef.current = true;
-        rafRef.current = requestAnimationFrame(runDetection);
+        requestAnimationFrame(runDetection);
     };
 
     // ── START EXAM: info → preview ────────────────────────────────────────────
@@ -535,6 +468,7 @@ export default function ExamRoom() {
             videoRef.current.play().catch(() => {});
         }
         setPhase("preview");
+        phaseRef.current = "preview";
 
         // Reset anti-cheat counters
         antiCheatAlertsRef.current = {};
@@ -560,6 +494,7 @@ export default function ExamRoom() {
         rec.start(100);
         recorderRef.current = rec;
         setPhase("recording");
+        phaseRef.current = "recording";
     }, [stream]);
 
     // ── STOP + SUBMIT ─────────────────────────────────────────────────────────
@@ -654,8 +589,6 @@ export default function ExamRoom() {
     // ── Cleanup on unmount ────────────────────────────────────────────────────
     useEffect(() => {
         return () => {
-            faceMeshActiveRef.current = false;
-            if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
             stream?.getTracks().forEach(t => t.stop());
         };
     }, [stream]);
