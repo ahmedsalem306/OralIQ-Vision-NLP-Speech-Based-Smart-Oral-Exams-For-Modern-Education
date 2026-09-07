@@ -65,6 +65,10 @@ export default function ExamRoom() {
     const antiCheatAlertsRef = useRef<Record<string, number>>({});
     const lastFrameTimeRef = useRef<number>(performance.now());
     const lastAlertTimeRef = useRef<number>(0);
+    const detectionGenRef = useRef(0);
+    const faceMeshWarmRef = useRef<any>(null);
+    const faceMeshWarmPromiseRef = useRef<Promise<void> | null>(null);
+    const objectDetectorRef = useRef<any>(null);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -179,6 +183,36 @@ export default function ExamRoom() {
         loadExam();
     }, []);
 
+    // Preload FaceMesh WASM while student is on the info screen — landmarks ready instantly
+    const warmFaceMesh = useCallback(async () => {
+        if (faceMeshWarmRef.current) return;
+        const { FaceMesh } = await import("@mediapipe/face_mesh");
+        const fm = new FaceMesh({
+            locateFile: (file: string) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+        });
+        fm.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+        });
+        const warm = document.createElement("canvas");
+        warm.width = 64;
+        warm.height = 64;
+        warm.getContext("2d")?.fillRect(0, 0, 64, 64);
+        await fm.send({ image: warm });
+        faceMeshWarmRef.current = fm;
+    }, []);
+
+    useEffect(() => {
+        if (!faceMeshWarmPromiseRef.current) {
+            faceMeshWarmPromiseRef.current = warmFaceMesh().catch(() => {
+                faceMeshWarmPromiseRef.current = null;
+            });
+        }
+    }, [warmFaceMesh]);
+
     // ── Timer (recording only) ────────────────────────────────────────────────
     useEffect(() => {
         if (phase !== "recording" || timeLeft <= 0) return;
@@ -215,6 +249,13 @@ export default function ExamRoom() {
     };
 
     const initFaceMesh = async () => {
+        const gen = ++detectionGenRef.current;
+
+        // Use pre-warmed instance if available (WASM already loaded)
+        try {
+            if (faceMeshWarmPromiseRef.current) await faceMeshWarmPromiseRef.current;
+        } catch { /* fall through to fresh create */ }
+
         const procCanvas = document.createElement("canvas");
         procCanvas.width  = 640;
         procCanvas.height = 480;
@@ -235,51 +276,67 @@ export default function ExamRoom() {
             return (value - min) / Math.max(max - min, 1e-6);
         };
 
-        const { FaceMesh } = await import("@mediapipe/face_mesh");
-        const faceMesh = new FaceMesh({
-            locateFile: (file: string) =>
-                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-        });
-        faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5,
-        });
-
-        let objectDetector: any = null;
-        try {
-            const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-            );
-            objectDetector = await ObjectDetector.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath:
-                        "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
-                    delegate: "CPU",
-                },
-                scoreThreshold: 0.5,
-                runningMode: "VIDEO",
+        let faceMesh = faceMeshWarmRef.current;
+        if (!faceMesh) {
+            const { FaceMesh } = await import("@mediapipe/face_mesh");
+            faceMesh = new FaceMesh({
+                locateFile: (file: string) =>
+                    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
             });
-        } catch (e) {
-            console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+            });
+            faceMeshWarmRef.current = faceMesh;
+        }
+
+        // Phone/book detector — background only, NEVER blocks landmarks
+        if (!objectDetectorRef.current) {
+            (async () => {
+                try {
+                    const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
+                    const vision = await FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                    );
+                    objectDetectorRef.current = await ObjectDetector.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                            delegate: "CPU",
+                        },
+                        scoreThreshold: 0.5,
+                        runningMode: "VIDEO",
+                    });
+                } catch (e) {
+                    console.warn("[ObjectDetector] load failed:", e);
+                }
+            })();
         }
 
         faceMesh.onResults((results: any) => {
+            const phase = phaseRef.current;
+            // Draw landmarks as soon as camera opens (preview) + during recording
+            if (phase !== "preview" && phase !== "recording") return;
+
             const now = performance.now();
             const dt = (now - lastFrameTimeRef.current) / 1000;
-            if (phaseRef.current !== "recording") return;
+            const isRecording = phase === "recording";
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                accumulateDistraction("no_face", dt);
+                if (isRecording) accumulateDistraction("no_face", dt);
                 bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 gazeCenter.samples = 0;
                 gazeCenter.h = 0.5;
                 gazeCenter.v = 0.5;
+                const canvas = canvasRef.current;
+                if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
-            if (results.multiFaceLandmarks.length > 1) accumulateDistraction("multiple_people", dt);
+            if (isRecording && results.multiFaceLandmarks.length > 1) {
+                accumulateDistraction("multiple_people", dt);
+            }
 
             const lm = results.multiFaceLandmarks[0];
 
@@ -323,10 +380,12 @@ export default function ExamRoom() {
             const gazeDown  = irisDown  || hV > 2.15;
             const gazeUp    = irisUp    || hV < 0.42;
 
-            if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
-            else if (gazeRight) accumulateDistraction("gaze_right", dt);
-            if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
-            else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+            if (isRecording) {
+                if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
+                else if (gazeRight) accumulateDistraction("gaze_right", dt);
+                if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
+                else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+            }
 
             const canvas = canvasRef.current;
             if (canvas) {
@@ -384,6 +443,7 @@ export default function ExamRoom() {
         });
 
         const runDetection = async () => {
+            if (detectionGenRef.current !== gen) return;
             try {
                 const video = videoRef.current;
                 if (video && video.readyState >= 2) {
@@ -397,8 +457,8 @@ export default function ExamRoom() {
 
                     await faceMesh.send({ image: procCanvas });
 
-                    if (phaseRef.current === "recording" && objectDetector) {
-                        const detections = objectDetector.detectForVideo(video, now);
+                    if (phaseRef.current === "recording" && objectDetectorRef.current) {
+                        const detections = objectDetectorRef.current.detectForVideo(video, now);
                         for (const detection of detections.detections) {
                             const label = (detection.categories[0]?.categoryName || "").toLowerCase();
                             const dt2 = (now - lastFrameTimeRef.current) / 1000;
@@ -414,7 +474,9 @@ export default function ExamRoom() {
             } catch (e) {
                 console.warn("[runDetection] frame error:", e);
             }
-            requestAnimationFrame(runDetection);
+            if (detectionGenRef.current === gen) {
+                requestAnimationFrame(runDetection);
+            }
         };
         requestAnimationFrame(runDetection);
     };
