@@ -67,11 +67,9 @@ export default function ExamRoom() {
     const lastAlertTimeRef = useRef<number>(0);
     const rafRef = useRef<number | null>(null);
     const faceMeshActiveRef = useRef(false);
-    const faceMeshInstanceRef = useRef<any>(null);
-    const faceMeshWarmPromiseRef = useRef<Promise<any> | null>(null);
-    const sendInFlightRef = useRef(false);
-    const procCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const faceMeshModuleRef = useRef<any>(null);
     const objectDetectorRef = useRef<any>(null);
+    const procCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -186,45 +184,12 @@ export default function ExamRoom() {
         loadExam();
     }, []);
 
-    // Pre-warm MediaPipe WASM while student fills info — landmarks appear instantly on start
-    const ensureFaceMeshReady = useCallback(async () => {
-        if (faceMeshInstanceRef.current) return faceMeshInstanceRef.current;
-        if (faceMeshWarmPromiseRef.current) return faceMeshWarmPromiseRef.current;
-
-        faceMeshWarmPromiseRef.current = (async () => {
-            const { FaceMesh } = await import("@mediapipe/face_mesh");
-            const faceMesh = new FaceMesh({
-                locateFile: (file: string) =>
-                    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-            });
-            faceMesh.setOptions({
-                maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5,
-            });
-            // Warm WASM with a tiny frame so first real frame is fast
-            const warm = document.createElement("canvas");
-            warm.width = 64;
-            warm.height = 64;
-            const wctx = warm.getContext("2d");
-            wctx?.fillRect(0, 0, 64, 64);
-            await faceMesh.send({ image: warm });
-            faceMeshInstanceRef.current = faceMesh;
-            return faceMesh;
-        })();
-
-        try {
-            return await faceMeshWarmPromiseRef.current;
-        } catch (e) {
-            faceMeshWarmPromiseRef.current = null;
-            throw e;
-        }
-    }, []);
-
+    // Preload MediaPipe JS bundle while student fills the info form
     useEffect(() => {
-        ensureFaceMeshReady().catch(() => {});
-    }, [ensureFaceMeshReady]);
+        import("@mediapipe/face_mesh")
+            .then(mod => { faceMeshModuleRef.current = mod; })
+            .catch(() => {});
+    }, []);
 
     // ── Timer (recording only) ────────────────────────────────────────────────
     useEffect(() => {
@@ -305,30 +270,18 @@ export default function ExamRoom() {
             return (value - min) / Math.max(max - min, 1e-6);
         };
 
-        const faceMesh = await ensureFaceMeshReady();
-
-        // ObjectDetector loads in background — never block face landmarks
-        if (!objectDetectorRef.current) {
-            (async () => {
-                try {
-                    const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
-                    const vision = await FilesetResolver.forVisionTasks(
-                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-                    );
-                    objectDetectorRef.current = await ObjectDetector.createFromOptions(vision, {
-                        baseOptions: {
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
-                            delegate: "CPU",
-                        },
-                        scoreThreshold: 0.5,
-                        runningMode: "VIDEO",
-                    });
-                } catch (e) {
-                    console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
-                }
-            })();
-        }
+        const mod = faceMeshModuleRef.current || await import("@mediapipe/face_mesh");
+        faceMeshModuleRef.current = mod;
+        const faceMesh = new mod.FaceMesh({
+            locateFile: (file: string) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+        });
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+        });
 
         faceMesh.onResults((results: any) => {
             const phase = phaseRef.current;
@@ -459,6 +412,39 @@ export default function ExamRoom() {
             }
         });
 
+        // ObjectDetector is optional — load in background, never blocks landmarks
+        if (!objectDetectorRef.current) {
+            (async () => {
+                try {
+                    const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
+                    const vision = await FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                    );
+                    objectDetectorRef.current = await ObjectDetector.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                            delegate: "CPU",
+                        },
+                        scoreThreshold: 0.5,
+                        runningMode: "VIDEO",
+                    });
+                } catch (e) {
+                    console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
+                }
+            })();
+        }
+
+        // Wait briefly for video dimensions on mobile before starting detection
+        const video = videoRef.current;
+        if (video && video.readyState < 2) {
+            await new Promise<void>(resolve => {
+                const done = () => { video.removeEventListener("loadeddata", done); resolve(); };
+                video.addEventListener("loadeddata", done);
+                setTimeout(resolve, 2000);
+            });
+        }
+
         const runDetection = async () => {
             if (!faceMeshActiveRef.current) return;
             try {
@@ -473,13 +459,7 @@ export default function ExamRoom() {
                     procCtx.drawImage(video, 0, 0);
                     procCtx.filter = "none";
 
-                    // Non-blocking send — keeps RAF smooth on mobile
-                    if (!sendInFlightRef.current) {
-                        sendInFlightRef.current = true;
-                        faceMesh.send({ image: procCanvas }).finally(() => {
-                            sendInFlightRef.current = false;
-                        });
-                    }
+                    await faceMesh.send({ image: procCanvas });
 
                     if (phaseRef.current === "recording" && objectDetectorRef.current) {
                         const detections = objectDetectorRef.current.detectForVideo(video, now);
