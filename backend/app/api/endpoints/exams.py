@@ -167,7 +167,9 @@ async def submit_exam(
         # 2) Grade answer with SBERT
         if transcript and question.model_answer:
             from app.services.nlp_ai import nlp_analyzer
-            result = nlp_analyzer.evaluate_answer(transcript, question.model_answer)
+            result = nlp_analyzer.evaluate_answer(
+                transcript, question.model_answer, question.keywords or ""
+            )
             nlp_score = result["score"]
 
         # 3) Anti-cheat scoring

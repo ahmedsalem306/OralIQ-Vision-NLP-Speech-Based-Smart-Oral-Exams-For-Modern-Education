@@ -67,6 +67,11 @@ export default function ExamRoom() {
     const lastAlertTimeRef = useRef<number>(0);
     const rafRef = useRef<number | null>(null);
     const faceMeshActiveRef = useRef(false);
+    const faceMeshInstanceRef = useRef<any>(null);
+    const faceMeshWarmPromiseRef = useRef<Promise<any> | null>(null);
+    const sendInFlightRef = useRef(false);
+    const procCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const objectDetectorRef = useRef<any>(null);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -181,6 +186,46 @@ export default function ExamRoom() {
         loadExam();
     }, []);
 
+    // Pre-warm MediaPipe WASM while student fills info — landmarks appear instantly on start
+    const ensureFaceMeshReady = useCallback(async () => {
+        if (faceMeshInstanceRef.current) return faceMeshInstanceRef.current;
+        if (faceMeshWarmPromiseRef.current) return faceMeshWarmPromiseRef.current;
+
+        faceMeshWarmPromiseRef.current = (async () => {
+            const { FaceMesh } = await import("@mediapipe/face_mesh");
+            const faceMesh = new FaceMesh({
+                locateFile: (file: string) =>
+                    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+            });
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+            });
+            // Warm WASM with a tiny frame so first real frame is fast
+            const warm = document.createElement("canvas");
+            warm.width = 64;
+            warm.height = 64;
+            const wctx = warm.getContext("2d");
+            wctx?.fillRect(0, 0, 64, 64);
+            await faceMesh.send({ image: warm });
+            faceMeshInstanceRef.current = faceMesh;
+            return faceMesh;
+        })();
+
+        try {
+            return await faceMeshWarmPromiseRef.current;
+        } catch (e) {
+            faceMeshWarmPromiseRef.current = null;
+            throw e;
+        }
+    }, []);
+
+    useEffect(() => {
+        ensureFaceMeshReady().catch(() => {});
+    }, [ensureFaceMeshReady]);
+
     // ── Timer (recording only) ────────────────────────────────────────────────
     useEffect(() => {
         if (phase !== "recording" || timeLeft <= 0) return;
@@ -235,8 +280,11 @@ export default function ExamRoom() {
                 canvas.height = h;
             }
         };
-        // ── hidden canvas for CLAHE-like preprocessing ────────────────────────
-        const procCanvas = document.createElement("canvas");
+        // ── hidden canvas for preprocessing (reused) ────────────────────────────
+        if (!procCanvasRef.current) {
+            procCanvasRef.current = document.createElement("canvas");
+        }
+        const procCanvas = procCanvasRef.current;
         procCanvas.width  = 640;
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
@@ -257,36 +305,29 @@ export default function ExamRoom() {
             return (value - min) / Math.max(max - min, 1e-6);
         };
 
-        const { FaceMesh } = await import("@mediapipe/face_mesh");
-        const faceMesh = new FaceMesh({
-            locateFile: (file: string) =>
-                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-        });
-        faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5,
-        });
+        const faceMesh = await ensureFaceMeshReady();
 
-        // ObjectDetector is optional — if it fails (no WASM/network), face detection still works
-        let objectDetector: any = null;
-        try {
-            const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-            );
-            objectDetector = await ObjectDetector.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath:
-                        "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
-                    delegate: "CPU",
-                },
-                scoreThreshold: 0.5,
-                runningMode: "VIDEO",
-            });
-        } catch (e) {
-            console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
+        // ObjectDetector loads in background — never block face landmarks
+        if (!objectDetectorRef.current) {
+            (async () => {
+                try {
+                    const { ObjectDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
+                    const vision = await FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                    );
+                    objectDetectorRef.current = await ObjectDetector.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                            delegate: "CPU",
+                        },
+                        scoreThreshold: 0.5,
+                        runningMode: "VIDEO",
+                    });
+                } catch (e) {
+                    console.warn("[ObjectDetector] load failed, phone/book detection disabled:", e);
+                }
+            })();
         }
 
         faceMesh.onResults((results: any) => {
@@ -305,7 +346,6 @@ export default function ExamRoom() {
                 gazeCenter.samples = 0;
                 gazeCenter.h = 0.5;
                 gazeCenter.v = 0.5;
-                // Clear canvas when no face
                 const canvas = canvasRef.current;
                 if (canvas) {
                     const ctx = canvas.getContext("2d");
@@ -317,14 +357,10 @@ export default function ExamRoom() {
 
             const lm = results.multiFaceLandmarks[0];
 
-            // ── head pose ─────────────────────────────────────────────────────
             const nose = lm[1], leftEye = lm[33], rightEye = lm[263], mouth = lm[14];
             const rawHH = (nose.x - leftEye.x)  / Math.max(rightEye.x - leftEye.x,  1e-6);
             const rawHV = (nose.y - leftEye.y)  / Math.max(mouth.y    - nose.y,      1e-6);
 
-            // ── dual iris average (left + right) — more robust ────────────────
-            // left iris: 468 center, outer 33, inner 133, top 159, bot 145
-            // right iris: 473 center, outer 263, inner 362, top 386, bot 374
             const liris = lm[468], lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
             const riris = lm[473], rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
 
@@ -336,15 +372,11 @@ export default function ExamRoom() {
             const rawPH = (pHL + pHR) / 2;
             const rawPV = (pVL + pVR) / 2;
 
-            // ── temporal smoothing ────────────────────────────────────────────
             const hH = smooth(bufHH, rawHH);
             const hV = smooth(bufHV, rawHV);
             const pH = smooth(bufPH, rawPH);
             const pV = smooth(bufPV, rawPV);
 
-            // ── gaze classification ───────────────────────────────────────────
-            // Calibrate the first centered frames, then measure iris deviation
-            // from that student's own neutral eye position.
             if (gazeCenter.samples < 14 && hH > 0.42 && hH < 0.58 && hV > 0.85 && hV < 1.55) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
@@ -355,7 +387,6 @@ export default function ExamRoom() {
             const relV = pV - gazeCenter.v;
             const calibrated = gazeCenter.samples >= 6;
 
-            // Iris drives eye-only movement; strong head pose remains a fallback.
             const irisLeft  = calibrated ? relH > 0.075 : pH > 0.58;
             const irisRight = calibrated ? relH < -0.075 : pH < 0.42;
             const irisDown  = calibrated ? relV > 0.18  : pV > 0.70;
@@ -373,7 +404,6 @@ export default function ExamRoom() {
                 else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
             }
 
-            // ── canvas overlay ────────────────────────────────────────────────
             const canvas = canvasRef.current;
             if (canvas) {
                 const ctx = canvas.getContext("2d");
@@ -443,10 +473,16 @@ export default function ExamRoom() {
                     procCtx.drawImage(video, 0, 0);
                     procCtx.filter = "none";
 
-                    await faceMesh.send({ image: procCanvas });
+                    // Non-blocking send — keeps RAF smooth on mobile
+                    if (!sendInFlightRef.current) {
+                        sendInFlightRef.current = true;
+                        faceMesh.send({ image: procCanvas }).finally(() => {
+                            sendInFlightRef.current = false;
+                        });
+                    }
 
-                    if (phaseRef.current === "recording" && objectDetector) {
-                        const detections = objectDetector.detectForVideo(video, now);
+                    if (phaseRef.current === "recording" && objectDetectorRef.current) {
+                        const detections = objectDetectorRef.current.detectForVideo(video, now);
                         for (const detection of detections.detections) {
                             const label = (detection.categories[0]?.categoryName || "").toLowerCase();
                             const dt2 = (now - lastFrameTimeRef.current) / 1000;
