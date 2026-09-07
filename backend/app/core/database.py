@@ -21,11 +21,14 @@ if DATABASE_URL:
         echo=False,
     )
 else:
-    # ── Local dev: SQLite ──
+    # ── SQLite fallback ──
+    # HF Spaces: /tmp يتنظف مع كل Restart → الحسابات والأسئلة بتضيع.
+    # لو فعّلت Persistent Storage على الـ Space، المسار /data بيفضل.
     if os.name == "nt":
         data_dir = Path(__file__).resolve().parents[2] / "data"
     else:
-        data_dir = Path("/tmp")
+        hf_data = Path("/data")
+        data_dir = hf_data if hf_data.exists() and os.access(hf_data, os.W_OK) else Path("/tmp")
     data_dir.mkdir(parents=True, exist_ok=True)
     sqlite_file = data_dir / "interview_ai.db"
     DATABASE_URL = f"sqlite:///{sqlite_file.as_posix()}"
