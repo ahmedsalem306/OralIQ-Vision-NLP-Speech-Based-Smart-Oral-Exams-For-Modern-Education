@@ -317,15 +317,13 @@ export default function ExamRoom() {
 
         faceMesh.onResults((results: any) => {
             const phase = phaseRef.current;
-            // Draw landmarks as soon as camera opens (preview) + during recording
-            if (phase !== "preview" && phase !== "recording") return;
+            if (phase !== "recording") return;
 
             const now = performance.now();
             const dt = (now - lastFrameTimeRef.current) / 1000;
-            const isRecording = phase === "recording";
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                if (isRecording) accumulateDistraction("no_face", dt);
+                accumulateDistraction("no_face", dt);
                 bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 gazeCenter.samples = 0;
                 gazeCenter.h = 0.5;
@@ -334,7 +332,7 @@ export default function ExamRoom() {
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
-            if (isRecording && results.multiFaceLandmarks.length > 1) {
+            if (results.multiFaceLandmarks.length > 1) {
                 accumulateDistraction("multiple_people", dt);
             }
 
@@ -380,12 +378,10 @@ export default function ExamRoom() {
             const gazeDown  = irisDown  || hV > 2.15;
             const gazeUp    = irisUp    || hV < 0.42;
 
-            if (isRecording) {
-                if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
-                else if (gazeRight) accumulateDistraction("gaze_right", dt);
-                if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
-                else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
-            }
+            if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
+            else if (gazeRight) accumulateDistraction("gaze_right", dt);
+            if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
+            else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
 
             const canvas = canvasRef.current;
             if (canvas) {
@@ -481,11 +477,15 @@ export default function ExamRoom() {
         requestAnimationFrame(runDetection);
     };
 
-    // Start face tracking whenever camera is open (preview or recording)
+    // Face tracking + monitoring only while recording
     useEffect(() => {
-        if (stream && (phase === "preview" || phase === "recording")) {
+        if (stream && phase === "recording") {
             initFaceMesh();
+            return;
         }
+        detectionGenRef.current++;
+        const canvas = canvasRef.current;
+        canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     }, [stream, phase]);
 
     // ── START EXAM: info → preview ────────────────────────────────────────────
@@ -963,8 +963,8 @@ export default function ExamRoom() {
                     )}
                 </AnimatePresence>
 
-                {/* MediaPipe status — preview only */}
-                {phase === "preview" && (
+                {/* Monitoring status — recording only */}
+                {phase === "recording" && (
                     <span style={{ fontSize: "0.72rem", color: "#4ade80" }}>✅ المراقبة شغّالة</span>
                 )}
 
@@ -1038,7 +1038,8 @@ export default function ExamRoom() {
                     </AnimatePresence>
                 </div>
 
-                {/* Accumulated cheat seconds debug strip */}
+                {/* Cheat debug strip — recording only */}
+                {phase === "recording" && (
                     <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#808080", flexWrap: "wrap", justifyContent: "center" }}>
                     {["gaze_left","gaze_right","gaze_up","gaze_down","no_face","phone_detected","book_detected"].map(k => {
                         const v = antiCheatAlertsRef.current[k] || 0;
@@ -1049,9 +1050,21 @@ export default function ExamRoom() {
                         ) : null;
                     })}
                 </div>
+                )}
 
-                {/* Question — visible as soon as camera opens */}
-                {(phase === "preview" || phase === "recording") && question && (
+                {/* Preview hint — no question yet */}
+                {phase === "preview" && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                        style={{ width: "100%", maxWidth: 600, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "1rem", padding: "1.25rem" }}
+                        dir={dir}>
+                        <p style={{ color: "#a0a0a0", fontSize: "0.9rem", lineHeight: 1.8, textAlign: "center" }}>
+                            {t("exam.previewHint")}
+                        </p>
+                    </motion.div>
+                )}
+
+                {/* Question — recording only */}
+                {phase === "recording" && question && (
                     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                         style={{ width: "100%", maxWidth: 600, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "1rem", padding: "1.25rem" }}
                         dir="rtl">
@@ -1066,11 +1079,6 @@ export default function ExamRoom() {
                         <p style={{ fontSize: "1rem", color: "#f0f0f0", lineHeight: 1.8, fontWeight: 500 }}>
                             {question.text}
                         </p>
-                        {phase === "preview" && (
-                            <p style={{ color: "#808080", fontSize: "0.75rem", marginTop: "0.75rem", lineHeight: 1.6 }} dir={dir}>
-                                {t("exam.previewHint")}
-                            </p>
-                        )}
                     </motion.div>
                 )}
 
