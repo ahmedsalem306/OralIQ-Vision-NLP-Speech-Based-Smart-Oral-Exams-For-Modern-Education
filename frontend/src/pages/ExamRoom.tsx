@@ -263,8 +263,8 @@ export default function ExamRoom() {
 
         const SMOOTH_N = 2;
         const bufHH: number[] = [], bufHV: number[] = [];
-        const bufPH: number[] = [], bufPV: number[] = [];
-        const gazeCenter = { samples: 0, h: 0.5, v: 0.5 };
+        const bufPH: number[] = [], bufPV: number[] = [], bufOV: number[] = [];
+        const gazeCenter = { samples: 0, h: 0.5, v: 0.5, offV: 0 };
         const smooth = (buf: number[], val: number) => {
             buf.push(val);
             if (buf.length > SMOOTH_N) buf.shift();
@@ -274,6 +274,11 @@ export default function ExamRoom() {
             const min = Math.min(a, b);
             const max = Math.max(a, b);
             return (value - min) / Math.max(max - min, 1e-6);
+        };
+        // Iris vertical offset from eye center (−1..1); more reliable than eyelid bounds alone
+        const eyeOffV = (iris: { y: number }, top: { y: number }, bot: { y: number }) => {
+            const halfH = Math.max(Math.abs(bot.y - top.y) / 2, 1e-6);
+            return (iris.y - (top.y + bot.y) / 2) / halfH;
         };
 
         let faceMesh = faceMeshWarmRef.current;
@@ -324,10 +329,11 @@ export default function ExamRoom() {
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
                 accumulateDistraction("no_face", dt);
-                bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
+                bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0; bufOV.length = 0;
                 gazeCenter.samples = 0;
                 gazeCenter.h = 0.5;
                 gazeCenter.v = 0.5;
+                gazeCenter.offV = 0;
                 const canvas = canvasRef.current;
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
@@ -352,31 +358,40 @@ export default function ExamRoom() {
 
             const rawPH = (pHL + pHR) / 2;
             const rawPV = (pVL + pVR) / 2;
+            const rawOffV = (eyeOffV(liris, lTop, lBot) + eyeOffV(riris, rTop, rBot)) / 2;
 
             const hH = smooth(bufHH, rawHH);
             const hV = smooth(bufHV, rawHV);
             const pH = smooth(bufPH, rawPH);
             const pV = smooth(bufPV, rawPV);
+            const offV = smooth(bufOV, rawOffV);
 
             if (gazeCenter.samples < 14 && hH > 0.42 && hH < 0.58 && hV > 0.85 && hV < 1.55) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
+                gazeCenter.offV = ((gazeCenter.offV * gazeCenter.samples) + offV) / (gazeCenter.samples + 1);
                 gazeCenter.samples += 1;
             }
 
             const relH = pH - gazeCenter.h;
             const relV = pV - gazeCenter.v;
+            const relOffV = offV - gazeCenter.offV;
             const calibrated = gazeCenter.samples >= 6;
 
             const irisLeft  = calibrated ? relH > 0.075 : pH > 0.58;
             const irisRight = calibrated ? relH < -0.075 : pH < 0.42;
-            const irisDown  = calibrated ? relV > 0.18  : pV > 0.70;
-            const irisUp    = calibrated ? relV < -0.18 : pV < 0.28;
+            // Vertical: eyelid ratio + iris offset from eye center (eyes move less vertically than horizontally)
+            const irisDown = calibrated
+                ? (relV > 0.08 || relOffV > 0.14)
+                : (pV > 0.58 || offV > 0.18);
+            const irisUp = calibrated
+                ? (relV < -0.08 || relOffV < -0.14)
+                : (pV < 0.42 || offV < -0.18);
 
             const gazeLeft  = irisLeft  || hH < 0.34;
             const gazeRight = irisRight || hH > 0.66;
-            const gazeDown  = irisDown  || hV > 2.15;
-            const gazeUp    = irisUp    || hV < 0.42;
+            const gazeDown  = irisDown  || hV > 2.05 || (hV > 1.65 && (pV > 0.52 || offV > 0.10));
+            const gazeUp    = irisUp    || hV < 0.45 || (hV < 0.75 && (pV < 0.48 || offV < -0.10));
 
             if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
             else if (gazeRight) accumulateDistraction("gaze_right", dt);
@@ -417,7 +432,9 @@ export default function ExamRoom() {
                         const neutralY = minY + gazeCenter.v * (maxY - minY);
                         const irisX = iris.x * W;
                         const irisY = iris.y * H;
-                        const active = Math.abs(irisX - neutralX) > (maxX - minX) * 0.075;
+                        const activeH = Math.abs(irisX - neutralX) > (maxX - minX) * 0.075;
+                        const activeV = Math.abs(irisY - neutralY) > (maxY - minY) * 0.08;
+                        const active = activeH || activeV;
 
                         ctx.strokeStyle = active ? "#ff4d5d" : "#4ade80";
                         ctx.lineWidth = 2.5;
