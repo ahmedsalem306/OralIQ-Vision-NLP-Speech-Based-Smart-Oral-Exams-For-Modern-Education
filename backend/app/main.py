@@ -203,6 +203,7 @@ def health_check():
     from app.services.nlp_ai import nlp_analyzer
     from app.services.face_ai import face_analyzer
     from app.services.voice_ai import voice_service
+    from app.services.face_biometrics import EMBEDDING_DIM
 
     voice_status = voice_service.get_status()
 
@@ -213,12 +214,14 @@ def health_check():
             "sbert": "ready" if nlp_analyzer.is_ready() else "not_loaded",
             "anti_cheat": "ready",
             "voice_biometrics": "ready" if voice_status["ready"] else voice_status["engine"],
+            "face_id": "ready",
         },
         "config": {
             "whisper_model": speech_analyzer.MODEL_SIZE,
             "anti_cheat_alerts": list(face_analyzer.ALERT_WEIGHTS.keys()),
             "voice_engine": voice_status["engine"],
             "voice_embedding_dim": voice_status["embedding_dim"],
+            "face_embedding_dim": EMBEDDING_DIM,
         },
     }
 

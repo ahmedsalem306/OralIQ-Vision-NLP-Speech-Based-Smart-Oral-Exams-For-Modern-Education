@@ -19,6 +19,7 @@ class FaceAnalyzer:
         "multiple_people": 25.0,
         "phone_detected": 30.0,
         "book_detected": 25.0,
+        "face_mismatch": 35.0,
     }
 
     # Total weighted penalty above this → "cheating suspected"
@@ -81,6 +82,7 @@ class FaceAnalyzer:
             "multiple_people": f"تم رصد أشخاص آخرين لـ {d_str}",
             "phone_detected": f"تم رصد هاتف لـ {d_str}",
             "book_detected": f"تم رصد كتاب/ورقة لـ {d_str}",
+            "face_mismatch": f"⚠️ Face ID لا يطابق — شخص مختلف لـ {d_str}",
         }
         return labels.get(alert_type, f"{alert_type}: {d_str}")
 

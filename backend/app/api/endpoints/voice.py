@@ -15,6 +15,10 @@ def _has_voiceprint(user: User) -> bool:
     return bool(user.voice_embedding and len(user.voice_embedding) > 10)
 
 
+def _has_faceprint(user: User) -> bool:
+    return bool(user.face_embedding and len(user.face_embedding) > 10)
+
+
 def _can_enroll(user: User) -> bool:
     """First enrollment always allowed; re-enroll only if lecturer permitted."""
     if not _has_voiceprint(user):
@@ -29,16 +33,21 @@ def get_voice_status(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """Returns whether the current logged-in user has enrolled a voice print."""
-    has_print = _has_voiceprint(current_user)
+    has_voice = _has_voiceprint(current_user)
+    has_face = _has_faceprint(current_user)
     status = voice_service.get_status()
     return {
-        "has_voiceprint": has_print,
+        "has_voiceprint": has_voice,
+        "has_faceprint": has_face,
+        "biometrics_complete": has_voice and has_face,
         "user_id": current_user.id,
         "full_name": current_user.full_name,
         "engine": status["engine"],
         "engine_ready": status["ready"],
         "embedding_dim": status["embedding_dim"],
-        "voice_locked": bool(current_user.voice_locked) if has_print else False,
+        "face_embedding_dim": 128,
+        "voice_locked": bool(current_user.voice_locked) if has_voice else False,
+        "face_locked": bool(current_user.face_locked) if has_face else False,
         "voice_reenroll_allowed": bool(current_user.voice_reenroll_allowed),
         "can_reenroll": _can_enroll(current_user),
     }
@@ -194,9 +203,53 @@ def delete_voice_print(
         )
     current_user.voice_embedding = None
     current_user.voice_locked = False
+    current_user.face_embedding = None
+    current_user.face_locked = False
     current_user.voice_reenroll_allowed = False
     db.commit()
-    return {"ok": True, "message": "Voice print deleted"}
+    return {"ok": True, "message": "Biometrics deleted (voice + face)"}
+
+
+@router.post("/verify")
+async def verify_voice_print(
+    *,
+    current_user: User = Depends(deps.get_current_user),
+    audio: UploadFile = File(...),
+) -> Any:
+    """Compare a short audio sample against the enrolled voiceprint (pre-question gate)."""
+    if not _has_voiceprint(current_user):
+        raise HTTPException(status_code=400, detail="لا توجد بصمة صوت مسجّلة لهذا الحساب")
+
+    if not audio or not audio.filename:
+        raise HTTPException(status_code=400, detail="ملف الصوت مطلوب")
+
+    suffix = os.path.splitext(audio.filename)[1] or ".webm"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        content = await audio.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        stored_emb = json.loads(current_user.voice_embedding)
+        result = voice_service.verify_voice(tmp_path, stored_emb)
+        return {
+            "ok": True,
+            "is_match": bool(result.get("is_match")),
+            "similarity_score": result.get("similarity_score"),
+            "report": result.get("report") or (
+                "تم التحقق من الهوية الصوتية" if result.get("is_match")
+                else "الصوت لا يطابق بصمتك المسجّلة"
+            ),
+            "engine": result.get("engine") or voice_service.get_status().get("engine"),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Voice Verify Error] {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"فشل التحقق من بصمة الصوت: {str(e)}")
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 @router.post("/allow-reenroll/{student_id}")
@@ -212,8 +265,8 @@ def allow_voice_reenroll(
     student = db.query(User).filter(User.id == student_id, User.role == "student").first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    if not _has_voiceprint(student):
-        raise HTTPException(status_code=400, detail="Student has no voiceprint yet")
+    if not _has_voiceprint(student) and not _has_faceprint(student):
+        raise HTTPException(status_code=400, detail="Student has no biometrics enrolled yet")
 
     student.voice_reenroll_allowed = True
     db.commit()

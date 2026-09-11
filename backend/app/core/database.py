@@ -66,11 +66,24 @@ def run_migrations():
                 conn.execute(text("ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT 0"))
             if "voice_reenroll_allowed" not in cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT 0"))
+            if "face_embedding" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN face_embedding TEXT"))
+            if "face_locked" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT 0"))
             conn.execute(text(
                 "UPDATE users SET voice_locked = 1 "
                 "WHERE voice_embedding IS NOT NULL AND length(voice_embedding) > 10 "
                 "AND (voice_locked IS NULL OR voice_locked = 0)"
             ))
+            conn.execute(text(
+                "UPDATE users SET face_locked = 1 "
+                "WHERE face_embedding IS NOT NULL AND length(face_embedding) > 10 "
+                "AND (face_locked IS NULL OR face_locked = 0)"
+            ))
+        if "exam_submissions" in insp.get_table_names():
+            sub_cols = {c["name"] for c in insp.get_columns("exam_submissions")}
+            if "face_score" not in sub_cols:
+                conn.execute(text("ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT"))
     except Exception as e:
         print(f"[DB Migration] Warning: {e}")
 

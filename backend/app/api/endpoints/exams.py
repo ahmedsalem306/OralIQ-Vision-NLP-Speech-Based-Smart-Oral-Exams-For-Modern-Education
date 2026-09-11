@@ -93,7 +93,9 @@ def get_students(
         "full_name": s.full_name,
         "email": s.email,
         "has_voiceprint": bool(s.voice_embedding and len(s.voice_embedding) > 10),
+        "has_faceprint": bool(s.face_embedding and len(s.face_embedding) > 10),
         "voice_locked": bool(s.voice_locked),
+        "face_locked": bool(s.face_locked),
         "voice_reenroll_allowed": bool(s.voice_reenroll_allowed),
     } for s in students]
 
@@ -109,6 +111,7 @@ async def submit_exam(
     student_number: str = Form(...),
     audio: UploadFile = File(None),
     anti_cheat_alerts: str = Form("{}"),
+    face_score: Optional[float] = Form(None),
     started_at: Optional[str] = Form(None),
     finished_at: Optional[str] = Form(None),
 ) -> Any:
@@ -125,6 +128,7 @@ async def submit_exam(
     nlp_score = None
     speech_score = None
     voice_score = None
+    face_id_score = face_score
     facial_score = 100.0
     cheat_report = None
     fluency_report = None
@@ -186,6 +190,12 @@ async def submit_exam(
         except (json.JSONDecodeError, Exception) as cheat_err:
             print(f"[Anti-cheat Error] {cheat_err}")
 
+        # 4) Face ID — client-side match score during recording
+        if current_user.face_embedding and face_id_score is not None:
+            if face_id_score < 55:
+                msg = f"⚠️ FACE ID MISMATCH: Face match {face_id_score:.1f}% during exam"
+                cheat_report = (cheat_report + " | " + msg) if cheat_report else msg
+
     except Exception as e:
         print(f"[AI Pipeline Error] {traceback.format_exc()}")
         # Still save the submission even if AI fails
@@ -245,6 +255,7 @@ async def submit_exam(
         nlp_score=nlp_score,
         speech_score=speech_score,
         voice_score=voice_score,
+        face_score=face_id_score,
         facial_score=facial_score,
         overall_score=overall,
         cheat_report=cheat_report,

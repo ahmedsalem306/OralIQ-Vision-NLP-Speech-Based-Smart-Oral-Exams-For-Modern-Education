@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, CheckCircle2, AlertCircle, Loader2, ShieldCheck, X, RefreshCw } from "lucide-react";
+import { Mic, CheckCircle2, AlertCircle, Loader2, ShieldCheck, X, RefreshCw, ScanFace, Camera } from "lucide-react";
 import api from "../lib/api";
+import { enrollFaceFromVideo, loadFaceModels } from "../lib/faceBiometrics";
 
 interface VoiceEnrollmentModalProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface VoiceEnrollmentModalProps {
 }
 
 type Step = "idle" | "recording" | "uploading" | "success" | "error";
+type EnrollPhase = "face" | "voice";
 
 const RECORD_SECONDS = 6;
 
@@ -26,16 +28,20 @@ export default function VoiceEnrollmentModal({
     onSuccess,
     isRequired = false,
 }: VoiceEnrollmentModalProps) {
+    const [enrollPhase, setEnrollPhase] = useState<EnrollPhase>("face");
     const [step, setStep] = useState<Step>("idle");
     const [phraseIndex, setPhraseIndex] = useState(0);
     const [recordingTime, setRecordingTime] = useState(0);
     const [errorMsg, setErrorMsg] = useState("");
     const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([]);
+    const [faceScanProgress, setFaceScanProgress] = useState(0);
+    const [faceScanning, setFaceScanning] = useState(false);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const faceVideoRef = useRef<HTMLVideoElement>(null);
     const stoppingRef = useRef(false);
 
     // ── Cleanup on close / unmount ───────────────────────────────────────────
@@ -50,15 +56,81 @@ export default function VoiceEnrollmentModal({
     useEffect(() => {
         if (!isOpen) {
             cleanup();
+            setEnrollPhase("face");
             setStep("idle"); setErrorMsg(""); setRecordingTime(0);
             setPhraseIndex(0); setRecordedBlobs([]);
+            setFaceScanProgress(0); setFaceScanning(false);
         }
         return () => cleanup();
     }, [isOpen]);
 
+    // Face ID camera
+    useEffect(() => {
+        if (!isOpen || enrollPhase !== "face") return;
+
+        let cancelled = false;
+        (async () => {
+            try {
+                await loadFaceModels();
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user", width: 640, height: 480 },
+                    audio: false,
+                });
+                if (cancelled) {
+                    stream.getTracks().forEach(t => t.stop());
+                    return;
+                }
+                streamRef.current = stream;
+                if (faceVideoRef.current) {
+                    faceVideoRef.current.srcObject = stream;
+                    await faceVideoRef.current.play().catch(() => {});
+                }
+            } catch {
+                if (!cancelled) {
+                    setErrorMsg("تعذّر الوصول للكاميرا — اسمح بالكاميرا لمسح Face ID");
+                    setStep("error");
+                }
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [isOpen, enrollPhase]);
+
     if (!isOpen) return null;
 
     const totalPhrases = PHRASES.length;
+
+    const startFaceScan = async () => {
+        const video = faceVideoRef.current;
+        if (!video) return;
+        setErrorMsg("");
+        setFaceScanning(true);
+        setFaceScanProgress(0);
+
+        const progressTimer = setInterval(() => {
+            setFaceScanProgress(p => Math.min(p + 12, 95));
+        }, 350);
+
+        try {
+            const embedding = await enrollFaceFromVideo(video, 8, 350);
+            await api.post("/face/enroll", { embedding });
+            clearInterval(progressTimer);
+            setFaceScanProgress(100);
+            streamRef.current?.getTracks().forEach(t => t.stop());
+            streamRef.current = null;
+            setTimeout(() => {
+                setFaceScanning(false);
+                setEnrollPhase("voice");
+                setStep("idle");
+            }, 600);
+        } catch (err: any) {
+            clearInterval(progressTimer);
+            setFaceScanning(false);
+            setFaceScanProgress(0);
+            setErrorMsg(err?.response?.data?.detail || err?.message || "فشل مسح Face ID");
+            setStep("error");
+        }
+    };
 
     // ── Start recording ──────────────────────────────────────────────────────
     const startRecording = async () => {
@@ -175,11 +247,14 @@ export default function VoiceEnrollmentModal({
 
     const resetToIdle = () => {
         cleanup();
+        setEnrollPhase("face");
         setStep("idle");
         setErrorMsg("");
         setRecordingTime(0);
         setPhraseIndex(0);
         setRecordedBlobs([]);
+        setFaceScanProgress(0);
+        setFaceScanning(false);
     };
 
     const progress = Math.min((recordingTime / RECORD_SECONDS) * 100, 100);
@@ -248,17 +323,54 @@ export default function VoiceEnrollmentModal({
                             fontFamily: "'Antonio', sans-serif", fontSize: "1.75rem", fontWeight: 700,
                             letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "0.4rem",
                         }}>
-                            {step === "success" ? "تم تسجيل البصمة! ✅" : "تسجيل بصمة الصوت"}
+                            {step === "success"
+                            ? "تم تسجيل الهوية البيومترية! ✅"
+                            : enrollPhase === "face"
+                                ? "Face ID — مسح الوجه"
+                                : "بصمة الصوت"}
                         </h2>
                         <p style={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.5)", lineHeight: "1.6" }}>
                             {step === "success"
-                                ? "تم حفظ بصمة صوتك بنجاح من 3 عينات. سيتم التحقق منها تلقائياً أثناء الامتحانات."
-                                : "اقرأ 3 جمل مختلفة لتسجيل بصمة صوت دقيقة وموثوقة."}
+                                ? "تم حفظ Face ID وبصمة صوتك. سيتم التحقق منهما تلقائياً أثناء الامتحانات."
+                                : enrollPhase === "face"
+                                    ? "انظر للكاميرا مباشرة — مثل Face ID في الآيفون — لمسح وجهك."
+                                    : "اقرأ 3 جمل مختلفة لتسجيل بصمة صوت دقيقة وموثوقة."}
                         </p>
                     </div>
 
-                    {/* Progress Steps */}
-                    {step !== "success" && (
+                    {/* Face ID scan */}
+                    {enrollPhase === "face" && step !== "success" && (
+                        <div style={{ marginBottom: "1.5rem" }}>
+                            <div style={{
+                                position: "relative", width: "100%", maxWidth: 280, margin: "0 auto",
+                                aspectRatio: "1", borderRadius: "50%", overflow: "hidden",
+                                border: faceScanning ? "3px solid #4ade80" : "2px solid rgba(255,255,255,0.2)",
+                                boxShadow: faceScanning ? "0 0 30px rgba(74,222,128,0.35)" : "none",
+                            }}>
+                                <video ref={faceVideoRef} muted playsInline
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+                                {faceScanning && (
+                                    <div style={{
+                                        position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                                        background: "rgba(0,0,0,0.35)",
+                                    }}>
+                                        <ScanFace size={48} color="#4ade80" style={{ animation: "pulse 1s infinite" }} />
+                                    </div>
+                                )}
+                            </div>
+                            {faceScanning && (
+                                <div style={{ marginTop: "1rem", maxWidth: 280, marginInline: "auto" }}>
+                                    <div style={{ height: 4, background: "rgba(255,255,255,0.1)", borderRadius: 999 }}>
+                                        <div style={{ height: "100%", width: `${faceScanProgress}%`, background: "#4ade80", borderRadius: 999, transition: "width 0.3s" }} />
+                                    </div>
+                                    <p style={{ textAlign: "center", fontSize: "0.75rem", color: "#4ade80", marginTop: "0.5rem" }}>جاري مسح الوجه...</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Progress Steps — voice only */}
+                    {enrollPhase === "voice" && step !== "success" && (
                         <div style={{
                             display: "flex", alignItems: "center", justifyContent: "center",
                             gap: "0.5rem", marginBottom: "1.5rem",
@@ -297,7 +409,7 @@ export default function VoiceEnrollmentModal({
                     )}
 
                     {/* Passphrase card */}
-                    {step !== "success" && step !== "uploading" && (
+                    {enrollPhase === "voice" && step !== "success" && step !== "uploading" && (
                         <div style={{
                             background: "rgba(255,255,255,0.03)",
                             border: "1px dashed rgba(255,255,255,0.14)",
@@ -340,7 +452,21 @@ export default function VoiceEnrollmentModal({
 
                     {/* Controls */}
                     <div style={{ textAlign: "center" }}>
-                        {step === "idle" && (
+                        {enrollPhase === "face" && !faceScanning && step !== "error" && (
+                            <button
+                                onClick={startFaceScan}
+                                style={{
+                                    background: "#4ade80", color: "#0a0a0a", border: "none",
+                                    borderRadius: "1rem", padding: "1rem 2.25rem",
+                                    fontSize: "1rem", fontWeight: 800, cursor: "pointer",
+                                    display: "inline-flex", alignItems: "center", gap: "0.625rem",
+                                }}
+                            >
+                                <Camera size={20} /> مسح Face ID
+                            </button>
+                        )}
+
+                        {enrollPhase === "voice" && step === "idle" && (
                             <button
                                 onClick={startRecording}
                                 style={{
@@ -396,7 +522,7 @@ export default function VoiceEnrollmentModal({
                         {step === "uploading" && (
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", color: "#aaa" }}>
                                 <Loader2 size={24} style={{ animation: "spin 1s linear infinite" }} />
-                                <span style={{ fontSize: "0.9rem" }}>جاري تحليل ودمج بصمات الصوت الثلاثة...</span>
+                                <span style={{ fontSize: "0.9rem" }}>جاري حفظ بصمة الصوت...</span>
                             </div>
                         )}
 
@@ -431,7 +557,7 @@ export default function VoiceEnrollmentModal({
 
                     {isRequired && step !== "success" && (
                         <p style={{ textAlign: "center", marginTop: "1.5rem", fontSize: "0.72rem", color: "rgba(255,160,0,0.7)" }}>
-                            ⚠️ تسجيل بصمة الصوت مطلوب للمتابعة
+                            ⚠️ Face ID + بصمة الصوت مطلوبان للمتابعة
                         </p>
                     )}
                 </motion.div>

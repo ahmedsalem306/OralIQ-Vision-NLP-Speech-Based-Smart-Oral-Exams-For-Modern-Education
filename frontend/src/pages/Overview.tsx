@@ -67,6 +67,7 @@ export default function Overview() {
     const [user, setUser] = useState<{ full_name: string; role: string } | null>(null);
     const [stats, setStats] = useState({ exams: 0, submissions: 0, avgScore: 0, pending: 0, completed: 0 });
     const [hasVoiceprint, setHasVoiceprint] = useState<boolean | null>(null);
+    const [hasBiometrics, setHasBiometrics] = useState<boolean | null>(null);
     const [canReenroll, setCanReenroll] = useState(true);
     const [voiceLocked, setVoiceLocked] = useState(false);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
@@ -79,6 +80,7 @@ export default function Overview() {
         api.get("/voice/status")
             .then(res => {
                 setHasVoiceprint(res.data.has_voiceprint);
+                setHasBiometrics(res.data.biometrics_complete ?? res.data.has_voiceprint);
                 setCanReenroll(res.data.can_reenroll !== false);
                 setVoiceLocked(!!res.data.voice_locked);
             })
@@ -282,35 +284,35 @@ export default function Overview() {
                 <>
                     {/* Voice Print Banner */}
                     <div style={{
-                        background: hasVoiceprint ? "rgba(74,222,128,0.05)" : "rgba(255,160,0,0.06)",
-                        border: `1px solid ${hasVoiceprint ? "rgba(74,222,128,0.2)" : "rgba(255,160,0,0.25)"}`,
+                        background: hasBiometrics ? "rgba(74,222,128,0.05)" : "rgba(255,160,0,0.06)",
+                        border: `1px solid ${hasBiometrics ? "rgba(74,222,128,0.2)" : "rgba(255,160,0,0.25)"}`,
                         borderRadius: "1rem", padding: "1.25rem 1.5rem", marginBottom: "2rem",
                         display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap"
                     }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                             <div style={{
                                 width: 42, height: 42, borderRadius: "50%",
-                                background: hasVoiceprint ? "rgba(74,222,128,0.15)" : "rgba(255,160,0,0.15)",
+                                background: hasBiometrics ? "rgba(74,222,128,0.15)" : "rgba(255,160,0,0.15)",
                                 display: "flex", alignItems: "center", justifyContent: "center"
                             }}>
-                                {hasVoiceprint ? <ShieldCheck size={22} color="#4ade80" /> : <AlertCircle size={22} color="#ffa000" />}
+                                {hasBiometrics ? <ShieldCheck size={22} color="#4ade80" /> : <AlertCircle size={22} color="#ffa000" />}
                             </div>
                             <div>
                                 <h4 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fff", marginBottom: "0.2rem" }}>
-                                    {hasVoiceprint
-                                        ? (dir === "rtl" ? "بصمة الصوت مسجلة ومتصلة بحسابك ✅" : "Voice Biometric Print Active ✅")
-                                        : (dir === "rtl" ? "تنبيه: بصمة الصوت غير مسجلة ⚠️" : "Voice Biometric Print Required ⚠️")}
+                                    {hasBiometrics
+                                        ? (dir === "rtl" ? "Face ID + بصمة الصوت مفعّلان ✅" : "Face ID + Voice Biometrics Active ✅")
+                                        : (dir === "rtl" ? "تنبيه: Face ID + بصمة الصوت مطلوبان ⚠️" : "Face ID + Voice Required ⚠️")}
                                 </h4>
                                 <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.6)" }}>
-                                    {hasVoiceprint
+                                    {hasBiometrics
                                         ? voiceLocked && !canReenroll
-                                            ? (dir === "rtl" ? "البصمة مقفولة — لا يمكن تغييرها إلا بإذن المحاضر 🔒" : "Voice print locked — lecturer must allow re-enrollment 🔒")
-                                            : (dir === "rtl" ? "تم حفظ بصمة صوتك للتحقق التلقائي أثناء أداء الامتحانات." : "Your voice fingerprint is stored for automatic exam verification.")
-                                        : (dir === "rtl" ? "يجب تسجيل بصمة صوتك لتأكيد هويتك والتحقق من شخصيتك في الامتحانات." : "Record your voice print to verify your identity during exams.")}
+                                            ? (dir === "rtl" ? "الهوية البيومترية مقفولة — لا يمكن تغييرها إلا بإذن المحاضر 🔒" : "Biometrics locked — lecturer must allow re-enrollment 🔒")
+                                            : (dir === "rtl" ? "Face ID وبصمة صوتك محفوظان للتحقق التلقائي أثناء الامتحانات." : "Face ID and voice print stored for automatic verification.")
+                                        : (dir === "rtl" ? "سجّل Face ID وبصمة صوتك لتأكيد هويتك في الامتحانات." : "Enroll Face ID and voice print to verify your identity.")}
                                 </p>
                             </div>
                         </div>
-                        {(!hasVoiceprint || canReenroll) && (
+                        {(!hasBiometrics || canReenroll) && (
                         <button
                             onClick={() => setShowVoiceModal(true)}
                             style={{
@@ -332,7 +334,7 @@ export default function Overview() {
                     {/* Pending Exam Token Banner */}
                     {(() => {
                         const pendingToken = localStorage.getItem("pendingExamToken");
-                        if (!pendingToken || !hasVoiceprint) return null;
+                        if (!pendingToken || !hasBiometrics) return null;
                         return (
                             <div style={{
                                 background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(74,222,128,0.06))",

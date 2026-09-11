@@ -13,6 +13,7 @@ export default function Settings() {
     const [name, setName] = useState("");
     const [saved, setSaved] = useState(false);
     const [hasVoiceprint, setHasVoiceprint] = useState<boolean | null>(null);
+    const [hasBiometrics, setHasBiometrics] = useState<boolean | null>(null);
     const [canReenroll, setCanReenroll] = useState(true);
     const [voiceLocked, setVoiceLocked] = useState(false);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
@@ -30,6 +31,7 @@ export default function Settings() {
         api.get("/voice/status")
             .then(res => {
                 setHasVoiceprint(res.data.has_voiceprint);
+                setHasBiometrics(res.data.biometrics_complete ?? res.data.has_voiceprint);
                 setCanReenroll(res.data.can_reenroll !== false);
                 setVoiceLocked(!!res.data.voice_locked);
                 if (res.data.has_voiceprint && localStorage.getItem("pendingExamToken")) {
@@ -120,23 +122,23 @@ export default function Settings() {
             </div>
 
             {/* Voice Biometrics Card */}
-            <div style={{ background: "#141414", border: `1px solid ${hasVoiceprint ? "rgba(74,222,128,0.2)" : "rgba(255,160,0,0.25)"}`, borderRadius: "1.25rem", padding: "2rem" }}>
+            <div style={{ background: "#141414", border: `1px solid ${hasBiometrics ? "rgba(74,222,128,0.2)" : "rgba(255,160,0,0.25)"}`, borderRadius: "1.25rem", padding: "2rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
                     <div style={{
                         width: 42, height: 42, borderRadius: "50%",
                         background: hasVoiceprint ? "rgba(74,222,128,0.12)" : "rgba(255,160,0,0.12)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                        {hasVoiceprint
+                        {hasBiometrics
                             ? <ShieldCheck size={22} color="#4ade80" />
                             : <AlertCircle size={22} color="#ffa000" />}
                     </div>
                     <div>
                         <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#f0f0f0" }}>
-                            بصمة الصوت
+                            Face ID + بصمة الصوت
                         </h2>
                         <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
-                            {hasVoiceprint
+                            {hasBiometrics
                                 ? voiceLocked && !canReenroll
                                     ? "مفعّلة ومقفولة — لا يمكن تغييرها إلا بإذن المحاضر 🔒"
                                     : voiceLocked && canReenroll
@@ -146,7 +148,7 @@ export default function Settings() {
                         </p>
                     </div>
                 </div>
-                {( !hasVoiceprint || canReenroll ) && (
+                {( !hasBiometrics || canReenroll ) && (
                 <button
                     onClick={() => setShowVoiceModal(true)}
                     style={{
@@ -164,10 +166,10 @@ export default function Settings() {
                     }}
                 >
                     <Mic size={16} />
-                    {hasVoiceprint ? "إعادة تسجيل البصمة" : "تسجيل بصمة الصوت الآن"}
+                    {hasBiometrics ? "إعادة تسجيل الهوية البيومترية" : "تسجيل Face ID + الصوت الآن"}
                 </button>
                 )}
-                {hasVoiceprint && voiceLocked && !canReenroll && (
+                {hasBiometrics && voiceLocked && !canReenroll && (
                     <p style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "#ffa000", lineHeight: 1.6 }} dir="rtl">
                         لحماية نزاهة الامتحان، لا يمكنك تغيير بصمة صوتك. اطلب من المحاضر السماح بإعادة التسجيل إذا احتجت.
                     </p>
@@ -175,7 +177,7 @@ export default function Settings() {
             </div>
 
             {/* Pending Exam Banner — shows after voice enrollment if there's an exam waiting */}
-            {hasVoiceprint && pendingExam && (
+            {hasBiometrics && pendingExam && (
                 <div style={{
                     background: "linear-gradient(135deg, rgba(26,110,26,0.15), rgba(74,222,128,0.08))",
                     border: "1px solid rgba(74,222,128,0.3)",
@@ -272,6 +274,7 @@ export default function Settings() {
                 onSuccess={() => {
                     setShowVoiceModal(false);
                     setHasVoiceprint(true);
+                    setHasBiometrics(true);
                     setVoiceLocked(true);
                     setCanReenroll(false);
                     if (localStorage.getItem("pendingExamToken")) {

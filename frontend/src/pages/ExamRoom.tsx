@@ -9,6 +9,7 @@ import Logo from "../components/Logo";
 
 import api from "../lib/api";
 import { useI18n } from "../i18n";
+import { captureFaceDescriptor, faceSimilarityPercent, isFaceMatch, loadFaceModels } from "../lib/faceBiometrics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ interface ExamResult {
 }
 
 type AlertKey = "gaze_left" | "gaze_right" | "gaze_up" | "gaze_down"
-    | "no_face" | "multiple_people" | "phone_detected" | "book_detected";
+    | "no_face" | "multiple_people" | "phone_detected" | "book_detected" | "face_mismatch";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,8 @@ export default function ExamRoom() {
     const faceMeshWarmRef = useRef<any>(null);
     const faceMeshWarmPromiseRef = useRef<Promise<void> | null>(null);
     const objectDetectorRef = useRef<any>(null);
+    const storedFaceEmbRef = useRef<number[] | null>(null);
+    const faceScoresRef = useRef<number[]>([]);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -134,10 +137,14 @@ export default function ExamRoom() {
 
                 try {
                     const vr = await api.get("/voice/status");
-                    if (!vr.data.has_voiceprint) {
+                    if (!vr.data.biometrics_complete) {
                         setPhase("voice_required");
                         return;
                     }
+                    loadFaceModels().catch(() => {});
+                    api.get("/face/descriptor")
+                        .then(r => { storedFaceEmbRef.current = r.data.embedding; })
+                        .catch(() => {});
                 } catch {
                     setPhase("voice_required");
                     return;
@@ -241,6 +248,7 @@ export default function ExamRoom() {
                 "multiple_people": "⚠️ أكتر من شخص",
                 "phone_detected": "⚠️ تليفون ظاهر",
                 "book_detected": "⚠️ ورق/كتاب ظاهر",
+                "face_mismatch": "⚠️ Face ID — شخص مختلف",
             };
             setLiveAlert(labels[type] || `⚠️ ${type}`);
             lastAlertTimeRef.current = now;
@@ -505,6 +513,35 @@ export default function ExamRoom() {
         canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     }, [stream, phase]);
 
+    // Face ID verification during recording (every 3s)
+    useEffect(() => {
+        if (phase !== "recording" || !stream) return;
+
+        faceScoresRef.current = [];
+        const checkFace = async () => {
+            const video = videoRef.current;
+            const stored = storedFaceEmbRef.current;
+            if (!video || !stored || video.readyState < 2) return;
+
+            try {
+                const desc = await captureFaceDescriptor(video);
+                if (!desc) {
+                    accumulateDistraction("face_mismatch", 3);
+                    return;
+                }
+                const score = faceSimilarityPercent(desc, stored);
+                faceScoresRef.current.push(score);
+                if (!isFaceMatch(desc, stored)) {
+                    accumulateDistraction("face_mismatch", 3);
+                }
+            } catch { /* models still loading */ }
+        };
+
+        checkFace();
+        const iv = setInterval(checkFace, 3000);
+        return () => clearInterval(iv);
+    }, [phase, stream]);
+
     // ── START EXAM: info → preview ────────────────────────────────────────────
     const startExam = useCallback(async () => {
         if (!studentName.trim() || !studentId.trim()) {
@@ -621,6 +658,10 @@ export default function ExamRoom() {
         fd.append("student_number", studentId);
         fd.append("audio", blob, "answer.webm");
         fd.append("anti_cheat_alerts", JSON.stringify(antiCheatAlertsRef.current));
+        if (faceScoresRef.current.length > 0) {
+            const avg = faceScoresRef.current.reduce((a, b) => a + b, 0) / faceScoresRef.current.length;
+            fd.append("face_score", String(Math.round(avg * 10) / 10));
+        }
         fd.append("started_at", startedAtRef.current);
         fd.append("finished_at", new Date().toISOString());
 
@@ -714,10 +755,10 @@ export default function ExamRoom() {
                     <AlertCircle size={36} color="#ffa000" />
                 </div>
                 <h2 style={{ color: "#f0f0f0", fontSize: "1.4rem", fontWeight: 800, marginBottom: "0.75rem" }} dir="rtl">
-                    بصمة الصوت غير مفعّلة
+                    الهوية البيومترية غير مكتملة
                 </h2>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.9rem", lineHeight: 1.8, marginBottom: "2rem" }} dir="rtl">
-                    لا يمكنك أداء الامتحان قبل تفعيل بصمة الصوت الخاصة بحسابك من <strong style={{ color: "#fff" }}>الإعدادات</strong> للتحقق من هويتك ومنع الانتحال.
+                    لا يمكنك أداء الامتحان قبل تسجيل <strong style={{ color: "#fff" }}>Face ID + بصمة الصوت</strong> من الإعدادات — للتحقق من هويتك ومنع الانتحال.
                 </p>
                 <button onClick={() => navigate("/dashboard/settings")}
                     style={{
@@ -1058,7 +1099,7 @@ export default function ExamRoom() {
                 {/* Cheat debug strip — recording only */}
                 {phase === "recording" && (
                     <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#808080", flexWrap: "wrap", justifyContent: "center" }}>
-                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face","phone_detected","book_detected"].map(k => {
+                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face","face_mismatch","phone_detected","book_detected"].map(k => {
                         const v = antiCheatAlertsRef.current[k] || 0;
                         return v > 0 ? (
                             <span key={k} style={{ padding: "0.2rem 0.55rem", background: "#141414", borderRadius: "0.35rem" }}>
