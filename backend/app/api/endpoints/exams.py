@@ -190,11 +190,18 @@ async def submit_exam(
         except (json.JSONDecodeError, Exception) as cheat_err:
             print(f"[Anti-cheat Error] {cheat_err}")
 
-        # 4) Face ID — client-side match score during recording
+        # 4) Face ID — combined with voice: trust voice if it strongly matches
         if current_user.face_embedding and face_id_score is not None:
-            if face_id_score < 55:
-                msg = f"⚠️ FACE ID MISMATCH: Face match {face_id_score:.1f}% during exam"
+            voice_ok = voice_score is not None and voice_score >= 68
+            face_low = face_id_score < 40
+            face_very_low = face_id_score < 28
+            if face_very_low and not voice_ok:
+                msg = f"⚠️ FACE ID MISMATCH: Face {face_id_score:.1f}% + voice not confirmed"
                 cheat_report = (cheat_report + " | " + msg) if cheat_report else msg
+            elif face_low and not voice_ok:
+                msg = f"⚠️ Face match weak ({face_id_score:.1f}%) — verify identity"
+                cheat_report = (cheat_report + " | " + msg) if cheat_report else msg
+            # voice_ok + face 40–55%: same person, face noisy due to movement/light — no flag
 
     except Exception as e:
         print(f"[AI Pipeline Error] {traceback.format_exc()}")

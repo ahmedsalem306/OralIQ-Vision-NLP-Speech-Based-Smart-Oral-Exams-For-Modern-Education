@@ -56,9 +56,12 @@ def register_user(
         db.commit()
         db.refresh(user)
         return user
+    except HTTPException:
+        raise
     except Exception as e:
-        import traceback
-        return {
-            "error_detail": str(e),
-            "traceback": traceback.format_exc()
-        }
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Registration failed: {str(e)}"
+        )
+

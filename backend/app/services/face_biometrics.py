@@ -3,7 +3,7 @@ import numpy as np
 
 EMBEDDING_DIM = 128
 # face-api.js default: euclidean distance < 0.6 = same person
-DEFAULT_THRESHOLD = 0.6
+DEFAULT_THRESHOLD = 0.68  # exam tolerance — enrollment uses stricter client threshold
 
 
 class FaceBiometricsService:

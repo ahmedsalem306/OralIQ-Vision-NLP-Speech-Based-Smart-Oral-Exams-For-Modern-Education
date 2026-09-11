@@ -19,7 +19,7 @@ class FaceAnalyzer:
         "multiple_people": 25.0,
         "phone_detected": 30.0,
         "book_detected": 25.0,
-        "face_mismatch": 35.0,
+        "face_mismatch": 12.0,
     }
 
     # Total weighted penalty above this → "cheating suspected"

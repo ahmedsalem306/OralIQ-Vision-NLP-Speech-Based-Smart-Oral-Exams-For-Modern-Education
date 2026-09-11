@@ -9,7 +9,7 @@ import Logo from "../components/Logo";
 
 import api from "../lib/api";
 import { useI18n } from "../i18n";
-import { captureFaceDescriptor, faceSimilarityPercent, isFaceMatch, loadFaceModels } from "../lib/faceBiometrics";
+import { captureFaceDescriptor, faceSimilarityPercent, isFaceMatch, aggregateFaceScores, loadFaceModels } from "../lib/faceBiometrics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -525,13 +525,12 @@ export default function ExamRoom() {
 
             try {
                 const desc = await captureFaceDescriptor(video);
-                if (!desc) {
-                    accumulateDistraction("face_mismatch", 3);
-                    return;
-                }
+                if (!desc) return; // no face in frame — gaze alerts handle looking away
+
                 const score = faceSimilarityPercent(desc, stored);
                 faceScoresRef.current.push(score);
-                if (!isFaceMatch(desc, stored)) {
+                // Only flag sustained low match on a visible face (not head movement alone)
+                if (!isFaceMatch(desc, stored) && score < 35) {
                     accumulateDistraction("face_mismatch", 3);
                 }
             } catch { /* models still loading */ }
@@ -659,8 +658,8 @@ export default function ExamRoom() {
         fd.append("audio", blob, "answer.webm");
         fd.append("anti_cheat_alerts", JSON.stringify(antiCheatAlertsRef.current));
         if (faceScoresRef.current.length > 0) {
-            const avg = faceScoresRef.current.reduce((a, b) => a + b, 0) / faceScoresRef.current.length;
-            fd.append("face_score", String(Math.round(avg * 10) / 10));
+            const aggregated = aggregateFaceScores(faceScoresRef.current);
+            fd.append("face_score", String(Math.round(aggregated * 10) / 10));
         }
         fd.append("started_at", startedAtRef.current);
         fd.append("finished_at", new Date().toISOString());

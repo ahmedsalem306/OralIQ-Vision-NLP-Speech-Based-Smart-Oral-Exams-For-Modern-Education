@@ -1,7 +1,9 @@
 import * as faceapi from "face-api.js";
 
 const MODEL_URL = "/face-models";
+// Enrollment: stricter. Exam: more tolerant (lighting, head angle while answering).
 const MATCH_THRESHOLD = 0.6;
+const EXAM_MATCH_THRESHOLD = 0.68;
 const EMBEDDING_DIM = 128;
 
 let modelsLoaded = false;
@@ -74,13 +76,31 @@ export function faceDistance(a: number[] | Float32Array, b: number[] | Float32Ar
     return faceapi.euclideanDistance(a, b);
 }
 
-export function faceSimilarityPercent(a: number[] | Float32Array, b: number[] | Float32Array): number {
+export function faceSimilarityPercent(
+    a: number[] | Float32Array,
+    b: number[] | Float32Array,
+    threshold = EXAM_MATCH_THRESHOLD,
+): number {
     const dist = faceDistance(a, b);
-    return Math.max(0, Math.min(100, (1 - dist / MATCH_THRESHOLD) * 100));
+    return Math.max(0, Math.min(100, (1 - dist / threshold) * 100));
 }
 
-export function isFaceMatch(a: number[] | Float32Array, b: number[] | Float32Array): boolean {
-    return faceDistance(a, b) < MATCH_THRESHOLD;
+export function isFaceMatch(
+    a: number[] | Float32Array,
+    b: number[] | Float32Array,
+    threshold = EXAM_MATCH_THRESHOLD,
+): boolean {
+    return faceDistance(a, b) < threshold;
 }
 
-export { EMBEDDING_DIM, MATCH_THRESHOLD };
+/** Drop worst frames (looking away / blur) — average the rest */
+export function aggregateFaceScores(scores: number[]): number {
+    if (scores.length === 0) return 0;
+    if (scores.length === 1) return scores[0];
+    const sorted = [...scores].sort((x, y) => x - y);
+    const drop = Math.max(1, Math.floor(sorted.length * 0.25));
+    const kept = sorted.slice(drop);
+    return kept.reduce((a, b) => a + b, 0) / kept.length;
+}
+
+export { EMBEDDING_DIM, MATCH_THRESHOLD, EXAM_MATCH_THRESHOLD };
