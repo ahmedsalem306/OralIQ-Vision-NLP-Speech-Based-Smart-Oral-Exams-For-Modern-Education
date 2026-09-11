@@ -33,9 +33,16 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
-    user = db.query(User).filter(User.id == token_data).first()
+    try:
+        user_id = int(token_data)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=401,
+            detail="الجلسة منتهية أو الحساب غير موجود — سجّل الدخول مرة أخرى",
+        )
     return user
 
 def get_current_active_user(

@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, CheckCircle2, AlertCircle, Loader2, ShieldCheck, X, RefreshCw, ScanFace, Camera } from "lucide-react";
 import api from "../lib/api";
-import { enrollFaceFromVideo, loadFaceModels } from "../lib/faceBiometrics";
+import { enrollFaceFromVideo, loadFaceModels, EMBEDDING_DIM } from "../lib/faceBiometrics";
+import { getApiErrorMessage } from "../lib/apiErrors";
 
 interface VoiceEnrollmentModalProps {
     isOpen: boolean;
@@ -36,6 +37,8 @@ export default function VoiceEnrollmentModal({
     const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([]);
     const [faceScanProgress, setFaceScanProgress] = useState(0);
     const [faceScanning, setFaceScanning] = useState(false);
+    const [faceModelsLoading, setFaceModelsLoading] = useState(false);
+    const [faceModelsReady, setFaceModelsReady] = useState(false);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
@@ -60,9 +63,28 @@ export default function VoiceEnrollmentModal({
             setStep("idle"); setErrorMsg(""); setRecordingTime(0);
             setPhraseIndex(0); setRecordedBlobs([]);
             setFaceScanProgress(0); setFaceScanning(false);
+            setFaceModelsLoading(false); setFaceModelsReady(false);
         }
         return () => cleanup();
     }, [isOpen]);
+
+    // Preload Face ID models (heavy on mobile — do before scan button)
+    useEffect(() => {
+        if (!isOpen || enrollPhase !== "face") return;
+        let cancelled = false;
+        setFaceModelsLoading(true);
+        setFaceModelsReady(false);
+        loadFaceModels()
+            .then(() => { if (!cancelled) { setFaceModelsReady(true); setFaceModelsLoading(false); } })
+            .catch((err) => {
+                if (!cancelled) {
+                    setFaceModelsLoading(false);
+                    setErrorMsg(err?.message || "فشل تحميل موديل Face ID");
+                    setStep("error");
+                }
+            });
+        return () => { cancelled = true; };
+    }, [isOpen, enrollPhase]);
 
     // Face ID camera
     useEffect(() => {
@@ -70,9 +92,8 @@ export default function VoiceEnrollmentModal({
 
         let cancelled = false;
         (async () => {
-            try {
-                await loadFaceModels();
-                const stream = await navigator.mediaDevices.getUserMedia({
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: "user", width: 640, height: 480 },
                     audio: false,
                 });
@@ -112,8 +133,16 @@ export default function VoiceEnrollmentModal({
         }, 350);
 
         try {
-            const embedding = await enrollFaceFromVideo(video, 8, 350);
-            await api.post("/face/enroll", { embedding });
+            await api.get("/users/me");
+
+            const embedding = await enrollFaceFromVideo(video, 5, 400);
+            if (embedding.length !== EMBEDDING_DIM) {
+                throw new Error(`بصمة الوجه غير مكتملة (${embedding.length}/${EMBEDDING_DIM}) — أعد المحاولة`);
+            }
+
+            await api.post("/face/enroll", { embedding }, {
+                headers: { "Content-Type": "application/json" },
+            });
             clearInterval(progressTimer);
             setFaceScanProgress(100);
             streamRef.current?.getTracks().forEach(t => t.stop());
@@ -127,7 +156,7 @@ export default function VoiceEnrollmentModal({
             clearInterval(progressTimer);
             setFaceScanning(false);
             setFaceScanProgress(0);
-            setErrorMsg(err?.response?.data?.detail || err?.message || "فشل مسح Face ID");
+            setErrorMsg(getApiErrorMessage(err, "فشل مسح Face ID — حاول مرة أخرى"));
             setStep("error");
         }
     };
@@ -255,6 +284,7 @@ export default function VoiceEnrollmentModal({
         setRecordedBlobs([]);
         setFaceScanProgress(0);
         setFaceScanning(false);
+        setFaceModelsReady(false);
     };
 
     const progress = Math.min((recordingTime / RECORD_SECONDS) * 100, 100);
@@ -452,7 +482,14 @@ export default function VoiceEnrollmentModal({
 
                     {/* Controls */}
                     <div style={{ textAlign: "center" }}>
-                        {enrollPhase === "face" && !faceScanning && step !== "error" && (
+                        {enrollPhase === "face" && faceModelsLoading && (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", color: "#aaa" }}>
+                                <Loader2 size={24} style={{ animation: "spin 1s linear infinite" }} />
+                                <span style={{ fontSize: "0.85rem" }}>جاري تحميل موديل Face ID (~6MB)...</span>
+                            </div>
+                        )}
+
+                        {enrollPhase === "face" && !faceScanning && !faceModelsLoading && faceModelsReady && step !== "error" && (
                             <button
                                 onClick={startFaceScan}
                                 style={{

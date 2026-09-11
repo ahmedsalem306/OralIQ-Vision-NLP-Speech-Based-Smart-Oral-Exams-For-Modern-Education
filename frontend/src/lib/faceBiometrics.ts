@@ -12,12 +12,17 @@ export async function loadFaceModels(): Promise<void> {
     if (modelsLoading) return modelsLoading;
 
     modelsLoading = (async () => {
-        await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-        ]);
-        modelsLoaded = true;
+        try {
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+            ]);
+            modelsLoaded = true;
+        } catch (e) {
+            modelsLoading = null;
+            throw new Error("فشل تحميل موديل Face ID — تأكد من الاتصال بالإنترنت وحاول مرة أخرى");
+        }
     })();
 
     return modelsLoading;
@@ -30,7 +35,7 @@ export async function captureFaceDescriptor(
     if (video.readyState < 2) return null;
 
     const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -40,8 +45,8 @@ export async function captureFaceDescriptor(
 /** Capture multiple frames and average — like iPhone Face ID enrollment */
 export async function enrollFaceFromVideo(
     video: HTMLVideoElement,
-    samples = 8,
-    intervalMs = 350
+    samples = 5,
+    intervalMs = 400
 ): Promise<number[]> {
     const descriptors: Float32Array[] = [];
 
