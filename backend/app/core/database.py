@@ -52,20 +52,39 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def _column_exists(table: str, column: str) -> bool:
+def _migration_engine():
+    """DDL (ALTER TABLE) needs a direct Postgres connection — not Supabase transaction pooler (port 6543)."""
+    direct_url = os.environ.get("DATABASE_URL_DIRECT") or os.environ.get("DIRECT_URL")
+    if direct_url:
+        return create_engine(direct_url, pool_pre_ping=True)
+    return engine
+
+
+def _column_exists(table: str, column: str, eng=None) -> bool:
     from sqlalchemy import inspect
-    insp = inspect(engine)
+    eng = eng or engine
+    insp = inspect(eng)
     if table not in insp.get_table_names():
         return False
     return column in {c["name"] for c in insp.get_columns(table)}
 
 
-def _add_column(table: str, column: str, ddl: str) -> None:
+def _exec_ddl(ddl: str) -> None:
     from sqlalchemy import text
+    mig_eng = _migration_engine()
+    if mig_eng.dialect.name == "postgresql":
+        # Supabase pooler rejects DDL inside transactions — use autocommit
+        with mig_eng.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            conn.execute(text(ddl))
+    else:
+        with mig_eng.begin() as conn:
+            conn.execute(text(ddl))
+
+
+def _add_column(table: str, column: str, ddl: str) -> None:
     if _column_exists(table, column):
         return
-    with engine.begin() as conn:
-        conn.execute(text(ddl))
+    _exec_ddl(ddl)
     print(f"[DB Migration] Added {table}.{column}")
 
 
@@ -85,10 +104,16 @@ def run_migrations():
         len_fn = "char_length" if is_pg else "length"
 
         # Each ALTER in its own transaction — one failure must not block the rest
-        _add_column("users", "voice_locked", f"ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT {bool_false}")
-        _add_column("users", "voice_reenroll_allowed", f"ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT {bool_false}")
-        _add_column("users", "face_embedding", "ALTER TABLE users ADD COLUMN face_embedding TEXT")
-        _add_column("users", "face_locked", f"ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT {bool_false}")
+        if is_pg:
+            _add_column("users", "voice_locked", "ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_locked BOOLEAN DEFAULT FALSE")
+            _add_column("users", "voice_reenroll_allowed", "ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_reenroll_allowed BOOLEAN DEFAULT FALSE")
+            _add_column("users", "face_embedding", "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_embedding TEXT")
+            _add_column("users", "face_locked", "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_locked BOOLEAN DEFAULT FALSE")
+        else:
+            _add_column("users", "voice_locked", f"ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT {bool_false}")
+            _add_column("users", "voice_reenroll_allowed", f"ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT {bool_false}")
+            _add_column("users", "face_embedding", "ALTER TABLE users ADD COLUMN face_embedding TEXT")
+            _add_column("users", "face_locked", f"ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT {bool_false}")
 
         with engine.begin() as conn:
             conn.execute(text(
@@ -103,13 +128,32 @@ def run_migrations():
             ))
 
         if "exam_submissions" in insp.get_table_names():
-            _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT")
+            if is_pg:
+                _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN IF NOT EXISTS face_score DOUBLE PRECISION")
+            else:
+                _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT")
 
         print("[DB Migration] All patches applied successfully")
+        return {"ok": True, "face_embedding": _column_exists("users", "face_embedding")}
     except Exception as e:
         print(f"[DB Migration] ERROR: {e}")
         import traceback
         traceback.print_exc()
+        return {"ok": False, "error": str(e)}
+
+
+_migrations_applied = False
+
+
+def ensure_migrations() -> dict:
+    """Run migrations once per process (startup + health + manual trigger)."""
+    global _migrations_applied
+    if _migrations_applied and _column_exists("users", "face_embedding"):
+        return {"ok": True, "cached": True}
+    result = run_migrations()
+    if result and result.get("ok"):
+        _migrations_applied = True
+    return result or {"ok": _column_exists("users", "face_embedding")}
 
 
 def get_db():

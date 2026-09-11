@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.api_router import api_router
-from app.core.database import engine, Base, run_migrations
+from app.core.database import engine, Base, ensure_migrations, _column_exists
 from app.models.user import User  # noqa: F401 — ensures all models are registered
 import os
 import time
@@ -132,7 +132,7 @@ app = FastAPI(
     title="OralIQ API",
     description="Production-grade backend for OralIQ Smart Oral Exams",
     version="2.0.0",
-    on_startup=[lambda: (Base.metadata.create_all(bind=engine), run_migrations())],
+    on_startup=[lambda: (Base.metadata.create_all(bind=engine), ensure_migrations())],
     docs_url="/docs" if os.environ.get("ENV", "dev") == "dev" else None,
     redoc_url=None,
 )
@@ -206,9 +206,14 @@ def health_check():
     from app.services.face_biometrics import EMBEDDING_DIM
 
     voice_status = voice_service.get_status()
+    mig = ensure_migrations()
 
     return {
         "status": "ok",
+        "database": {
+            "face_embedding_column": _column_exists("users", "face_embedding"),
+            "migration": mig,
+        },
         "models": {
             "whisper": "ready" if speech_analyzer.is_ready() else "not_loaded",
             "sbert": "ready" if nlp_analyzer.is_ready() else "not_loaded",
