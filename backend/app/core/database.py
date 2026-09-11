@@ -52,6 +52,23 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def _column_exists(table: str, column: str) -> bool:
+    from sqlalchemy import inspect
+    insp = inspect(engine)
+    if table not in insp.get_table_names():
+        return False
+    return column in {c["name"] for c in insp.get_columns(table)}
+
+
+def _add_column(table: str, column: str, ddl: str) -> None:
+    from sqlalchemy import text
+    if _column_exists(table, column):
+        return
+    with engine.begin() as conn:
+        conn.execute(text(ddl))
+    print(f"[DB Migration] Added {table}.{column}")
+
+
 def run_migrations():
     """Lightweight schema patches for SQLite / existing PostgreSQL databases."""
     from sqlalchemy import inspect, text
@@ -59,33 +76,40 @@ def run_migrations():
     try:
         insp = inspect(engine)
         if "users" not in insp.get_table_names():
+            print("[DB Migration] users table not found — skipping patches")
             return
-        cols = {c["name"] for c in insp.get_columns("users")}
+
+        is_pg = engine.dialect.name == "postgresql"
+        bool_false = "FALSE" if is_pg else "0"
+        bool_true = "TRUE" if is_pg else "1"
+        len_fn = "char_length" if is_pg else "length"
+
+        # Each ALTER in its own transaction — one failure must not block the rest
+        _add_column("users", "voice_locked", f"ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT {bool_false}")
+        _add_column("users", "voice_reenroll_allowed", f"ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT {bool_false}")
+        _add_column("users", "face_embedding", "ALTER TABLE users ADD COLUMN face_embedding TEXT")
+        _add_column("users", "face_locked", f"ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT {bool_false}")
+
         with engine.begin() as conn:
-            if "voice_locked" not in cols:
-                conn.execute(text("ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT 0"))
-            if "voice_reenroll_allowed" not in cols:
-                conn.execute(text("ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT 0"))
-            if "face_embedding" not in cols:
-                conn.execute(text("ALTER TABLE users ADD COLUMN face_embedding TEXT"))
-            if "face_locked" not in cols:
-                conn.execute(text("ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT 0"))
             conn.execute(text(
-                "UPDATE users SET voice_locked = 1 "
-                "WHERE voice_embedding IS NOT NULL AND length(voice_embedding) > 10 "
-                "AND (voice_locked IS NULL OR voice_locked = 0)"
+                f"UPDATE users SET voice_locked = {bool_true} "
+                f"WHERE voice_embedding IS NOT NULL AND {len_fn}(voice_embedding) > 10 "
+                f"AND (voice_locked IS NULL OR voice_locked = {bool_false})"
             ))
             conn.execute(text(
-                "UPDATE users SET face_locked = 1 "
-                "WHERE face_embedding IS NOT NULL AND length(face_embedding) > 10 "
-                "AND (face_locked IS NULL OR face_locked = 0)"
+                f"UPDATE users SET face_locked = {bool_true} "
+                f"WHERE face_embedding IS NOT NULL AND {len_fn}(face_embedding) > 10 "
+                f"AND (face_locked IS NULL OR face_locked = {bool_false})"
             ))
+
         if "exam_submissions" in insp.get_table_names():
-            sub_cols = {c["name"] for c in insp.get_columns("exam_submissions")}
-            if "face_score" not in sub_cols:
-                conn.execute(text("ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT"))
+            _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT")
+
+        print("[DB Migration] All patches applied successfully")
     except Exception as e:
-        print(f"[DB Migration] Warning: {e}")
+        print(f"[DB Migration] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def get_db():
