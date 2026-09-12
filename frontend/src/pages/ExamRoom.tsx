@@ -10,6 +10,7 @@ import Logo from "../components/Logo";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { captureFaceDescriptor, faceSimilarityPercent, aggregateFaceScores, loadFaceModels } from "../lib/faceBiometrics";
+import { estimatePupilFromPixels, type PupilHit } from "../lib/pupilGaze";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -269,13 +270,14 @@ export default function ExamRoom() {
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
 
-        const SMOOTH_N = 4;
+        const SMOOTH_N = 3;
         const bufHH: number[] = [], bufHV: number[] = [];
-        const bufPH: number[] = [], bufPV: number[] = [], bufOV: number[] = [];
-        const gazeCenter = { samples: 0, h: 0.5, v: 0.5, offV: 0 };
-        // Require sustained look-away before counting — kills frame-to-frame noise
+        const bufPH: number[] = [], bufPV: number[] = [];
+        const gazeCenter = { samples: 0, h: 0.5, v: 0.5 };
+        // Sustained look-away — like a human proctor ignoring blinks/glances
         const gazeHold = { left: 0, right: 0, up: 0, down: 0 };
-        const HOLD_SEC = 1.0; // only count after ~1s continuous
+        const HOLD_SEC = 0.7;
+        let framePixels: ImageData | null = null;
         const smooth = (buf: number[], val: number) => {
             buf.push(val);
             if (buf.length > SMOOTH_N) buf.shift();
@@ -285,11 +287,6 @@ export default function ExamRoom() {
             const min = Math.min(a, b);
             const max = Math.max(a, b);
             return (value - min) / Math.max(max - min, 1e-6);
-        };
-        // Iris vertical offset from eye center (−1..1); more reliable than eyelid bounds alone
-        const eyeOffV = (iris: { y: number }, top: { y: number }, bot: { y: number }) => {
-            const halfH = Math.max(Math.abs(bot.y - top.y) / 2, 1e-6);
-            return (iris.y - (top.y + bot.y) / 2) / halfH;
         };
 
         let faceMesh = faceMeshWarmRef.current;
@@ -340,11 +337,9 @@ export default function ExamRoom() {
             const dt = Math.min(Math.max((now - lastFrameTimeRef.current) / 1000, 0), 0.12);
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                // Brief blink / frame drop — only count sustained absence
                 gazeHold.left = gazeHold.right = gazeHold.up = gazeHold.down = 0;
                 if (dt >= 0.08) accumulateDistraction("no_face", dt * 0.5);
-                bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0; bufOV.length = 0;
-                // Keep calibration — don't wipe on every missed frame
+                bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 const canvas = canvasRef.current;
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
@@ -359,61 +354,91 @@ export default function ExamRoom() {
             const rawHH = (nose.x - leftEye.x)  / Math.max(rightEye.x - leftEye.x,  1e-6);
             const rawHV = (nose.y - leftEye.y)  / Math.max(mouth.y    - nose.y,      1e-6);
 
-            const liris = lm[468], lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
-            const riris = lm[473], rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
+            const lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
+            const rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
+            const lirisMp = lm[468], ririsMp = lm[473];
 
-            const pHL = normalizeBetween(liris.x, lOuter.x, lInner.x);
-            const pVL = normalizeBetween(liris.y, lTop.y, lBot.y);
-            const pHR = normalizeBetween(riris.x, rOuter.x, rInner.x);
-            const pVR = normalizeBetween(riris.y, rTop.y, rBot.y);
+            // Pixel pupil (tracks real up/down) — fallback to MediaPipe iris
+            let pupilL: PupilHit | null = null;
+            let pupilR: PupilHit | null = null;
+            if (framePixels) {
+                pupilL = estimatePupilFromPixels(framePixels, lOuter, lInner, lTop, lBot);
+                pupilR = estimatePupilFromPixels(framePixels, rOuter, rInner, rTop, rBot);
+            }
+            if (!pupilL && lirisMp) {
+                pupilL = {
+                    h: normalizeBetween(lirisMp.x, lOuter.x, lInner.x),
+                    v: normalizeBetween(lirisMp.y, lTop.y, lBot.y),
+                    x: lirisMp.x,
+                    y: lirisMp.y,
+                };
+            }
+            if (!pupilR && ririsMp) {
+                pupilR = {
+                    h: normalizeBetween(ririsMp.x, rOuter.x, rInner.x),
+                    v: normalizeBetween(ririsMp.y, rTop.y, rBot.y),
+                    x: ririsMp.x,
+                    y: ririsMp.y,
+                };
+            }
+            if (!pupilL && !pupilR) return;
 
-            const rawPH = (pHL + pHR) / 2;
-            const rawPV = (pVL + pVR) / 2;
-            const rawOffV = (eyeOffV(liris, lTop, lBot) + eyeOffV(riris, rTop, rBot)) / 2;
+            // Per-eye gaze relative to eye corners (nose↔temple) — not raw image X
+            const hParts: number[] = [];
+            const vParts: number[] = [];
+            if (pupilL) {
+                hParts.push(normalizeBetween(pupilL.x, lOuter.x, lInner.x));
+                vParts.push(normalizeBetween(pupilL.y, lTop.y, lBot.y));
+            }
+            if (pupilR) {
+                hParts.push(normalizeBetween(pupilR.x, rOuter.x, rInner.x));
+                vParts.push(normalizeBetween(pupilR.y, rTop.y, rBot.y));
+            }
+            const rawPH = hParts.reduce((a, b) => a + b, 0) / hParts.length;
+            const rawPV = vParts.reduce((a, b) => a + b, 0) / vParts.length;
 
             const hH = smooth(bufHH, rawHH);
             const hV = smooth(bufHV, rawHV);
             const pH = smooth(bufPH, rawPH);
             const pV = smooth(bufPV, rawPV);
-            const offV = smooth(bufOV, rawOffV);
 
-            if (gazeCenter.samples < 20 && hH > 0.32 && hH < 0.68 && hV > 0.55 && hV < 2.0) {
+            // Calibrate while looking roughly forward (first ~1s)
+            if (gazeCenter.samples < 24 && hH > 0.32 && hH < 0.68 && hV > 0.55 && hV < 2.0) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
-                gazeCenter.offV = ((gazeCenter.offV * gazeCenter.samples) + offV) / (gazeCenter.samples + 1);
                 gazeCenter.samples += 1;
-            } else if (gazeCenter.samples >= 20) {
-                // Slow drift toward current forward pose (phone angle changes while answering)
-                const nearForward = Math.abs(pH - gazeCenter.h) < 0.12 && hH > 0.35 && hH < 0.65;
-                if (nearForward) {
-                    gazeCenter.h = gazeCenter.h * 0.98 + pH * 0.02;
-                    gazeCenter.v = gazeCenter.v * 0.98 + pV * 0.02;
-                    gazeCenter.offV = gazeCenter.offV * 0.98 + offV * 0.02;
+            } else if (gazeCenter.samples >= 24) {
+                const nearNeutral =
+                    Math.abs(pH - gazeCenter.h) < 0.08 &&
+                    Math.abs(pV - gazeCenter.v) < 0.08 &&
+                    hH > 0.36 && hH < 0.64;
+                if (nearNeutral) {
+                    gazeCenter.h = gazeCenter.h * 0.97 + pH * 0.03;
+                    gazeCenter.v = gazeCenter.v * 0.97 + pV * 0.03;
                 }
             }
 
             const relH = pH - gazeCenter.h;
+            const relV = pV - gazeCenter.v;
 
-            // MediaPipe iris landmarks are unreliable for vertical gaze (up/down pupils).
-            // Oral exams also require reading the on-screen question (looks "down" vs phone camera).
-            // Integrity uses ONLY horizontal look-away + head turn left/right.
-            if (gazeCenter.samples >= 16) {
-                const irisLeft  = relH > 0.16;
-                const irisRight = relH < -0.16;
-                const headLeft  = hH < 0.26;
-                const headRight = hH > 0.74;
+            // Full 4-way gaze like a human proctor (after calibration)
+            if (gazeCenter.samples >= 18) {
+                // Horizontal: pixel pupil + head yaw
+                const lookLeft  = relH > 0.14 || hH < 0.28;
+                const lookRight = relH < -0.14 || hH > 0.72;
+                // Vertical: pupil Y (0=up). Dead zone for reading the on-screen question.
+                const lookUp   = relV < -0.16 || hV < 0.32;
+                const lookDown = relV > 0.18 || hV > 2.45;
 
-                const left  = irisLeft || headLeft;
-                const right = irisRight || headRight;
-
-                gazeHold.left  = left  ? gazeHold.left  + dt : 0;
-                gazeHold.right = right ? gazeHold.right + dt : 0;
-                gazeHold.down = 0;
-                gazeHold.up = 0;
+                gazeHold.left  = lookLeft  ? gazeHold.left  + dt : 0;
+                gazeHold.right = lookRight ? gazeHold.right + dt : 0;
+                gazeHold.up    = lookUp    ? gazeHold.up    + dt : 0;
+                gazeHold.down  = lookDown  ? gazeHold.down  + dt : 0;
 
                 if (gazeHold.left  >= HOLD_SEC) accumulateDistraction("gaze_left",  dt);
                 else if (gazeHold.right >= HOLD_SEC) accumulateDistraction("gaze_right", dt);
-                // gaze_up / gaze_down intentionally NOT scored — model not accurate enough
+                if (gazeHold.up    >= HOLD_SEC) accumulateDistraction("gaze_up",    dt);
+                else if (gazeHold.down >= HOLD_SEC) accumulateDistraction("gaze_down",  dt);
             }
 
             const canvas = canvasRef.current;
@@ -425,50 +450,54 @@ export default function ExamRoom() {
                     const totalAcc = Object.values(antiCheatAlertsRef.current).reduce((a, b) => a + b, 0);
                     const color = totalAcc > 3 ? "#ff4d4d" : totalAcc > 0.5 ? "#e0e0e0" : "#4ade80";
                     ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.65;
+                    ctx.globalAlpha = 0.55;
                     for (const p of lm) {
                         ctx.beginPath();
-                        ctx.arc(p.x * W, p.y * H, 1.2, 0, Math.PI * 2);
+                        ctx.arc(p.x * W, p.y * H, 1.1, 0, Math.PI * 2);
                         ctx.fill();
                     }
                     ctx.globalAlpha = 1;
-                    [468, 473].forEach((i: number) => {
-                        const p = lm[i]; if (!p) return;
-                        ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 5, 0, Math.PI * 2);
-                        ctx.fillStyle = "#fff"; ctx.fill();
-                        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-                    });
-                    [
-                        { iris: liris, outer: lOuter, inner: lInner, top: lTop, bot: lBot },
-                        { iris: riris, outer: rOuter, inner: rInner, top: rTop, bot: rBot },
-                    ].forEach(({ iris, outer, inner, top, bot }) => {
+
+                    const drawEye = (
+                        pupil: PupilHit | null,
+                        outer: { x: number; y: number },
+                        inner: { x: number; y: number },
+                        top: { x: number; y: number },
+                        bot: { x: number; y: number },
+                    ) => {
+                        if (!pupil) return;
                         const minX = Math.min(outer.x, inner.x) * W;
                         const maxX = Math.max(outer.x, inner.x) * W;
                         const minY = Math.min(top.y, bot.y) * H;
                         const maxY = Math.max(top.y, bot.y) * H;
                         const neutralX = minX + gazeCenter.h * (maxX - minX);
                         const neutralY = minY + gazeCenter.v * (maxY - minY);
-                        const irisX = iris.x * W;
-                        const irisY = iris.y * H;
-                        const activeH = Math.abs(irisX - neutralX) > (maxX - minX) * 0.16;
-                        // Vertical iris ignored for UI alert color — expected when reading on-screen question
-                        const active = activeH;
+                        const px = pupil.x * W;
+                        const py = pupil.y * H;
+                        const ph = normalizeBetween(pupil.x, outer.x, inner.x);
+                        const pv = normalizeBetween(pupil.y, top.y, bot.y);
+                        const activeH = Math.abs(ph - gazeCenter.h) > 0.14;
+                        const activeV = Math.abs(pv - gazeCenter.v) > 0.16;
+                        const active = activeH || activeV;
 
                         ctx.strokeStyle = active ? "#ff4d5d" : "#4ade80";
                         ctx.lineWidth = 2.5;
                         ctx.beginPath();
                         ctx.moveTo(neutralX, neutralY);
-                        ctx.lineTo(irisX, irisY);
+                        ctx.lineTo(px, py);
                         ctx.stroke();
 
                         ctx.beginPath();
-                        ctx.arc(irisX, irisY, 6.5, 0, Math.PI * 2);
+                        ctx.arc(px, py, 6.5, 0, Math.PI * 2);
                         ctx.fillStyle = active ? "#ff4d5d" : "#ffffff";
                         ctx.fill();
                         ctx.strokeStyle = "#0a0a0a";
                         ctx.lineWidth = 1.5;
                         ctx.stroke();
-                    });
+                    };
+
+                    drawEye(pupilL, lOuter, lInner, lTop, lBot);
+                    drawEye(pupilR, rOuter, rInner, rTop, rBot);
                 }
             }
         });
@@ -482,9 +511,15 @@ export default function ExamRoom() {
 
                     procCanvas.width  = video.videoWidth  || 640;
                     procCanvas.height = video.videoHeight || 480;
-                    procCtx.filter = "contrast(1.25) brightness(1.05)";
+                    // Mild contrast helps dark pupil stand out for tracking
+                    procCtx.filter = "contrast(1.35) brightness(1.02)";
                     procCtx.drawImage(video, 0, 0);
                     procCtx.filter = "none";
+                    try {
+                        framePixels = procCtx.getImageData(0, 0, procCanvas.width, procCanvas.height);
+                    } catch {
+                        framePixels = null;
+                    }
 
                     await faceMesh.send({ image: procCanvas });
 
@@ -492,7 +527,7 @@ export default function ExamRoom() {
                         const detections = objectDetectorRef.current.detectForVideo(video, now);
                         for (const detection of detections.detections) {
                             const label = (detection.categories[0]?.categoryName || "").toLowerCase();
-                            const dt2 = (now - lastFrameTimeRef.current) / 1000;
+                            const dt2 = Math.min((now - lastFrameTimeRef.current) / 1000, 0.12);
                             if (["cell phone", "mobile phone", "phone"].includes(label)) {
                                 accumulateDistraction("phone_detected", dt2);
                             } else if (["book", "notebook"].includes(label)) {
@@ -1123,7 +1158,7 @@ export default function ExamRoom() {
                 {/* Cheat debug strip — recording only */}
                 {phase === "recording" && (
                     <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#808080", flexWrap: "wrap", justifyContent: "center" }}>
-                    {["gaze_left","gaze_right","no_face","face_mismatch","phone_detected","book_detected"].map(k => {
+                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face","face_mismatch","phone_detected","book_detected"].map(k => {
                         const v = antiCheatAlertsRef.current[k] || 0;
                         return v > 0 ? (
                             <span key={k} style={{ padding: "0.2rem 0.55rem", background: "#141414", borderRadius: "0.35rem" }}>
