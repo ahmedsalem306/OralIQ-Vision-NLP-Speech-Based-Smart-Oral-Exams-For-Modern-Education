@@ -394,31 +394,26 @@ export default function ExamRoom() {
 
             const relH = pH - gazeCenter.h;
 
-            // Oral exams: question is ON SCREEN below the camera → iris "down" is NORMAL on phones.
-            // Only horizontal look-away + extreme head tilt count as integrity risks.
+            // MediaPipe iris landmarks are unreliable for vertical gaze (up/down pupils).
+            // Oral exams also require reading the on-screen question (looks "down" vs phone camera).
+            // Integrity uses ONLY horizontal look-away + head turn left/right.
             if (gazeCenter.samples >= 16) {
                 const irisLeft  = relH > 0.16;
                 const irisRight = relH < -0.16;
                 const headLeft  = hH < 0.26;
                 const headRight = hH > 0.74;
-                // Extreme head pitch only (chin to chest / head to ceiling) — NOT iris vertical
-                const headDown  = hV > 2.55;
-                const headUp    = hV < 0.28;
 
                 const left  = irisLeft || headLeft;
                 const right = irisRight || headRight;
-                const down  = headDown;
-                const up    = headUp;
 
                 gazeHold.left  = left  ? gazeHold.left  + dt : 0;
                 gazeHold.right = right ? gazeHold.right + dt : 0;
-                gazeHold.down  = down  ? gazeHold.down  + dt : 0;
-                gazeHold.up    = up    ? gazeHold.up    + dt : 0;
+                gazeHold.down = 0;
+                gazeHold.up = 0;
 
                 if (gazeHold.left  >= HOLD_SEC) accumulateDistraction("gaze_left",  dt);
                 else if (gazeHold.right >= HOLD_SEC) accumulateDistraction("gaze_right", dt);
-                if (gazeHold.down  >= HOLD_SEC) accumulateDistraction("gaze_down",  dt);
-                else if (gazeHold.up >= HOLD_SEC) accumulateDistraction("gaze_up",    dt);
+                // gaze_up / gaze_down intentionally NOT scored — model not accurate enough
             }
 
             const canvas = canvasRef.current;
@@ -1128,7 +1123,7 @@ export default function ExamRoom() {
                 {/* Cheat debug strip — recording only */}
                 {phase === "recording" && (
                     <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.7rem", fontFamily: "monospace", color: "#808080", flexWrap: "wrap", justifyContent: "center" }}>
-                    {["gaze_left","gaze_right","gaze_up","gaze_down","no_face","face_mismatch","phone_detected","book_detected"].map(k => {
+                    {["gaze_left","gaze_right","no_face","face_mismatch","phone_detected","book_detected"].map(k => {
                         const v = antiCheatAlertsRef.current[k] || 0;
                         return v > 0 ? (
                             <span key={k} style={{ padding: "0.2rem 0.55rem", background: "#141414", borderRadius: "0.35rem" }}>

@@ -11,8 +11,9 @@ class FaceAnalyzer:
     ALERT_WEIGHTS = {
         "gaze_left": 4.0,
         "gaze_right": 4.0,
-        "gaze_down": 1.0,   # rare — only extreme head pitch (reading screen is normal)
-        "gaze_up": 1.0,
+        # Vertical gaze disabled in client — MediaPipe iris up/down is not reliable enough
+        "gaze_down": 0.0,
+        "gaze_up": 0.0,
         "head_turn_left": 6.0,
         "head_turn_right": 6.0,
         "no_face": 4.0,
