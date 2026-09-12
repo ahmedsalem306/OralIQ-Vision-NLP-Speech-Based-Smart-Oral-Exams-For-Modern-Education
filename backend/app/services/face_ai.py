@@ -11,8 +11,8 @@ class FaceAnalyzer:
     ALERT_WEIGHTS = {
         "gaze_left": 5.0,
         "gaze_right": 5.0,
-        "gaze_down": 3.0,
-        "gaze_up": 3.0,
+        "gaze_down": 2.0,
+        "gaze_up": 2.0,
         "head_turn_left": 6.0,
         "head_turn_right": 6.0,
         "no_face": 6.0,

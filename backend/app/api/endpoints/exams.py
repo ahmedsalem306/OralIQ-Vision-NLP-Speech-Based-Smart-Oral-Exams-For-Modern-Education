@@ -158,10 +158,13 @@ async def submit_exam(
                 if current_user.voice_embedding:
                     try:
                         stored_emb = json.loads(current_user.voice_embedding)
-                        voice_res = voice_service.verify_voice(tmp_path, stored_emb)
+                        # Oral answers are noisier than enrollment phrases — softer threshold
+                        voice_res = voice_service.verify_voice(tmp_path, stored_emb, threshold=0.58)
                         voice_score = voice_res["similarity_score"]
-                        if not voice_res["is_match"]:
+                        if not voice_res["is_match"] and voice_score < 50:
                             cheat_report = (cheat_report or "") + f" | 🚨 {voice_res['report']}"
+                        elif not voice_res["is_match"] and voice_score >= 50:
+                            cheat_report = (cheat_report or "") + f" | Voice weak ({voice_score:.1f}%) — same speaker likely"
                     except Exception as ve:
                         print(f"[Voice Verify Error] {ve}")
 
@@ -190,18 +193,18 @@ async def submit_exam(
         except (json.JSONDecodeError, Exception) as cheat_err:
             print(f"[Anti-cheat Error] {cheat_err}")
 
-        # 4) Face ID — combined with voice: trust voice if it strongly matches
+        # 4) Face ID — cross-check with voice; browser face match is noisy during oral answers
         if current_user.face_embedding and face_id_score is not None:
-            voice_ok = voice_score is not None and voice_score >= 68
-            face_low = face_id_score < 40
-            face_very_low = face_id_score < 28
-            if face_very_low and not voice_ok:
-                msg = f"⚠️ FACE ID MISMATCH: Face {face_id_score:.1f}% + voice not confirmed"
+            voice_ok = voice_score is not None and voice_score >= 55
+            biometrics_ok = voice_ok and face_id_score >= 40
+            if biometrics_ok:
+                pass  # same person — movement/lighting lowered face score
+            elif face_id_score < 25 and (voice_score is None or voice_score < 45):
+                msg = f"⚠️ Identity mismatch: Face {face_id_score:.1f}%, voice {voice_score or 0:.1f}%"
                 cheat_report = (cheat_report + " | " + msg) if cheat_report else msg
-            elif face_low and not voice_ok:
-                msg = f"⚠️ Face match weak ({face_id_score:.1f}%) — verify identity"
+            elif face_id_score < 35 and (voice_score is None or voice_score < 50):
+                msg = f"⚠️ Weak identity match (face {face_id_score:.1f}%) — manual review suggested"
                 cheat_report = (cheat_report + " | " + msg) if cheat_report else msg
-            # voice_ok + face 40–55%: same person, face noisy due to movement/light — no flag
 
     except Exception as e:
         print(f"[AI Pipeline Error] {traceback.format_exc()}")

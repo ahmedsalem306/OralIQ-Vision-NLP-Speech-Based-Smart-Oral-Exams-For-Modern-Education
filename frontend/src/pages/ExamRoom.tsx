@@ -333,7 +333,8 @@ export default function ExamRoom() {
             if (phase !== "recording") return;
 
             const now = performance.now();
-            const dt = (now - lastFrameTimeRef.current) / 1000;
+            // Cap delta — prevents preview idle time from inflating alerts on first frame
+            const dt = Math.min(Math.max((now - lastFrameTimeRef.current) / 1000, 0), 0.12);
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
                 accumulateDistraction("no_face", dt);
@@ -374,7 +375,7 @@ export default function ExamRoom() {
             const pV = smooth(bufPV, rawPV);
             const offV = smooth(bufOV, rawOffV);
 
-            if (gazeCenter.samples < 14 && hH > 0.42 && hH < 0.58 && hV > 0.85 && hV < 1.55) {
+            if (gazeCenter.samples < 10 && hH > 0.35 && hH < 0.65 && hV > 0.70 && hV < 1.85) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
                 gazeCenter.offV = ((gazeCenter.offV * gazeCenter.samples) + offV) / (gazeCenter.samples + 1);
@@ -384,27 +385,25 @@ export default function ExamRoom() {
             const relH = pH - gazeCenter.h;
             const relV = pV - gazeCenter.v;
             const relOffV = offV - gazeCenter.offV;
-            const calibrated = gazeCenter.samples >= 6;
 
-            const irisLeft  = calibrated ? relH > 0.075 : pH > 0.58;
-            const irisRight = calibrated ? relH < -0.075 : pH < 0.42;
-            // Vertical: eyelid ratio + iris offset from eye center (eyes move less vertically than horizontally)
-            const irisDown = calibrated
-                ? (relV > 0.08 || relOffV > 0.14)
-                : (pV > 0.58 || offV > 0.18);
-            const irisUp = calibrated
-                ? (relV < -0.08 || relOffV < -0.14)
-                : (pV < 0.42 || offV < -0.18);
+            // Gaze alerts only after neutral baseline (~0.5s) — prevents false flags at recording start
+            if (gazeCenter.samples >= 10) {
+                const irisLeft  = relH > 0.10;
+                const irisRight = relH < -0.10;
+                // Vertical: both signals must agree (reading on-screen often looks "down")
+                const irisDown = relV > 0.14 && relOffV > 0.12;
+                const irisUp   = relV < -0.14 && relOffV < -0.12;
 
-            const gazeLeft  = irisLeft  || hH < 0.34;
-            const gazeRight = irisRight || hH > 0.66;
-            const gazeDown  = irisDown  || hV > 2.05 || (hV > 1.65 && (pV > 0.52 || offV > 0.10));
-            const gazeUp    = irisUp    || hV < 0.45 || (hV < 0.75 && (pV < 0.48 || offV < -0.10));
+                const gazeLeft  = irisLeft  || hH < 0.30;
+                const gazeRight = irisRight || hH > 0.70;
+                const gazeDown  = irisDown  || hV > 2.25;
+                const gazeUp    = irisUp    || hV < 0.35;
 
-            if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
-            else if (gazeRight) accumulateDistraction("gaze_right", dt);
-            if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
-            else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+                if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
+                else if (gazeRight) accumulateDistraction("gaze_right", dt);
+                if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
+                else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+            }
 
             const canvas = canvasRef.current;
             if (canvas) {
@@ -612,6 +611,11 @@ export default function ExamRoom() {
         rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
         rec.start(100);
         recorderRef.current = rec;
+        // Fresh timers — preview wait must not count as gaze/violation time
+        antiCheatAlertsRef.current = {};
+        faceScoresRef.current = [];
+        lastFrameTimeRef.current = performance.now();
+        lastAlertTimeRef.current = 0;
         setPhase("recording");
         phaseRef.current = "recording";
     }, [stream]);
@@ -651,18 +655,28 @@ export default function ExamRoom() {
             setPhase("failed");
             return;
         }
+        const finishedAt = new Date().toISOString();
+        const recSec = Math.max(
+            1,
+            (new Date(finishedAt).getTime() - new Date(startedAtRef.current).getTime()) / 1000
+        );
+        const clampedAlerts: Record<string, number> = {};
+        for (const [k, v] of Object.entries(antiCheatAlertsRef.current)) {
+            clampedAlerts[k] = Math.min(v, recSec);
+        }
+
         const fd = new FormData();
         fd.append("question_id", String(question.id));
         fd.append("student_name", studentName);
         fd.append("student_number", studentId);
         fd.append("audio", blob, "answer.webm");
-        fd.append("anti_cheat_alerts", JSON.stringify(antiCheatAlertsRef.current));
+        fd.append("anti_cheat_alerts", JSON.stringify(clampedAlerts));
         if (faceScoresRef.current.length > 0) {
             const aggregated = aggregateFaceScores(faceScoresRef.current);
             fd.append("face_score", String(Math.round(aggregated * 10) / 10));
         }
         fd.append("started_at", startedAtRef.current);
-        fd.append("finished_at", new Date().toISOString());
+        fd.append("finished_at", finishedAt);
 
         try {
             const res = await api.post("/exams/submit", fd, {
