@@ -277,8 +277,8 @@ export default function ExamRoom() {
         // delayed for pupil movement and can report a stale direction.
         const SMOOTH_N = 3;
         const bufHH: number[] = [], bufHV: number[] = [];
-        const bufPH: number[] = [], bufPV: number[] = [];
-        const gazeCenter = { samples: 0, h: 0.5, v: 0.5 };
+        const bufPH: number[] = [], bufPV: number[] = [], bufEyeV: number[] = [];
+        const gazeCenter = { samples: 0, h: 0.5, v: 0.5, eyeV: 0 };
         let downHold = 0;
         let noFaceHold = 0;
         const smooth = (buf: number[], val: number) => {
@@ -368,24 +368,45 @@ export default function ExamRoom() {
                 normalizeBetween(liris.y, lTop.y, lBot.y) +
                 normalizeBetween(riris.y, rTop.y, rBot.y)
             ) / 2;
+            // Vertical pupil offset relative to eye corners. Corners stay much
+            // more stable than eyelids, which move with the pupil up/down.
+            const eyeVerticalOffset = (
+                iris: { x: number; y: number },
+                outer: { x: number; y: number },
+                inner: { x: number; y: number },
+            ) => {
+                const centerY = (outer.y + inner.y) / 2;
+                const eyeWidth = Math.max(
+                    Math.hypot(inner.x - outer.x, inner.y - outer.y),
+                    1e-6,
+                );
+                return (iris.y - centerY) / eyeWidth;
+            };
+            const rawEyeV = (
+                eyeVerticalOffset(liris, lOuter, lInner) +
+                eyeVerticalOffset(riris, rOuter, rInner)
+            ) / 2;
             const hH = smooth(bufHH, rawHH);
             const hV = smooth(bufHV, rawHV);
             const pH = smooth(bufPH, rawPH);
             const pV = smooth(bufPV, rawPV);
+            const eyeV = smooth(bufEyeV, rawEyeV);
             // Very short neutral calibration (~8 processed frames, typically <0.5s).
             if (gazeCenter.samples < 8) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
+                gazeCenter.eyeV = ((gazeCenter.eyeV * gazeCenter.samples) + eyeV) / (gazeCenter.samples + 1);
                 gazeCenter.samples += 1;
             } else if (isRecording) {
                 const relH = pH - gazeCenter.h;
                 const relV = pV - gazeCenter.v;
+                const relEyeV = eyeV - gazeCenter.eyeV;
 
                 // Right/left/up are immediate. Full head turns are also detected.
                 const lookLeft = relH > 0.11 || hH < 0.30;
                 const lookRight = relH < -0.11 || hH > 0.70;
-                const lookUp = relV < -0.13 || hV < 0.38;
-                const lookDown = relV > 0.15 || hV > 2.35;
+                const lookUp = relEyeV < -0.025 || relV < -0.07 || hV < 0.38;
+                const lookDown = relEyeV > 0.035 || relV > 0.09 || hV > 2.35;
 
                 if (lookLeft) accumulateDistraction("gaze_left", dt);
                 else if (lookRight) accumulateDistraction("gaze_right", dt);
@@ -406,6 +427,7 @@ export default function ExamRoom() {
                 if (!lookLeft && !lookRight && !lookUp && !lookDown) {
                     gazeCenter.h = gazeCenter.h * 0.995 + pH * 0.005;
                     gazeCenter.v = gazeCenter.v * 0.995 + pV * 0.005;
+                    gazeCenter.eyeV = gazeCenter.eyeV * 0.995 + eyeV * 0.005;
                 }
             }
 
