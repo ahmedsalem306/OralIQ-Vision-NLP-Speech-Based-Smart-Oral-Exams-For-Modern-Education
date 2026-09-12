@@ -217,12 +217,11 @@ async def submit_exam(
         
         # 🛡️ FAIL-FAST RULES:
         # 1. If you failed the content (NLP < 50), you cannot pass overall.
-        # 2. 🚨 CHEATING PENALTY: If facial_score is very low (e.g. < 85), apply a massive penalty
-        #    so they don't get a high grade just for answering correctly while cheating.
+        # 2. Integrity is supporting evidence. Penalize only severe sustained events;
+        #    moderate gaze alerts remain visible for lecturer review.
         
-        if facial_score < 85: # Suspicious behavior detected
-            # For every 1% below 85%, deduct 1.5% from the final grade
-            penalty = (85 - facial_score) * 1.5
+        if facial_score < 60:  # severe integrity event(s), not ordinary glances
+            penalty = (60 - facial_score) * 0.75
             raw_overall -= penalty
             
         if nlp_score < 50 or raw_overall < 50:

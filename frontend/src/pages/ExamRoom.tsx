@@ -462,6 +462,10 @@ export default function ExamRoom() {
         let cancelled = false;
         let faceBusy = false;
         let gazeBusy = false;
+        const gazeCalibration: { pitch: number[]; yaw: number[] } = { pitch: [], yaw: [] };
+        let gazeCandidate = "center";
+        let gazeCandidateCount = 0;
+        let lastGazeAt = performance.now();
 
         const checkFace = async () => {
             if (cancelled || faceBusy || !hasServerFaceRef.current) return;
@@ -498,15 +502,52 @@ export default function ExamRoom() {
                     timeout: 30_000,
                 });
                 if (data?.no_face || data?.direction === "no_face") {
-                    accumulateDistraction("no_face", 1.0);
-                } else if (data?.direction === "left") {
-                    accumulateDistraction("gaze_left", 1.0);
-                } else if (data?.direction === "right") {
-                    accumulateDistraction("gaze_right", 1.0);
-                } else if (data?.direction === "up") {
-                    accumulateDistraction("gaze_up", 1.0);
-                } else if (data?.direction === "down") {
-                    accumulateDistraction("gaze_down", 1.0);
+                    accumulateDistraction("no_face", 0.8);
+                    return;
+                }
+
+                const pitch = Number(data?.pitch);
+                const yaw = Number(data?.yaw);
+                if (!Number.isFinite(pitch) || !Number.isFinite(yaw)) return;
+
+                // First valid samples establish this student's neutral gaze/device angle.
+                // No alerts are emitted during calibration.
+                if (gazeCalibration.pitch.length < 4) {
+                    gazeCalibration.pitch.push(pitch);
+                    gazeCalibration.yaw.push(yaw);
+                    return;
+                }
+
+                const median = (values: number[]) => {
+                    const sorted = [...values].sort((a, b) => a - b);
+                    return (sorted[1] + sorted[2]) / 2;
+                };
+                const relPitch = pitch - median(gazeCalibration.pitch);
+                const relYaw = yaw - median(gazeCalibration.yaw);
+
+                // MobileGaze official convention: +pitch=up, +yaw=left.
+                // Use a dead-zone larger than model MAE and require 2 consecutive samples.
+                let direction = "center";
+                const verticalStrength = Math.abs(relPitch) / 14;
+                const horizontalStrength = Math.abs(relYaw) / 16;
+                if (verticalStrength >= horizontalStrength && Math.abs(relPitch) >= 14) {
+                    direction = relPitch > 0 ? "up" : "down";
+                } else if (Math.abs(relYaw) >= 16) {
+                    direction = relYaw > 0 ? "left" : "right";
+                }
+
+                if (direction === gazeCandidate) {
+                    gazeCandidateCount += 1;
+                } else {
+                    gazeCandidate = direction;
+                    gazeCandidateCount = 1;
+                }
+
+                const now = performance.now();
+                const sampleSeconds = Math.min(Math.max((now - lastGazeAt) / 1000, 0.3), 1.5);
+                lastGazeAt = now;
+                if (direction !== "center" && gazeCandidateCount >= 2) {
+                    accumulateDistraction(`gaze_${direction}`, sampleSeconds);
                 }
             } catch { /* transient */ }
             finally { gazeBusy = false; }
@@ -515,7 +556,7 @@ export default function ExamRoom() {
         // Warm models then poll (gaze more frequent than face ID)
         checkGaze();
         checkFace();
-        const gazeIv = setInterval(checkGaze, 1500);
+        const gazeIv = setInterval(checkGaze, 900);
         const faceIv = setInterval(checkFace, 4000);
         return () => {
             cancelled = true;

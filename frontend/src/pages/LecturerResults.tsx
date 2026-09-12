@@ -15,6 +15,7 @@ interface ExamSubmission {
     speech_score: number | null;
     facial_score: number | null;
     voice_score: number | null;
+    face_score: number | null;
     overall_score: number | null;
     cheat_report?: string;
     fluency_report?: string;
@@ -226,7 +227,7 @@ export default function LecturerResults() {
                                                 </td>
                                                 <td style={{ padding: "1rem 1.5rem" }}>
                                                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: (r.facial_score !== null && r.facial_score < 85 && (r.nlp_score || 0) >= 50) ? "#e0e0e0" : (r.overall_score || 0) >= 80 ? "#e0e0e0" : (r.overall_score || 0) >= 60 ? "#ffffff" : "#ff4d4d" }}>
-                                                        {(r.facial_score !== null && r.facial_score < 85 && (r.nlp_score || 0) >= 50) ? "إجابة صحيحة ولكن غاشش" : (r.overall_score || 0) >= 80 ? "Excellent" : (r.overall_score || 0) >= 60 ? "Good" : "Needs Work"}
+                                                        {(r.facial_score !== null && r.facial_score < 75 && (r.nlp_score || 0) >= 50) ? "تحتاج مراجعة نزاهة" : (r.overall_score || 0) >= 80 ? "Excellent" : (r.overall_score || 0) >= 60 ? "Good" : "Needs Work"}
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: "1rem 1.5rem" }}>
@@ -295,11 +296,11 @@ export default function LecturerResults() {
                                                                 {/* Voice Identity Verification */}
                                                                 <div style={{
                                                                     background: r.voice_score !== null && r.voice_score !== undefined
-                                                                        ? (r.voice_score >= 68 ? "rgba(74,222,128,0.04)" : "rgba(255,77,77,0.04)")
+                                                                        ? (r.voice_score >= 52 ? "rgba(74,222,128,0.04)" : "rgba(255,77,77,0.04)")
                                                                         : "rgba(255,255,255,0.03)",
                                                                     border: `1px solid ${
                                                                         r.voice_score !== null && r.voice_score !== undefined
-                                                                            ? (r.voice_score >= 68 ? "rgba(74,222,128,0.2)" : "rgba(255,77,77,0.2)")
+                                                                            ? (r.voice_score >= 52 ? "rgba(74,222,128,0.2)" : "rgba(255,77,77,0.2)")
                                                                             : "rgba(255,255,255,0.08)"
                                                                     }`,
                                                                     borderRadius: "1rem", padding: "1.25rem",
@@ -308,12 +309,12 @@ export default function LecturerResults() {
                                                                     <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                                                                         <Fingerprint size={16} color={
                                                                             r.voice_score !== null && r.voice_score !== undefined
-                                                                                ? (r.voice_score >= 68 ? "#4ade80" : "#ff4d4d")
+                                                                                ? (r.voice_score >= 52 ? "#4ade80" : "#ff4d4d")
                                                                                 : "#808080"
                                                                         } />
                                                                         <p style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em",
                                                                             color: r.voice_score !== null && r.voice_score !== undefined
-                                                                                ? (r.voice_score >= 68 ? "#4ade80" : "#ff4d4d")
+                                                                                ? (r.voice_score >= 52 ? "#4ade80" : "#ff4d4d")
                                                                                 : "#808080"
                                                                         }}>
                                                                             التحقق من الهوية الصوتية
@@ -324,20 +325,20 @@ export default function LecturerResults() {
                                                                             <div style={{
                                                                                 fontSize: "2rem", fontWeight: 900,
                                                                                 fontFamily: "'Antonio', sans-serif",
-                                                                                color: r.voice_score >= 68 ? "#4ade80" : "#ff4d4d",
+                                                                                color: r.voice_score >= 52 ? "#4ade80" : "#ff4d4d",
                                                                             }}>
                                                                                 {r.voice_score.toFixed(1)}%
                                                                             </div>
                                                                             <div>
                                                                                 <p style={{
                                                                                     fontSize: "0.85rem", fontWeight: 700,
-                                                                                    color: r.voice_score >= 68 ? "#4ade80" : "#ff4d4d",
+                                                                                    color: r.voice_score >= 52 ? "#4ade80" : "#ff4d4d",
                                                                                     marginBottom: "0.15rem",
                                                                                 }}>
-                                                                                    {r.voice_score >= 68 ? "✅ صاحب الحساب الفعلي" : "🚨 الصوت لا يتطابق مع صاحب الحساب"}
+                                                                                    {r.voice_score >= 52 ? "✅ الصوت يطابق صاحب الحساب" : "🚨 الصوت لا يتطابق مع صاحب الحساب"}
                                                                                 </p>
                                                                                 <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)" }}>
-                                                                                    {r.voice_score >= 68
+                                                                                    {r.voice_score >= 52
                                                                                         ? "بصمة الصوت تتطابق مع المسجلة في الحساب"
                                                                                         : "الصوت المسجل في الامتحان مختلف عن البصمة المسجلة"}
                                                                                 </p>
@@ -346,6 +347,62 @@ export default function LecturerResults() {
                                                                     ) : (
                                                                         <p style={{ fontSize: "0.82rem", color: "#808080", direction: "rtl" }}>
                                                                             لم يتم التحقق — الطالب لم يسجل بصمة صوتية
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                                {/* Face Identity Verification (InsightFace ArcFace) */}
+                                                                <div style={{
+                                                                    background: r.face_score !== null && r.face_score !== undefined
+                                                                        ? (r.face_score >= 32 ? "rgba(74,222,128,0.04)" : "rgba(255,77,77,0.04)")
+                                                                        : "rgba(255,255,255,0.03)",
+                                                                    border: `1px solid ${
+                                                                        r.face_score !== null && r.face_score !== undefined
+                                                                            ? (r.face_score >= 32 ? "rgba(74,222,128,0.2)" : "rgba(255,77,77,0.2)")
+                                                                            : "rgba(255,255,255,0.08)"
+                                                                    }`,
+                                                                    borderRadius: "1rem", padding: "1.25rem",
+                                                                    display: "flex", flexDirection: "column", gap: "0.75rem",
+                                                                }}>
+                                                                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                                                                        <Fingerprint size={16} color={
+                                                                            r.face_score !== null && r.face_score !== undefined
+                                                                                ? (r.face_score >= 32 ? "#4ade80" : "#ff4d4d")
+                                                                                : "#808080"
+                                                                        } />
+                                                                        <p style={{
+                                                                            fontSize: "0.7rem", fontWeight: 800,
+                                                                            color: r.face_score !== null && r.face_score !== undefined
+                                                                                ? (r.face_score >= 32 ? "#4ade80" : "#ff4d4d")
+                                                                                : "#808080",
+                                                                        }}>
+                                                                            التحقق من هوية الوجه — InsightFace
+                                                                        </p>
+                                                                    </div>
+                                                                    {r.face_score !== null && r.face_score !== undefined ? (
+                                                                        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                                                                            <div style={{
+                                                                                fontSize: "2rem", fontWeight: 900,
+                                                                                color: r.face_score >= 32 ? "#4ade80" : "#ff4d4d",
+                                                                            }}>
+                                                                                {r.face_score.toFixed(1)}%
+                                                                            </div>
+                                                                            <div>
+                                                                                <p style={{
+                                                                                    fontSize: "0.85rem", fontWeight: 700,
+                                                                                    color: r.face_score >= 32 ? "#4ade80" : "#ff4d4d",
+                                                                                }}>
+                                                                                    {r.face_score >= 32
+                                                                                        ? "✅ نفس الشخص المسجل في بصمة الوجه"
+                                                                                        : "🚨 الوجه لا يطابق البصمة المسجلة"}
+                                                                                </p>
+                                                                                <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)" }}>
+                                                                                    نتيجة ArcFace مجمّعة من عدة لقطات أثناء الامتحان
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p style={{ fontSize: "0.82rem", color: "#808080", direction: "rtl" }}>
+                                                                            لم يتم التحقق — أعد تسجيل Face ID بالنظام الجديد
                                                                         </p>
                                                                     )}
                                                                 </div>

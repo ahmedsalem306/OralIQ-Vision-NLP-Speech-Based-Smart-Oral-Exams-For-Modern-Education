@@ -9,13 +9,14 @@ class FaceAnalyzer:
     """
 
     ALERT_WEIGHTS = {
-        "gaze_left": 5.0,
-        "gaze_right": 5.0,
-        "gaze_down": 4.0,
-        "gaze_up": 4.0,
+        # Gaze is supporting evidence, not proof of cheating.
+        "gaze_left": 1.0,
+        "gaze_right": 1.0,
+        "gaze_down": 1.0,
+        "gaze_up": 1.0,
         "head_turn_left": 6.0,
         "head_turn_right": 6.0,
-        "no_face": 5.0,
+        "no_face": 2.0,
         "multiple_people": 25.0,
         "phone_detected": 30.0,
         "book_detected": 25.0,
@@ -23,7 +24,7 @@ class FaceAnalyzer:
     }
 
     # Total weighted penalty above this → "cheating suspected"
-    CHEAT_THRESHOLD = 20
+    CHEAT_THRESHOLD = 25
 
     def calculate_cheat_score(self, alerts: Dict[str, float]) -> dict:
         """

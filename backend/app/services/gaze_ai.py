@@ -105,34 +105,27 @@ class GazeAIService:
 
     def _decode_angles(self, outputs: list) -> tuple[float, float]:
         """
-        MobileGaze / L2CS-style: often two heads (pitch, yaw) as classification bins
-        or direct regression. Handle both.
+        Decode exactly like yakhyo/gaze-estimation:
+        output[0] = yaw logits, output[1] = pitch logits,
+        90 bins × 4 degrees − 180 degrees.
+        Returns (pitch_degrees, yaw_degrees).
         """
-        outs = [np.array(o) for o in outputs]
+        if len(outputs) != 2:
+            raise RuntimeError(f"Expected 2 gaze outputs, got {len(outputs)}")
 
-        # Direct regression: two scalars or shape (1,2)
-        if len(outs) == 1:
-            o = outs[0].reshape(-1)
-            if o.size >= 2:
-                return float(o[0]), float(o[1])
+        yaw_logits = np.asarray(outputs[0], dtype=np.float32).reshape(1, -1)
+        pitch_logits = np.asarray(outputs[1], dtype=np.float32).reshape(1, -1)
+        if yaw_logits.shape[1] != 90 or pitch_logits.shape[1] != 90:
+            raise RuntimeError(
+                f"Expected 90 gaze bins, got yaw={yaw_logits.shape}, pitch={pitch_logits.shape}"
+            )
 
-        if len(outs) >= 2:
-            pitch_o = outs[0].reshape(-1)
-            yaw_o = outs[1].reshape(-1)
-            # Classification bins (L2CS): expected value over bin centers in degrees
-            if pitch_o.size > 2 and yaw_o.size > 2:
-                idx_p = np.arange(pitch_o.size, dtype=np.float32)
-                idx_y = np.arange(yaw_o.size, dtype=np.float32)
-                # Gaze360-style bin centers ≈ -90..90
-                centers_p = -90.0 + (180.0 / max(pitch_o.size - 1, 1)) * idx_p
-                centers_y = -90.0 + (180.0 / max(yaw_o.size - 1, 1)) * idx_y
-                sp = self._softmax(pitch_o[None, :])[0]
-                sy = self._softmax(yaw_o[None, :])[0]
-                return float(np.sum(sp * centers_p)), float(np.sum(sy * centers_y))
-            if pitch_o.size >= 1 and yaw_o.size >= 1:
-                return float(pitch_o[0]), float(yaw_o[0])
-
-        raise RuntimeError("Unexpected gaze model outputs")
+        bins = np.arange(90, dtype=np.float32)
+        yaw_probs = self._softmax(yaw_logits)
+        pitch_probs = self._softmax(pitch_logits)
+        yaw_deg = float(np.sum(yaw_probs[0] * bins) * 4.0 - 180.0)
+        pitch_deg = float(np.sum(pitch_probs[0] * bins) * 4.0 - 180.0)
+        return pitch_deg, yaw_deg
 
     def analyze_face_crop(self, face_bgr: np.ndarray) -> dict:
         self._ensure_session()
@@ -140,14 +133,15 @@ class GazeAIService:
         raw = self._session.run(None, {self._input_name: inp})
         pitch, yaw = self._decode_angles(raw)
 
-        # Thresholds in degrees — tuned for oral exam (ignore tiny glances)
-        # pitch+: looking down, pitch-: looking up (depends on model sign — we normalize below)
+        # Raw classification is useful for diagnostics. The browser calibrates these
+        # angles against each student's neutral pose before raising alerts.
         direction = "center"
-        # MobileGaze / Gaze360: typically pitch>0 = down, yaw>0 = left (camera view)
         abs_p, abs_y = abs(pitch), abs(yaw)
         if abs_p >= abs_y and abs_p > 12:
-            direction = "down" if pitch > 0 else "up"
+            # Official draw function uses dy=-sin(pitch): positive points upward.
+            direction = "up" if pitch > 0 else "down"
         elif abs_y > 14:
+            # Official draw function uses dx=-sin(yaw): positive points left.
             direction = "left" if yaw > 0 else "right"
 
         return {
