@@ -9,7 +9,7 @@ import Logo from "../components/Logo";
 
 import api from "../lib/api";
 import { useI18n } from "../i18n";
-import { captureFaceDescriptor, faceSimilarityPercent, isFaceMatch, aggregateFaceScores, loadFaceModels } from "../lib/faceBiometrics";
+import { captureFaceDescriptor, faceSimilarityPercent, aggregateFaceScores, loadFaceModels } from "../lib/faceBiometrics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -269,10 +269,13 @@ export default function ExamRoom() {
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
 
-        const SMOOTH_N = 2;
+        const SMOOTH_N = 4;
         const bufHH: number[] = [], bufHV: number[] = [];
         const bufPH: number[] = [], bufPV: number[] = [], bufOV: number[] = [];
         const gazeCenter = { samples: 0, h: 0.5, v: 0.5, offV: 0 };
+        // Require sustained look-away before counting — kills frame-to-frame noise
+        const gazeHold = { left: 0, right: 0, up: 0, down: 0 };
+        const HOLD_SEC = 1.0; // only count after ~1s continuous
         const smooth = (buf: number[], val: number) => {
             buf.push(val);
             if (buf.length > SMOOTH_N) buf.shift();
@@ -337,12 +340,11 @@ export default function ExamRoom() {
             const dt = Math.min(Math.max((now - lastFrameTimeRef.current) / 1000, 0), 0.12);
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                accumulateDistraction("no_face", dt);
+                // Brief blink / frame drop — only count sustained absence
+                gazeHold.left = gazeHold.right = gazeHold.up = gazeHold.down = 0;
+                if (dt >= 0.08) accumulateDistraction("no_face", dt * 0.5);
                 bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0; bufOV.length = 0;
-                gazeCenter.samples = 0;
-                gazeCenter.h = 0.5;
-                gazeCenter.v = 0.5;
-                gazeCenter.offV = 0;
+                // Keep calibration — don't wipe on every missed frame
                 const canvas = canvasRef.current;
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
@@ -375,34 +377,48 @@ export default function ExamRoom() {
             const pV = smooth(bufPV, rawPV);
             const offV = smooth(bufOV, rawOffV);
 
-            if (gazeCenter.samples < 10 && hH > 0.35 && hH < 0.65 && hV > 0.70 && hV < 1.85) {
+            if (gazeCenter.samples < 20 && hH > 0.32 && hH < 0.68 && hV > 0.55 && hV < 2.0) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
                 gazeCenter.offV = ((gazeCenter.offV * gazeCenter.samples) + offV) / (gazeCenter.samples + 1);
                 gazeCenter.samples += 1;
+            } else if (gazeCenter.samples >= 20) {
+                // Slow drift toward current forward pose (phone angle changes while answering)
+                const nearForward = Math.abs(pH - gazeCenter.h) < 0.12 && hH > 0.35 && hH < 0.65;
+                if (nearForward) {
+                    gazeCenter.h = gazeCenter.h * 0.98 + pH * 0.02;
+                    gazeCenter.v = gazeCenter.v * 0.98 + pV * 0.02;
+                    gazeCenter.offV = gazeCenter.offV * 0.98 + offV * 0.02;
+                }
             }
 
             const relH = pH - gazeCenter.h;
-            const relV = pV - gazeCenter.v;
-            const relOffV = offV - gazeCenter.offV;
 
-            // Gaze alerts only after neutral baseline (~0.5s) — prevents false flags at recording start
-            if (gazeCenter.samples >= 10) {
-                const irisLeft  = relH > 0.10;
-                const irisRight = relH < -0.10;
-                // Vertical: both signals must agree (reading on-screen often looks "down")
-                const irisDown = relV > 0.14 && relOffV > 0.12;
-                const irisUp   = relV < -0.14 && relOffV < -0.12;
+            // Oral exams: question is ON SCREEN below the camera → iris "down" is NORMAL on phones.
+            // Only horizontal look-away + extreme head tilt count as integrity risks.
+            if (gazeCenter.samples >= 16) {
+                const irisLeft  = relH > 0.16;
+                const irisRight = relH < -0.16;
+                const headLeft  = hH < 0.26;
+                const headRight = hH > 0.74;
+                // Extreme head pitch only (chin to chest / head to ceiling) — NOT iris vertical
+                const headDown  = hV > 2.55;
+                const headUp    = hV < 0.28;
 
-                const gazeLeft  = irisLeft  || hH < 0.30;
-                const gazeRight = irisRight || hH > 0.70;
-                const gazeDown  = irisDown  || hV > 2.25;
-                const gazeUp    = irisUp    || hV < 0.35;
+                const left  = irisLeft || headLeft;
+                const right = irisRight || headRight;
+                const down  = headDown;
+                const up    = headUp;
 
-                if      (gazeLeft)  accumulateDistraction("gaze_left",  dt);
-                else if (gazeRight) accumulateDistraction("gaze_right", dt);
-                if      (gazeDown)  accumulateDistraction("gaze_down",  dt);
-                else if (gazeUp)    accumulateDistraction("gaze_up",    dt);
+                gazeHold.left  = left  ? gazeHold.left  + dt : 0;
+                gazeHold.right = right ? gazeHold.right + dt : 0;
+                gazeHold.down  = down  ? gazeHold.down  + dt : 0;
+                gazeHold.up    = up    ? gazeHold.up    + dt : 0;
+
+                if (gazeHold.left  >= HOLD_SEC) accumulateDistraction("gaze_left",  dt);
+                else if (gazeHold.right >= HOLD_SEC) accumulateDistraction("gaze_right", dt);
+                if (gazeHold.down  >= HOLD_SEC) accumulateDistraction("gaze_down",  dt);
+                else if (gazeHold.up >= HOLD_SEC) accumulateDistraction("gaze_up",    dt);
             }
 
             const canvas = canvasRef.current;
@@ -439,9 +455,9 @@ export default function ExamRoom() {
                         const neutralY = minY + gazeCenter.v * (maxY - minY);
                         const irisX = iris.x * W;
                         const irisY = iris.y * H;
-                        const activeH = Math.abs(irisX - neutralX) > (maxX - minX) * 0.075;
-                        const activeV = Math.abs(irisY - neutralY) > (maxY - minY) * 0.08;
-                        const active = activeH || activeV;
+                        const activeH = Math.abs(irisX - neutralX) > (maxX - minX) * 0.16;
+                        // Vertical iris ignored for UI alert color — expected when reading on-screen question
+                        const active = activeH;
 
                         ctx.strokeStyle = active ? "#ff4d5d" : "#4ade80";
                         ctx.lineWidth = 2.5;
@@ -528,9 +544,9 @@ export default function ExamRoom() {
 
                 const score = faceSimilarityPercent(desc, stored);
                 faceScoresRef.current.push(score);
-                // Only flag sustained low match on a visible face (not head movement alone)
-                if (!isFaceMatch(desc, stored) && score < 35) {
-                    accumulateDistraction("face_mismatch", 3);
+                // Only flag clear different-person (not lighting/angle noise)
+                if (score < 22) {
+                    accumulateDistraction("face_mismatch", 1);
                 }
             } catch { /* models still loading */ }
         };

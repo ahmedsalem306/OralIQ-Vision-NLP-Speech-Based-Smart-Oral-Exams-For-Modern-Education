@@ -3,7 +3,7 @@ import * as faceapi from "face-api.js";
 const MODEL_URL = "/face-models";
 // Enrollment: stricter. Exam: more tolerant (lighting, head angle while answering).
 const MATCH_THRESHOLD = 0.6;
-const EXAM_MATCH_THRESHOLD = 0.68;
+const EXAM_MATCH_THRESHOLD = 0.78; // oral answers: more head movement / talk motion
 const EMBEDDING_DIM = 128;
 
 let modelsLoaded = false;

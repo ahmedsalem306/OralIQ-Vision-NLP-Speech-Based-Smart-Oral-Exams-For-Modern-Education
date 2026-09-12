@@ -9,17 +9,17 @@ class FaceAnalyzer:
     """
 
     ALERT_WEIGHTS = {
-        "gaze_left": 5.0,
-        "gaze_right": 5.0,
-        "gaze_down": 2.0,
-        "gaze_up": 2.0,
+        "gaze_left": 4.0,
+        "gaze_right": 4.0,
+        "gaze_down": 1.0,   # rare — only extreme head pitch (reading screen is normal)
+        "gaze_up": 1.0,
         "head_turn_left": 6.0,
         "head_turn_right": 6.0,
-        "no_face": 6.0,
+        "no_face": 4.0,
         "multiple_people": 25.0,
         "phone_detected": 30.0,
         "book_detected": 25.0,
-        "face_mismatch": 12.0,
+        "face_mismatch": 8.0,
     }
 
     # Total weighted penalty above this → "cheating suspected"

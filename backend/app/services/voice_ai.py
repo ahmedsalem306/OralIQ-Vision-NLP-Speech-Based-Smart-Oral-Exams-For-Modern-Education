@@ -164,11 +164,11 @@ class VoiceBiometricsService:
         Returns similarity percentage (0-100), match boolean, and report string.
         
         Threshold is adjusted based on method:
-        - Resemblyzer: 0.75 (well-calibrated for speaker ID)
-        - MFCC fallback: 0.82 (needs higher threshold due to less discrimination)
+        - Resemblyzer (oral exam default): 0.55 — short answers + noise differ from enrollment phrases
+        - MFCC fallback: 0.70
         """
         if threshold is None:
-            threshold = 0.75 if self.use_resemblyzer else 0.82
+            threshold = 0.55 if self.use_resemblyzer else 0.70
         
         try:
             current_embedding = self.extract_embedding(audio_path)
@@ -201,8 +201,10 @@ class VoiceBiometricsService:
 
             if is_match:
                 report = f"Voice match confirmed ({score_percent}%)"
+            elif score_percent >= 48:
+                report = f"Voice likely same speaker ({score_percent}% — oral noise vs enrollment)"
             else:
-                report = f"⚠️ VOICE MISMATCH: Voice does not match enrolled voice ({score_percent}% < {threshold*100}%)"
+                report = f"⚠️ VOICE MISMATCH: Voice does not match enrolled voice ({score_percent}% < {threshold*100:.0f}%)"
 
             return {
                 "similarity_score": score_percent,
