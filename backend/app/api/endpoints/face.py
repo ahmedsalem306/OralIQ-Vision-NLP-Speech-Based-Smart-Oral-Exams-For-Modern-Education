@@ -118,7 +118,7 @@ async def verify_face_print(
     raw = await image.read()
     stored = json.loads(current_user.face_embedding)
     try:
-        result = face_biometrics_service.verify_image(stored, raw, threshold=0.32)
+        result = face_biometrics_service.verify_image(stored, raw, threshold=0.55)
     except ValueError as e:
         return {
             "ok": True,
@@ -131,6 +131,13 @@ async def verify_face_print(
     return {
         "ok": True,
         "is_match": bool(result["is_match"]),
+        "status": (
+            "verified"
+            if result["similarity_score"] >= 55
+            else "uncertain"
+            if result["similarity_score"] >= 45
+            else "mismatch"
+        ),
         "similarity_score": result["similarity_score"],
         "distance": result.get("distance"),
         "cosine": result.get("cosine"),

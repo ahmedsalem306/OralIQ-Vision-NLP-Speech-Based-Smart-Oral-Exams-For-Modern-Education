@@ -158,14 +158,10 @@ async def submit_exam(
                 if current_user.voice_embedding:
                     try:
                         stored_emb = json.loads(current_user.voice_embedding)
-                        # Oral answers are noisier than enrollment phrases
-                        voice_res = voice_service.verify_voice(tmp_path, stored_emb, threshold=0.52)
+                        # Security-first threshold. 60–75% remains uncertain,
+                        # never displayed as a confirmed speaker match.
+                        voice_res = voice_service.verify_voice(tmp_path, stored_emb, threshold=0.75)
                         voice_score = voice_res["similarity_score"]
-                        if voice_score < 45:
-                            cheat_report = (cheat_report or "") + f" | 🚨 {voice_res['report']}"
-                        elif voice_score < 52:
-                            # Soft note only — do not treat as cheating
-                            pass
                     except Exception as ve:
                         print(f"[Voice Verify Error] {ve}")
 
@@ -194,14 +190,22 @@ async def submit_exam(
         except (json.JSONDecodeError, Exception) as cheat_err:
             print(f"[Anti-cheat Error] {cheat_err}")
 
-        # 4) Face ID — cross-check with voice; browser face match is noisy during oral answers
+        # 4) Multi-factor identity: never confirm from one weak biometric.
+        face_verified = face_id_score is not None and face_id_score >= 55
+        voice_verified = voice_score is not None and voice_score >= 75
         if current_user.face_embedding and face_id_score is not None:
-            voice_ok = voice_score is not None and voice_score >= 48
-            if voice_ok or face_id_score >= 35:
-                pass  # identity supported by voice and/or face
-            elif face_id_score < 20 and (voice_score is None or voice_score < 40):
-                msg = f"⚠️ Identity mismatch: Face {face_id_score:.1f}%, voice {voice_score or 0:.1f}%"
-                cheat_report = (cheat_report + " | " + msg) if cheat_report else msg
+            if face_verified and voice_verified:
+                identity_msg = (
+                    f"✅ Identity verified: Face {face_id_score:.1f}% + Voice {voice_score:.1f}%"
+                )
+            else:
+                identity_msg = (
+                    f"🚨 IDENTITY NOT VERIFIED: Face {face_id_score:.1f}% "
+                    f"(required 55%) + Voice {(voice_score or 0):.1f}% (required 75%)"
+                )
+            cheat_report = (
+                (cheat_report + " | " + identity_msg) if cheat_report else identity_msg
+            )
 
     except Exception as e:
         print(f"[AI Pipeline Error] {traceback.format_exc()}")

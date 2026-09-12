@@ -66,6 +66,68 @@ function ScoreBadge({ score }: { score: number | null }) {
     );
 }
 
+function BiometricCard({
+    label,
+    score,
+    verifiedAt,
+    mismatchBelow,
+}: {
+    label: string;
+    score: number | null;
+    verifiedAt: number;
+    mismatchBelow: number;
+}) {
+    const state = score == null
+        ? "missing"
+        : score >= verifiedAt
+            ? "verified"
+            : score < mismatchBelow
+                ? "mismatch"
+                : "uncertain";
+    const color = state === "verified"
+        ? "#4ade80"
+        : state === "uncertain"
+            ? "#fbbf24"
+            : state === "mismatch"
+                ? "#ff4d4d"
+                : "#808080";
+    const text = state === "verified"
+        ? "✅ مطابق"
+        : state === "uncertain"
+            ? "⚠️ غير مؤكد — يحتاج مراجعة"
+            : state === "mismatch"
+                ? "🚨 غير مطابق"
+                : "لم تصل قراءة صالحة";
+
+    return (
+        <div style={{
+            background: `${color}0a`,
+            border: `1px solid ${color}33`,
+            borderRadius: "1rem",
+            padding: "1.25rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+        }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <Fingerprint size={16} color={color} />
+                <p style={{ fontSize: "0.7rem", fontWeight: 800, color }}>{label}</p>
+            </div>
+            {score != null && (
+                <div style={{ fontSize: "2rem", fontWeight: 900, color }}>
+                    {score.toFixed(1)}%
+                </div>
+            )}
+            <p style={{ fontSize: "0.85rem", fontWeight: 700, color }}>{text}</p>
+            {score != null && (
+                <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)" }}>
+                    التأكيد يتطلب {verifiedAt}% أو أكثر
+                </p>
+            )}
+        </div>
+    );
+}
+
 export default function LecturerResults() {
     const { t, dir } = useI18n();
     const [results, setResults] = useState<ExamSubmission[]>([]);
@@ -271,16 +333,22 @@ export default function LecturerResults() {
                                                                                 marginTop: "0.8rem",
                                                                                 paddingTop: "0.8rem",
                                                                                 borderTop: "1px solid rgba(255,255,255,0.1)",
-                                                                                color: r.face_score !== null && r.face_score !== undefined
-                                                                                    ? (r.face_score >= 32 ? "#4ade80" : "#ff4d4d")
+                                                                                color: r.face_score != null && r.voice_score != null
+                                                                                    ? (r.face_score >= 55 && r.voice_score >= 75
+                                                                                        ? "#4ade80"
+                                                                                        : (r.face_score < 45 || r.voice_score < 60)
+                                                                                            ? "#ff4d4d"
+                                                                                            : "#fbbf24")
                                                                                     : "#a0a0a0",
                                                                                 fontWeight: 800,
                                                                             }}>
-                                                                                {r.face_score !== null && r.face_score !== undefined
-                                                                                    ? (r.face_score >= 32
-                                                                                        ? `✅ Face ID: نفس الشخص المسجل (${r.face_score.toFixed(1)}%)`
-                                                                                        : `🚨 Face ID: الوجه غير مطابق (${r.face_score.toFixed(1)}%)`)
-                                                                                    : "Face ID: لم تصل قراءة صالحة أثناء الامتحان"}
+                                                                                {r.face_score != null && r.voice_score != null
+                                                                                    ? (r.face_score >= 55 && r.voice_score >= 75
+                                                                                        ? `✅ الهوية مؤكدة: الوجه ${r.face_score.toFixed(1)}% + الصوت ${r.voice_score.toFixed(1)}%`
+                                                                                        : (r.face_score < 45 || r.voice_score < 60)
+                                                                                            ? `🚨 الهوية غير مطابقة: الوجه ${r.face_score.toFixed(1)}% + الصوت ${r.voice_score.toFixed(1)}%`
+                                                                                            : `⚠️ الهوية غير مؤكدة — مراجعة مطلوبة: الوجه ${r.face_score.toFixed(1)}% + الصوت ${r.voice_score.toFixed(1)}%`)
+                                                                                    : "الهوية: لم تصل قراءات وجه وصوت مكتملة"}
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -308,119 +376,18 @@ export default function LecturerResults() {
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                {/* Voice Identity Verification */}
-                                                                <div style={{
-                                                                    background: r.voice_score !== null && r.voice_score !== undefined
-                                                                        ? (r.voice_score >= 52 ? "rgba(74,222,128,0.04)" : "rgba(255,77,77,0.04)")
-                                                                        : "rgba(255,255,255,0.03)",
-                                                                    border: `1px solid ${
-                                                                        r.voice_score !== null && r.voice_score !== undefined
-                                                                            ? (r.voice_score >= 52 ? "rgba(74,222,128,0.2)" : "rgba(255,77,77,0.2)")
-                                                                            : "rgba(255,255,255,0.08)"
-                                                                    }`,
-                                                                    borderRadius: "1rem", padding: "1.25rem",
-                                                                    display: "flex", flexDirection: "column", gap: "0.75rem",
-                                                                }}>
-                                                                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                                                                        <Fingerprint size={16} color={
-                                                                            r.voice_score !== null && r.voice_score !== undefined
-                                                                                ? (r.voice_score >= 52 ? "#4ade80" : "#ff4d4d")
-                                                                                : "#808080"
-                                                                        } />
-                                                                        <p style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em",
-                                                                            color: r.voice_score !== null && r.voice_score !== undefined
-                                                                                ? (r.voice_score >= 52 ? "#4ade80" : "#ff4d4d")
-                                                                                : "#808080"
-                                                                        }}>
-                                                                            التحقق من الهوية الصوتية
-                                                                        </p>
-                                                                    </div>
-                                                                    {r.voice_score !== null && r.voice_score !== undefined ? (
-                                                                        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                                                            <div style={{
-                                                                                fontSize: "2rem", fontWeight: 900,
-                                                                                fontFamily: "'Antonio', sans-serif",
-                                                                                color: r.voice_score >= 52 ? "#4ade80" : "#ff4d4d",
-                                                                            }}>
-                                                                                {r.voice_score.toFixed(1)}%
-                                                                            </div>
-                                                                            <div>
-                                                                                <p style={{
-                                                                                    fontSize: "0.85rem", fontWeight: 700,
-                                                                                    color: r.voice_score >= 52 ? "#4ade80" : "#ff4d4d",
-                                                                                    marginBottom: "0.15rem",
-                                                                                }}>
-                                                                                    {r.voice_score >= 52 ? "✅ الصوت يطابق صاحب الحساب" : "🚨 الصوت لا يتطابق مع صاحب الحساب"}
-                                                                                </p>
-                                                                                <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)" }}>
-                                                                                    {r.voice_score >= 52
-                                                                                        ? "بصمة الصوت تتطابق مع المسجلة في الحساب"
-                                                                                        : "الصوت المسجل في الامتحان مختلف عن البصمة المسجلة"}
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <p style={{ fontSize: "0.82rem", color: "#808080", direction: "rtl" }}>
-                                                                            لم يتم التحقق — الطالب لم يسجل بصمة صوتية
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                                {/* Face Identity Verification (InsightFace ArcFace) */}
-                                                                <div style={{
-                                                                    background: r.face_score !== null && r.face_score !== undefined
-                                                                        ? (r.face_score >= 32 ? "rgba(74,222,128,0.04)" : "rgba(255,77,77,0.04)")
-                                                                        : "rgba(255,255,255,0.03)",
-                                                                    border: `1px solid ${
-                                                                        r.face_score !== null && r.face_score !== undefined
-                                                                            ? (r.face_score >= 32 ? "rgba(74,222,128,0.2)" : "rgba(255,77,77,0.2)")
-                                                                            : "rgba(255,255,255,0.08)"
-                                                                    }`,
-                                                                    borderRadius: "1rem", padding: "1.25rem",
-                                                                    display: "flex", flexDirection: "column", gap: "0.75rem",
-                                                                }}>
-                                                                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                                                                        <Fingerprint size={16} color={
-                                                                            r.face_score !== null && r.face_score !== undefined
-                                                                                ? (r.face_score >= 32 ? "#4ade80" : "#ff4d4d")
-                                                                                : "#808080"
-                                                                        } />
-                                                                        <p style={{
-                                                                            fontSize: "0.7rem", fontWeight: 800,
-                                                                            color: r.face_score !== null && r.face_score !== undefined
-                                                                                ? (r.face_score >= 32 ? "#4ade80" : "#ff4d4d")
-                                                                                : "#808080",
-                                                                        }}>
-                                                                            التحقق من هوية الوجه — InsightFace
-                                                                        </p>
-                                                                    </div>
-                                                                    {r.face_score !== null && r.face_score !== undefined ? (
-                                                                        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                                                            <div style={{
-                                                                                fontSize: "2rem", fontWeight: 900,
-                                                                                color: r.face_score >= 32 ? "#4ade80" : "#ff4d4d",
-                                                                            }}>
-                                                                                {r.face_score.toFixed(1)}%
-                                                                            </div>
-                                                                            <div>
-                                                                                <p style={{
-                                                                                    fontSize: "0.85rem", fontWeight: 700,
-                                                                                    color: r.face_score >= 32 ? "#4ade80" : "#ff4d4d",
-                                                                                }}>
-                                                                                    {r.face_score >= 32
-                                                                                        ? "✅ نفس الشخص المسجل في بصمة الوجه"
-                                                                                        : "🚨 الوجه لا يطابق البصمة المسجلة"}
-                                                                                </p>
-                                                                                <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)" }}>
-                                                                                    نتيجة ArcFace مجمّعة من عدة لقطات أثناء الامتحان
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <p style={{ fontSize: "0.82rem", color: "#808080", direction: "rtl" }}>
-                                                                            لم يتم التحقق — أعد تسجيل Face ID بالنظام الجديد
-                                                                        </p>
-                                                                    )}
-                                                                </div>
+                                                                <BiometricCard
+                                                                    label="التحقق من الهوية الصوتية"
+                                                                    score={r.voice_score}
+                                                                    verifiedAt={75}
+                                                                    mismatchBelow={60}
+                                                                />
+                                                                <BiometricCard
+                                                                    label="التحقق من هوية الوجه — InsightFace"
+                                                                    score={r.face_score}
+                                                                    verifiedAt={55}
+                                                                    mismatchBelow={45}
+                                                                />
                                                             </div>
                                                         </td>
                                                     </motion.tr>

@@ -16,9 +16,10 @@ import numpy as np
 
 # ArcFace buffalo_* embedding size
 EMBEDDING_DIM = 512
-# Cosine similarity thresholds (ArcFace, L2-normalized)
-MATCH_THRESHOLD = 0.38
-EXAM_THRESHOLD = 0.32
+# Security-first ArcFace threshold. Scores below 0.55 are not accepted as the
+# enrolled identity; 0.45–0.55 is an explicit uncertain/manual-review band.
+MATCH_THRESHOLD = 0.55
+EXAM_THRESHOLD = 0.55
 
 
 class FaceBiometricsService:
@@ -163,8 +164,8 @@ class FaceBiometricsService:
 
         if is_match:
             report = f"Face ID match confirmed ({score:.1f}%)"
-        elif sim >= threshold - 0.06:
-            report = f"Face likely same person ({score:.1f}%)"
+        elif sim >= 0.45:
+            report = f"⚠️ Face identity uncertain — manual review required ({score:.1f}%)"
         else:
             report = f"⚠️ FACE MISMATCH: Face does not match enrolled Face ID ({score:.1f}%)"
 

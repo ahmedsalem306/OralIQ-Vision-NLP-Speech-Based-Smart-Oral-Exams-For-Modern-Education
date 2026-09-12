@@ -573,7 +573,9 @@ export default function ExamRoom() {
                 }
                 if (data?.no_face) {
                     accumulateDistraction("no_face", 1.2);
-                } else if (data?.similarity_score != null && data.similarity_score < 28) {
+                } else if (data?.status === "mismatch" || (
+                    data?.similarity_score != null && data.similarity_score < 45
+                )) {
                     accumulateDistraction("face_mismatch", 1.2);
                 }
             } catch { /* transient */ }
