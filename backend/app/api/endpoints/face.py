@@ -81,7 +81,9 @@ async def enroll_face_print(
     if len(embeddings) < 3:
         raise HTTPException(
             status_code=400,
-            detail=f"لم نلتقط وجهًا واضحًا بما يكفي ({len(embeddings)}/3). أعد المحاولة بإضاءة أفضل. {';errors[:2]}",
+            detail="Face not clear enough ({}/3). Improve lighting and try again. {}".format(
+                len(embeddings), errors[:2]
+            ),
         )
 
     avg = face_biometrics_service.average_embeddings(embeddings)
