@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, CheckCircle2, AlertCircle, Loader2, ShieldCheck, X, RefreshCw, ScanFace, Camera } from "lucide-react";
 import api from "../lib/api";
-import { enrollFaceFromVideo, loadFaceModels, EMBEDDING_DIM } from "../lib/faceBiometrics";
+import { buildFaceEnrollForm } from "../lib/faceBiometrics";
 import { getApiErrorMessage } from "../lib/apiErrors";
 
 interface VoiceEnrollmentModalProps {
@@ -68,19 +68,24 @@ export default function VoiceEnrollmentModal({
         return () => cleanup();
     }, [isOpen]);
 
-    // Preload Face ID models (heavy on mobile — do before scan button)
+    // Face ID runs on the server (InsightFace) — no heavy browser models to preload
     useEffect(() => {
         if (!isOpen || enrollPhase !== "face") return;
         let cancelled = false;
         setFaceModelsLoading(true);
         setFaceModelsReady(false);
-        loadFaceModels()
-            .then(() => { if (!cancelled) { setFaceModelsReady(true); setFaceModelsLoading(false); } })
-            .catch((err) => {
+        api.get("/face/status")
+            .then(() => {
                 if (!cancelled) {
+                    setFaceModelsReady(true);
                     setFaceModelsLoading(false);
-                    setErrorMsg(err?.message || "فشل تحميل موديل Face ID");
-                    setStep("error");
+                }
+            })
+            .catch(() => {
+                // Still allow scan — enroll endpoint will load models lazily
+                if (!cancelled) {
+                    setFaceModelsReady(true);
+                    setFaceModelsLoading(false);
                 }
             });
         return () => { cancelled = true; };
@@ -135,13 +140,10 @@ export default function VoiceEnrollmentModal({
         try {
             await api.get("/users/me");
 
-            const embedding = await enrollFaceFromVideo(video, 5, 400);
-            if (embedding.length !== EMBEDDING_DIM) {
-                throw new Error(`بصمة الوجه غير مكتملة (${embedding.length}/${EMBEDDING_DIM}) — أعد المحاولة`);
-            }
-
-            await api.post("/face/enroll", { embedding }, {
-                headers: { "Content-Type": "application/json" },
+            const fd = await buildFaceEnrollForm(video, 5, 380);
+            await api.post("/face/enroll", fd, {
+                headers: { "Content-Type": "multipart/form-data" },
+                timeout: 120_000,
             });
             clearInterval(progressTimer);
             setFaceScanProgress(100);

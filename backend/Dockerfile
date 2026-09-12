@@ -7,6 +7,9 @@ ENV WHISPER_MODEL=medium
 ENV ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ENV HF_HOME=/tmp/huggingface
 ENV TRANSFORMERS_CACHE=/tmp/huggingface/transformers
+ENV INSIGHTFACE_HOME=/data/insightface
+ENV INSIGHTFACE_MODEL=buffalo_sc
+ENV GAZE_MODEL_DIR=/data/gaze_models
 
 # Install system dependencies (ffmpeg is needed for Whisper)
 RUN apt-get update && apt-get install -y \

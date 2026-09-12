@@ -23,3 +23,6 @@ faster-whisper
 resemblyzer
 scipy
 webrtcvad
+onnxruntime
+insightface
+Pillow

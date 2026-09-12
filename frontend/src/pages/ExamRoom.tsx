@@ -9,8 +9,7 @@ import Logo from "../components/Logo";
 
 import api from "../lib/api";
 import { useI18n } from "../i18n";
-import { captureFaceDescriptor, faceSimilarityPercent, aggregateFaceScores, loadFaceModels } from "../lib/faceBiometrics";
-import { estimatePupilFromPixels, type PupilHit } from "../lib/pupilGaze";
+import { aggregateFaceScores, buildFaceVerifyForm, buildGazeForm } from "../lib/faceBiometrics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,8 +70,8 @@ export default function ExamRoom() {
     const faceMeshWarmRef = useRef<any>(null);
     const faceMeshWarmPromiseRef = useRef<Promise<void> | null>(null);
     const objectDetectorRef = useRef<any>(null);
-    const storedFaceEmbRef = useRef<number[] | null>(null);
     const faceScoresRef = useRef<number[]>([]);
+    const hasServerFaceRef = useRef(false);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -142,10 +141,7 @@ export default function ExamRoom() {
                         setPhase("voice_required");
                         return;
                     }
-                    loadFaceModels().catch(() => {});
-                    api.get("/face/descriptor")
-                        .then(r => { storedFaceEmbRef.current = r.data.embedding; })
-                        .catch(() => {});
+                    hasServerFaceRef.current = !!vr.data.has_faceprint;
                 } catch {
                     setPhase("voice_required");
                     return;
@@ -270,14 +266,10 @@ export default function ExamRoom() {
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
 
+        // Visual overlay only — gaze integrity scored by MobileGaze on the server
         const SMOOTH_N = 3;
-        const bufHH: number[] = [], bufHV: number[] = [];
         const bufPH: number[] = [], bufPV: number[] = [];
         const gazeCenter = { samples: 0, h: 0.5, v: 0.5 };
-        // Sustained look-away — like a human proctor ignoring blinks/glances
-        const gazeHold = { left: 0, right: 0, up: 0, down: 0 };
-        const HOLD_SEC = 0.7;
-        let framePixels: ImageData | null = null;
         const smooth = (buf: number[], val: number) => {
             buf.push(val);
             if (buf.length > SMOOTH_N) buf.shift();
@@ -305,7 +297,6 @@ export default function ExamRoom() {
             faceMeshWarmRef.current = faceMesh;
         }
 
-        // Phone/book detector — background only, NEVER blocks landmarks
         if (!objectDetectorRef.current) {
             (async () => {
                 try {
@@ -333,13 +324,9 @@ export default function ExamRoom() {
             if (phase !== "recording") return;
 
             const now = performance.now();
-            // Cap delta — prevents preview idle time from inflating alerts on first frame
             const dt = Math.min(Math.max((now - lastFrameTimeRef.current) / 1000, 0), 0.12);
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                gazeHold.left = gazeHold.right = gazeHold.up = gazeHold.down = 0;
-                if (dt >= 0.08) accumulateDistraction("no_face", dt * 0.5);
-                bufHH.length = 0; bufHV.length = 0; bufPH.length = 0; bufPV.length = 0;
                 const canvas = canvasRef.current;
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
@@ -349,96 +336,25 @@ export default function ExamRoom() {
             }
 
             const lm = results.multiFaceLandmarks[0];
-
-            const nose = lm[1], leftEye = lm[33], rightEye = lm[263], mouth = lm[14];
-            const rawHH = (nose.x - leftEye.x)  / Math.max(rightEye.x - leftEye.x,  1e-6);
-            const rawHV = (nose.y - leftEye.y)  / Math.max(mouth.y    - nose.y,      1e-6);
-
             const lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
             const rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
-            const lirisMp = lm[468], ririsMp = lm[473];
+            const liris = lm[468], riris = lm[473];
+            if (!liris || !riris) return;
 
-            // Pixel pupil (tracks real up/down) — fallback to MediaPipe iris
-            let pupilL: PupilHit | null = null;
-            let pupilR: PupilHit | null = null;
-            if (framePixels) {
-                pupilL = estimatePupilFromPixels(framePixels, lOuter, lInner, lTop, lBot);
-                pupilR = estimatePupilFromPixels(framePixels, rOuter, rInner, rTop, rBot);
-            }
-            if (!pupilL && lirisMp) {
-                pupilL = {
-                    h: normalizeBetween(lirisMp.x, lOuter.x, lInner.x),
-                    v: normalizeBetween(lirisMp.y, lTop.y, lBot.y),
-                    x: lirisMp.x,
-                    y: lirisMp.y,
-                };
-            }
-            if (!pupilR && ririsMp) {
-                pupilR = {
-                    h: normalizeBetween(ririsMp.x, rOuter.x, rInner.x),
-                    v: normalizeBetween(ririsMp.y, rTop.y, rBot.y),
-                    x: ririsMp.x,
-                    y: ririsMp.y,
-                };
-            }
-            if (!pupilL && !pupilR) return;
-
-            // Per-eye gaze relative to eye corners (nose↔temple) — not raw image X
-            const hParts: number[] = [];
-            const vParts: number[] = [];
-            if (pupilL) {
-                hParts.push(normalizeBetween(pupilL.x, lOuter.x, lInner.x));
-                vParts.push(normalizeBetween(pupilL.y, lTop.y, lBot.y));
-            }
-            if (pupilR) {
-                hParts.push(normalizeBetween(pupilR.x, rOuter.x, rInner.x));
-                vParts.push(normalizeBetween(pupilR.y, rTop.y, rBot.y));
-            }
-            const rawPH = hParts.reduce((a, b) => a + b, 0) / hParts.length;
-            const rawPV = vParts.reduce((a, b) => a + b, 0) / vParts.length;
-
-            const hH = smooth(bufHH, rawHH);
-            const hV = smooth(bufHV, rawHV);
+            const rawPH = (
+                normalizeBetween(liris.x, lOuter.x, lInner.x) +
+                normalizeBetween(riris.x, rOuter.x, rInner.x)
+            ) / 2;
+            const rawPV = (
+                normalizeBetween(liris.y, lTop.y, lBot.y) +
+                normalizeBetween(riris.y, rTop.y, rBot.y)
+            ) / 2;
             const pH = smooth(bufPH, rawPH);
             const pV = smooth(bufPV, rawPV);
-
-            // Calibrate while looking roughly forward (first ~1s)
-            if (gazeCenter.samples < 24 && hH > 0.32 && hH < 0.68 && hV > 0.55 && hV < 2.0) {
+            if (gazeCenter.samples < 20) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
                 gazeCenter.samples += 1;
-            } else if (gazeCenter.samples >= 24) {
-                const nearNeutral =
-                    Math.abs(pH - gazeCenter.h) < 0.08 &&
-                    Math.abs(pV - gazeCenter.v) < 0.08 &&
-                    hH > 0.36 && hH < 0.64;
-                if (nearNeutral) {
-                    gazeCenter.h = gazeCenter.h * 0.97 + pH * 0.03;
-                    gazeCenter.v = gazeCenter.v * 0.97 + pV * 0.03;
-                }
-            }
-
-            const relH = pH - gazeCenter.h;
-            const relV = pV - gazeCenter.v;
-
-            // Full 4-way gaze like a human proctor (after calibration)
-            if (gazeCenter.samples >= 18) {
-                // Horizontal: pixel pupil + head yaw
-                const lookLeft  = relH > 0.14 || hH < 0.28;
-                const lookRight = relH < -0.14 || hH > 0.72;
-                // Vertical: pupil Y (0=up). Dead zone for reading the on-screen question.
-                const lookUp   = relV < -0.16 || hV < 0.32;
-                const lookDown = relV > 0.18 || hV > 2.45;
-
-                gazeHold.left  = lookLeft  ? gazeHold.left  + dt : 0;
-                gazeHold.right = lookRight ? gazeHold.right + dt : 0;
-                gazeHold.up    = lookUp    ? gazeHold.up    + dt : 0;
-                gazeHold.down  = lookDown  ? gazeHold.down  + dt : 0;
-
-                if (gazeHold.left  >= HOLD_SEC) accumulateDistraction("gaze_left",  dt);
-                else if (gazeHold.right >= HOLD_SEC) accumulateDistraction("gaze_right", dt);
-                if (gazeHold.up    >= HOLD_SEC) accumulateDistraction("gaze_up",    dt);
-                else if (gazeHold.down >= HOLD_SEC) accumulateDistraction("gaze_down",  dt);
             }
 
             const canvas = canvasRef.current;
@@ -458,46 +374,36 @@ export default function ExamRoom() {
                     }
                     ctx.globalAlpha = 1;
 
-                    const drawEye = (
-                        pupil: PupilHit | null,
-                        outer: { x: number; y: number },
-                        inner: { x: number; y: number },
-                        top: { x: number; y: number },
-                        bot: { x: number; y: number },
-                    ) => {
-                        if (!pupil) return;
+                    [
+                        { iris: liris, outer: lOuter, inner: lInner, top: lTop, bot: lBot },
+                        { iris: riris, outer: rOuter, inner: rInner, top: rTop, bot: rBot },
+                    ].forEach(({ iris, outer, inner, top, bot }) => {
                         const minX = Math.min(outer.x, inner.x) * W;
                         const maxX = Math.max(outer.x, inner.x) * W;
                         const minY = Math.min(top.y, bot.y) * H;
                         const maxY = Math.max(top.y, bot.y) * H;
                         const neutralX = minX + gazeCenter.h * (maxX - minX);
                         const neutralY = minY + gazeCenter.v * (maxY - minY);
-                        const px = pupil.x * W;
-                        const py = pupil.y * H;
-                        const ph = normalizeBetween(pupil.x, outer.x, inner.x);
-                        const pv = normalizeBetween(pupil.y, top.y, bot.y);
-                        const activeH = Math.abs(ph - gazeCenter.h) > 0.14;
-                        const activeV = Math.abs(pv - gazeCenter.v) > 0.16;
-                        const active = activeH || activeV;
+                        const irisX = iris.x * W;
+                        const irisY = iris.y * H;
+                        const active =
+                            Math.abs(irisX - neutralX) > (maxX - minX) * 0.14 ||
+                            Math.abs(irisY - neutralY) > (maxY - minY) * 0.16;
 
                         ctx.strokeStyle = active ? "#ff4d5d" : "#4ade80";
                         ctx.lineWidth = 2.5;
                         ctx.beginPath();
                         ctx.moveTo(neutralX, neutralY);
-                        ctx.lineTo(px, py);
+                        ctx.lineTo(irisX, irisY);
                         ctx.stroke();
-
                         ctx.beginPath();
-                        ctx.arc(px, py, 6.5, 0, Math.PI * 2);
+                        ctx.arc(irisX, irisY, 6.5, 0, Math.PI * 2);
                         ctx.fillStyle = active ? "#ff4d5d" : "#ffffff";
                         ctx.fill();
                         ctx.strokeStyle = "#0a0a0a";
                         ctx.lineWidth = 1.5;
                         ctx.stroke();
-                    };
-
-                    drawEye(pupilL, lOuter, lInner, lTop, lBot);
-                    drawEye(pupilR, rOuter, rInner, rTop, rBot);
+                    });
                 }
             }
         });
@@ -508,19 +414,9 @@ export default function ExamRoom() {
                 const video = videoRef.current;
                 if (video && video.readyState >= 2) {
                     const now = performance.now();
-
                     procCanvas.width  = video.videoWidth  || 640;
                     procCanvas.height = video.videoHeight || 480;
-                    // Mild contrast helps dark pupil stand out for tracking
-                    procCtx.filter = "contrast(1.35) brightness(1.02)";
                     procCtx.drawImage(video, 0, 0);
-                    procCtx.filter = "none";
-                    try {
-                        framePixels = procCtx.getImageData(0, 0, procCanvas.width, procCanvas.height);
-                    } catch {
-                        framePixels = null;
-                    }
-
                     await faceMesh.send({ image: procCanvas });
 
                     if (phaseRef.current === "recording" && objectDetectorRef.current) {
@@ -558,32 +454,74 @@ export default function ExamRoom() {
         canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     }, [stream, phase]);
 
-    // Face ID verification during recording (every 3s)
+    // InsightFace verify + MobileGaze on server during recording
     useEffect(() => {
         if (phase !== "recording" || !stream) return;
 
         faceScoresRef.current = [];
+        let cancelled = false;
+        let faceBusy = false;
+        let gazeBusy = false;
+
         const checkFace = async () => {
+            if (cancelled || faceBusy || !hasServerFaceRef.current) return;
             const video = videoRef.current;
-            const stored = storedFaceEmbRef.current;
-            if (!video || !stored || video.readyState < 2) return;
-
+            if (!video || video.readyState < 2) return;
+            faceBusy = true;
             try {
-                const desc = await captureFaceDescriptor(video);
-                if (!desc) return; // no face in frame — gaze alerts handle looking away
-
-                const score = faceSimilarityPercent(desc, stored);
-                faceScoresRef.current.push(score);
-                // Only flag clear different-person (not lighting/angle noise)
-                if (score < 22) {
-                    accumulateDistraction("face_mismatch", 1);
+                const fd = await buildFaceVerifyForm(video);
+                const { data } = await api.post("/face/verify", fd, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    timeout: 45_000,
+                });
+                if (typeof data?.similarity_score === "number") {
+                    faceScoresRef.current.push(data.similarity_score);
                 }
-            } catch { /* models still loading */ }
+                if (data?.no_face) {
+                    accumulateDistraction("no_face", 1.2);
+                } else if (data?.similarity_score != null && data.similarity_score < 28) {
+                    accumulateDistraction("face_mismatch", 1.2);
+                }
+            } catch { /* transient */ }
+            finally { faceBusy = false; }
         };
 
+        const checkGaze = async () => {
+            if (cancelled || gazeBusy) return;
+            const video = videoRef.current;
+            if (!video || video.readyState < 2) return;
+            gazeBusy = true;
+            try {
+                const fd = await buildGazeForm(video);
+                const { data } = await api.post("/face/gaze", fd, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    timeout: 30_000,
+                });
+                if (data?.no_face || data?.direction === "no_face") {
+                    accumulateDistraction("no_face", 1.0);
+                } else if (data?.direction === "left") {
+                    accumulateDistraction("gaze_left", 1.0);
+                } else if (data?.direction === "right") {
+                    accumulateDistraction("gaze_right", 1.0);
+                } else if (data?.direction === "up") {
+                    accumulateDistraction("gaze_up", 1.0);
+                } else if (data?.direction === "down") {
+                    accumulateDistraction("gaze_down", 1.0);
+                }
+            } catch { /* transient */ }
+            finally { gazeBusy = false; }
+        };
+
+        // Warm models then poll (gaze more frequent than face ID)
+        checkGaze();
         checkFace();
-        const iv = setInterval(checkFace, 3000);
-        return () => clearInterval(iv);
+        const gazeIv = setInterval(checkGaze, 1500);
+        const faceIv = setInterval(checkFace, 4000);
+        return () => {
+            cancelled = true;
+            clearInterval(gazeIv);
+            clearInterval(faceIv);
+        };
     }, [phase, stream]);
 
     // ── START EXAM: info → preview ────────────────────────────────────────────

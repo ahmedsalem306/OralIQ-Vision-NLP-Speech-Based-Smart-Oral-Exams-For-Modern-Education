@@ -7,6 +7,7 @@ import numpy as np
 from app.api import deps
 from app.models.user import User
 from app.services.voice_ai import voice_service
+from app.services.face_biometrics import EMBEDDING_DIM as FACE_DIM
 
 router = APIRouter()
 
@@ -16,7 +17,13 @@ def _has_voiceprint(user: User) -> bool:
 
 
 def _has_faceprint(user: User) -> bool:
-    return bool(user.face_embedding and len(user.face_embedding) > 10)
+    if not user.face_embedding or len(user.face_embedding) < 10:
+        return False
+    try:
+        emb = json.loads(user.face_embedding)
+        return isinstance(emb, list) and len(emb) == FACE_DIM
+    except Exception:
+        return False
 
 
 def _can_enroll(user: User) -> bool:
@@ -45,7 +52,7 @@ def get_voice_status(
         "engine": status["engine"],
         "engine_ready": status["ready"],
         "embedding_dim": status["embedding_dim"],
-        "face_embedding_dim": 128,
+        "face_embedding_dim": FACE_DIM,
         "voice_locked": bool(current_user.voice_locked) if has_voice else False,
         "face_locked": bool(current_user.face_locked) if has_face else False,
         "voice_reenroll_allowed": bool(current_user.voice_reenroll_allowed),

@@ -1,99 +1,79 @@
-import * as faceapi from "face-api.js";
+/** Client helpers: capture frames → InsightFace / MobileGaze on the server (no browser face model). */
 
-const MODEL_URL = "/face-models";
-// Enrollment: stricter. Exam: more tolerant (lighting, head angle while answering).
-const MATCH_THRESHOLD = 0.6;
-const EXAM_MATCH_THRESHOLD = 0.78; // oral answers: more head movement / talk motion
-const EMBEDDING_DIM = 128;
+export const EMBEDDING_DIM = 512; // InsightFace ArcFace
 
-let modelsLoaded = false;
-let modelsLoading: Promise<void> | null = null;
-
-export async function loadFaceModels(): Promise<void> {
-    if (modelsLoaded) return;
-    if (modelsLoading) return modelsLoading;
-
-    modelsLoading = (async () => {
-        try {
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-            ]);
-            modelsLoaded = true;
-        } catch (e) {
-            modelsLoading = null;
-            throw new Error("فشل تحميل موديل Face ID — تأكد من الاتصال بالإنترنت وحاول مرة أخرى");
-        }
-    })();
-
-    return modelsLoading;
+function sleep(ms: number) {
+    return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function captureFaceDescriptor(
-    video: HTMLVideoElement
-): Promise<Float32Array | null> {
-    await loadFaceModels();
-    if (video.readyState < 2) return null;
+/** Grab a JPEG snapshot from a live video element */
+export async function captureVideoJpeg(
+    video: HTMLVideoElement,
+    quality = 0.72,
+    maxSide = 640,
+): Promise<Blob> {
+    if (video.readyState < 2) {
+        throw new Error("الكاميرا لسه مش جاهزة");
+    }
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    const scale = Math.min(1, maxSide / Math.max(vw, vh));
+    const w = Math.max(1, Math.round(vw * scale));
+    const h = Math.max(1, Math.round(vh * scale));
 
-    const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas unavailable");
+    ctx.drawImage(video, 0, 0, w, h);
 
-    return detection?.descriptor ?? null;
+    const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/jpeg", quality),
+    );
+    if (!blob) throw new Error("فشل التقاط صورة الوجه");
+    return blob;
 }
 
-/** Capture multiple frames and average — like iPhone Face ID enrollment */
-export async function enrollFaceFromVideo(
+/** Capture several frames for InsightFace enrollment (uploaded as multipart) */
+export async function buildFaceEnrollForm(
     video: HTMLVideoElement,
     samples = 5,
-    intervalMs = 400
-): Promise<number[]> {
-    const descriptors: Float32Array[] = [];
-
+    intervalMs = 380,
+): Promise<FormData> {
+    const fd = new FormData();
+    let ok = 0;
     for (let i = 0; i < samples; i++) {
-        await new Promise((r) => setTimeout(r, intervalMs));
-        const d = await captureFaceDescriptor(video);
-        if (d) descriptors.push(d);
+        await sleep(intervalMs);
+        try {
+            const blob = await captureVideoJpeg(video, 0.78, 720);
+            fd.append("images", blob, `face_${i}.jpg`);
+            ok += 1;
+        } catch {
+            /* skip bad frame */
+        }
     }
-
-    if (descriptors.length < 3) {
+    if (ok < 3) {
         throw new Error("لم نتمكن من قراءة وجهك — تأكد أن وجهك ظاهر في الكاميرا");
     }
-
-    const dim = descriptors[0].length;
-    const avg = new Float32Array(dim);
-    for (const d of descriptors) {
-        for (let i = 0; i < dim; i++) avg[i] += d[i];
-    }
-    for (let i = 0; i < dim; i++) avg[i] /= descriptors.length;
-
-    return Array.from(avg);
+    return fd;
 }
 
-export function faceDistance(a: number[] | Float32Array, b: number[] | Float32Array): number {
-    return faceapi.euclideanDistance(a, b);
+export async function buildFaceVerifyForm(video: HTMLVideoElement): Promise<FormData> {
+    const fd = new FormData();
+    const blob = await captureVideoJpeg(video, 0.7, 640);
+    fd.append("image", blob, "verify.jpg");
+    return fd;
 }
 
-export function faceSimilarityPercent(
-    a: number[] | Float32Array,
-    b: number[] | Float32Array,
-    threshold = EXAM_MATCH_THRESHOLD,
-): number {
-    const dist = faceDistance(a, b);
-    return Math.max(0, Math.min(100, (1 - dist / threshold) * 100));
+export async function buildGazeForm(video: HTMLVideoElement): Promise<FormData> {
+    const fd = new FormData();
+    const blob = await captureVideoJpeg(video, 0.65, 480);
+    fd.append("image", blob, "gaze.jpg");
+    return fd;
 }
 
-export function isFaceMatch(
-    a: number[] | Float32Array,
-    b: number[] | Float32Array,
-    threshold = EXAM_MATCH_THRESHOLD,
-): boolean {
-    return faceDistance(a, b) < threshold;
-}
-
-/** Drop worst frames (looking away / blur) — average the rest */
+/** Drop worst frames — average the rest (Face ID scores 0–100) */
 export function aggregateFaceScores(scores: number[]): number {
     if (scores.length === 0) return 0;
     if (scores.length === 1) return scores[0];
@@ -102,5 +82,3 @@ export function aggregateFaceScores(scores: number[]): number {
     const kept = sorted.slice(drop);
     return kept.reduce((a, b) => a + b, 0) / kept.length;
 }
-
-export { EMBEDDING_DIM, MATCH_THRESHOLD, EXAM_MATCH_THRESHOLD };

@@ -120,6 +120,21 @@ def _preload_models():
     except Exception as e:
         print(f"[Startup] VoiceEncoder pre-load failed (will retry on first request): {e}")
 
+    # 4. InsightFace (Face ID) + MobileGaze
+    try:
+        from app.services.face_biometrics import face_biometrics_service
+        face_biometrics_service._ensure_app()
+        print(f"[Startup] Face ID: {face_biometrics_service.get_status()}")
+    except Exception as e:
+        print(f"[Startup] InsightFace pre-load failed (will retry on first request): {e}")
+
+    try:
+        from app.services.gaze_ai import gaze_ai_service
+        gaze_ai_service._ensure_session()
+        print(f"[Startup] Gaze: {gaze_ai_service.get_status()}")
+    except Exception as e:
+        print(f"[Startup] MobileGaze pre-load failed (will retry on first request): {e}")
+
     print("=" * 50)
     print("[Startup] AI model pre-loading complete!")
     print("=" * 50 + "\n")
@@ -203,9 +218,12 @@ def health_check():
     from app.services.nlp_ai import nlp_analyzer
     from app.services.face_ai import face_analyzer
     from app.services.voice_ai import voice_service
-    from app.services.face_biometrics import EMBEDDING_DIM
+    from app.services.face_biometrics import EMBEDDING_DIM, face_biometrics_service
+    from app.services.gaze_ai import gaze_ai_service
 
     voice_status = voice_service.get_status()
+    face_status = face_biometrics_service.get_status()
+    gaze_status = gaze_ai_service.get_status()
     mig = ensure_migrations()
 
     return {
@@ -219,7 +237,8 @@ def health_check():
             "sbert": "ready" if nlp_analyzer.is_ready() else "not_loaded",
             "anti_cheat": "ready",
             "voice_biometrics": "ready" if voice_status["ready"] else voice_status["engine"],
-            "face_id": "ready",
+            "face_id": "ready" if face_status.get("ready") else ("error" if face_status.get("error") else "lazy"),
+            "gaze": "ready" if gaze_status.get("ready") else ("error" if gaze_status.get("error") else "lazy"),
         },
         "config": {
             "whisper_model": speech_analyzer.MODEL_SIZE,
@@ -227,6 +246,8 @@ def health_check():
             "voice_engine": voice_status["engine"],
             "voice_embedding_dim": voice_status["embedding_dim"],
             "face_embedding_dim": EMBEDDING_DIM,
+            "face_engine": face_status.get("engine"),
+            "gaze_engine": gaze_status.get("engine"),
         },
     }
 
