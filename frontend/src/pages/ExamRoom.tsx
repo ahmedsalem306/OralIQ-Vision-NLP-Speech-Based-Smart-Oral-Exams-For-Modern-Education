@@ -9,7 +9,7 @@ import Logo from "../components/Logo";
 
 import api from "../lib/api";
 import { useI18n } from "../i18n";
-import { aggregateFaceScores, buildFaceVerifyForm, buildGazeForm } from "../lib/faceBiometrics";
+import { aggregateFaceScores, buildFaceVerifyForm } from "../lib/faceBiometrics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,13 +66,14 @@ export default function ExamRoom() {
     const antiCheatAlertsRef = useRef<Record<string, number>>({});
     const lastFrameTimeRef = useRef<number>(performance.now());
     const lastAlertTimeRef = useRef<number>(0);
+    const lastAlertTypeRef = useRef<string>("");
+    const alertSequenceRef = useRef(0);
     const detectionGenRef = useRef(0);
     const faceMeshWarmRef = useRef<any>(null);
     const faceMeshWarmPromiseRef = useRef<Promise<void> | null>(null);
     const objectDetectorRef = useRef<any>(null);
     const faceScoresRef = useRef<number[]>([]);
     const hasServerFaceRef = useRef(false);
-    const faceBoxRef = useRef<number[] | null>(null);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -236,7 +237,8 @@ export default function ExamRoom() {
     const accumulateDistraction = (type: string, dt: number) => {
         antiCheatAlertsRef.current[type] = (antiCheatAlertsRef.current[type] || 0) + dt;
         const now = Date.now();
-        if (now - lastAlertTimeRef.current > 4000) {
+        // Show a new direction immediately; throttle only repeats of the same alert.
+        if (type !== lastAlertTypeRef.current || now - lastAlertTimeRef.current > 1500) {
             const labels: Record<string, string> = {
                 "gaze_left": "⚠️ نظرت لليسار",
                 "gaze_right": "⚠️ نظرت لليمين",
@@ -250,7 +252,11 @@ export default function ExamRoom() {
             };
             setLiveAlert(labels[type] || `⚠️ ${type}`);
             lastAlertTimeRef.current = now;
-            setTimeout(() => setLiveAlert(null), 3000);
+            lastAlertTypeRef.current = type;
+            const sequence = ++alertSequenceRef.current;
+            setTimeout(() => {
+                if (alertSequenceRef.current === sequence) setLiveAlert(null);
+            }, 1000);
         }
     };
 
@@ -267,10 +273,14 @@ export default function ExamRoom() {
         procCanvas.height = 480;
         const procCtx = procCanvas.getContext("2d")!;
 
-        // Visual overlay only — gaze integrity scored by MobileGaze on the server
+        // Real-time local gaze. MediaPipe runs every frame; server polling is too
+        // delayed for pupil movement and can report a stale direction.
         const SMOOTH_N = 3;
+        const bufHH: number[] = [], bufHV: number[] = [];
         const bufPH: number[] = [], bufPV: number[] = [];
         const gazeCenter = { samples: 0, h: 0.5, v: 0.5 };
+        let downHold = 0;
+        let noFaceHold = 0;
         const smooth = (buf: number[], val: number) => {
             buf.push(val);
             if (buf.length > SMOOTH_N) buf.shift();
@@ -321,31 +331,30 @@ export default function ExamRoom() {
         }
 
         faceMesh.onResults((results: any) => {
-            const phase = phaseRef.current;
-            if (phase !== "recording") return;
+            const currentPhase = phaseRef.current;
+            if (currentPhase !== "preview" && currentPhase !== "recording") return;
+            const isRecording = currentPhase === "recording";
 
             const now = performance.now();
             const dt = Math.min(Math.max((now - lastFrameTimeRef.current) / 1000, 0), 0.12);
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                faceBoxRef.current = null;
+                noFaceHold += dt;
+                if (isRecording && noFaceHold >= 0.8) accumulateDistraction("no_face", dt);
                 const canvas = canvasRef.current;
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
-            if (results.multiFaceLandmarks.length > 1) {
+            noFaceHold = 0;
+            if (isRecording && results.multiFaceLandmarks.length > 1) {
                 accumulateDistraction("multiple_people", dt);
             }
 
             const lm = results.multiFaceLandmarks[0];
-            const xs = lm.map((p: any) => p.x);
-            const ys = lm.map((p: any) => p.y);
-            faceBoxRef.current = [
-                Math.max(0, Math.min(...xs) - 0.04),
-                Math.max(0, Math.min(...ys) - 0.08),
-                Math.min(1, Math.max(...xs) + 0.04),
-                Math.min(1, Math.max(...ys) + 0.08),
-            ];
+            const nose = lm[1], mouth = lm[14];
+            const leftEye = lm[33], rightEye = lm[263];
+            const rawHH = (nose.x - leftEye.x) / Math.max(rightEye.x - leftEye.x, 1e-6);
+            const rawHV = (nose.y - leftEye.y) / Math.max(mouth.y - nose.y, 1e-6);
             const lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
             const rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
             const liris = lm[468], riris = lm[473];
@@ -359,16 +368,49 @@ export default function ExamRoom() {
                 normalizeBetween(liris.y, lTop.y, lBot.y) +
                 normalizeBetween(riris.y, rTop.y, rBot.y)
             ) / 2;
+            const hH = smooth(bufHH, rawHH);
+            const hV = smooth(bufHV, rawHV);
             const pH = smooth(bufPH, rawPH);
             const pV = smooth(bufPV, rawPV);
-            if (gazeCenter.samples < 20) {
+            // Very short neutral calibration (~8 processed frames, typically <0.5s).
+            if (gazeCenter.samples < 8) {
                 gazeCenter.h = ((gazeCenter.h * gazeCenter.samples) + pH) / (gazeCenter.samples + 1);
                 gazeCenter.v = ((gazeCenter.v * gazeCenter.samples) + pV) / (gazeCenter.samples + 1);
                 gazeCenter.samples += 1;
+            } else if (isRecording) {
+                const relH = pH - gazeCenter.h;
+                const relV = pV - gazeCenter.v;
+
+                // Right/left/up are immediate. Full head turns are also detected.
+                const lookLeft = relH > 0.11 || hH < 0.30;
+                const lookRight = relH < -0.11 || hH > 0.70;
+                const lookUp = relV < -0.13 || hV < 0.38;
+                const lookDown = relV > 0.15 || hV > 2.35;
+
+                if (lookLeft) accumulateDistraction("gaze_left", dt);
+                else if (lookRight) accumulateDistraction("gaze_right", dt);
+
+                if (lookUp) {
+                    downHold = 0;
+                    accumulateDistraction("gaze_up", dt);
+                } else if (lookDown) {
+                    // Down is delayed because the question/submit button are below
+                    // the camera on phones. A quick read/tap is not suspicious.
+                    downHold += dt;
+                    if (downHold >= 1.2) accumulateDistraction("gaze_down", dt);
+                } else {
+                    downHold = 0;
+                }
+
+                // Slowly absorb tiny phone-angle drift only while clearly centered.
+                if (!lookLeft && !lookRight && !lookUp && !lookDown) {
+                    gazeCenter.h = gazeCenter.h * 0.995 + pH * 0.005;
+                    gazeCenter.v = gazeCenter.v * 0.995 + pV * 0.005;
+                }
             }
 
             const canvas = canvasRef.current;
-            if (canvas) {
+            if (canvas && isRecording) {
                 const ctx = canvas.getContext("2d");
                 if (ctx) {
                     const W = canvas.width, H = canvas.height;
@@ -453,29 +495,24 @@ export default function ExamRoom() {
         requestAnimationFrame(runDetection);
     };
 
-    // Face tracking + monitoring only while recording
+    // Calibrate silently during preview; draw/monitor only while recording.
     useEffect(() => {
-        if (stream && phase === "recording") {
+        if (stream) {
             initFaceMesh();
             return;
         }
         detectionGenRef.current++;
         const canvas = canvasRef.current;
         canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
-    }, [stream, phase]);
+    }, [stream]);
 
-    // InsightFace verify + MobileGaze on server during recording
+    // InsightFace verification during recording. Gaze stays local for real-time response.
     useEffect(() => {
         if (phase !== "recording" || !stream) return;
 
         faceScoresRef.current = [];
         let cancelled = false;
         let faceBusy = false;
-        let gazeBusy = false;
-        const gazeCalibration: { pitch: number[]; yaw: number[] } = { pitch: [], yaw: [] };
-        let gazeCandidate = "center";
-        let gazeCandidateCount = 0;
-        let lastGazeAt = performance.now();
 
         const checkFace = async () => {
             if (cancelled || faceBusy || !hasServerFaceRef.current) return;
@@ -500,80 +537,10 @@ export default function ExamRoom() {
             finally { faceBusy = false; }
         };
 
-        const checkGaze = async () => {
-            if (cancelled || gazeBusy) return;
-            const video = videoRef.current;
-            if (!video || video.readyState < 2) return;
-            gazeBusy = true;
-            try {
-                const fd = await buildGazeForm(video, faceBoxRef.current);
-                const { data } = await api.post("/face/gaze", fd, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                    timeout: 30_000,
-                });
-                if (data?.no_face || data?.direction === "no_face") {
-                    accumulateDistraction("no_face", 0.8);
-                    return;
-                }
-
-                const pitch = Number(data?.pitch);
-                const yaw = Number(data?.yaw);
-                if (!Number.isFinite(pitch) || !Number.isFinite(yaw)) return;
-
-                // First valid samples establish this student's neutral gaze/device angle.
-                // No alerts are emitted during calibration.
-                if (gazeCalibration.pitch.length < 3) {
-                    gazeCalibration.pitch.push(pitch);
-                    gazeCalibration.yaw.push(yaw);
-                    return;
-                }
-
-                const median = (values: number[]) => {
-                    const sorted = [...values].sort((a, b) => a - b);
-                    const mid = Math.floor(sorted.length / 2);
-                    return sorted.length % 2
-                        ? sorted[mid]
-                        : (sorted[mid - 1] + sorted[mid]) / 2;
-                };
-                const relPitch = pitch - median(gazeCalibration.pitch);
-                const relYaw = yaw - median(gazeCalibration.yaw);
-
-                // MobileGaze official convention: +pitch=up, +yaw=left.
-                // Use a dead-zone larger than model MAE and require 2 consecutive samples.
-                let direction = "center";
-                const verticalStrength = Math.abs(relPitch) / 14;
-                const horizontalStrength = Math.abs(relYaw) / 16;
-                if (verticalStrength >= horizontalStrength && Math.abs(relPitch) >= 14) {
-                    direction = relPitch > 0 ? "up" : "down";
-                } else if (Math.abs(relYaw) >= 16) {
-                    direction = relYaw > 0 ? "left" : "right";
-                }
-
-                if (direction === gazeCandidate) {
-                    gazeCandidateCount += 1;
-                } else {
-                    gazeCandidate = direction;
-                    gazeCandidateCount = 1;
-                }
-
-                const now = performance.now();
-                const sampleSeconds = Math.min(Math.max((now - lastGazeAt) / 1000, 0.3), 1.5);
-                lastGazeAt = now;
-                if (direction !== "center" && gazeCandidateCount >= 2) {
-                    accumulateDistraction(`gaze_${direction}`, sampleSeconds);
-                }
-            } catch { /* transient */ }
-            finally { gazeBusy = false; }
-        };
-
-        // Warm models then poll (gaze more frequent than face ID)
-        checkGaze();
         checkFace();
-        const gazeIv = setInterval(checkGaze, 600);
         const faceIv = setInterval(checkFace, 4000);
         return () => {
             cancelled = true;
-            clearInterval(gazeIv);
             clearInterval(faceIv);
         };
     }, [phase, stream]);
@@ -654,6 +621,7 @@ export default function ExamRoom() {
         faceScoresRef.current = [];
         lastFrameTimeRef.current = performance.now();
         lastAlertTimeRef.current = 0;
+        lastAlertTypeRef.current = "";
         setPhase("recording");
         phaseRef.current = "recording";
     }, [stream]);
