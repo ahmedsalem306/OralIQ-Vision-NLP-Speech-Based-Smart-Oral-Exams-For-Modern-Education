@@ -145,11 +145,20 @@ async def analyze_gaze(
     *,
     current_user: User = Depends(deps.get_current_user),
     image: UploadFile = File(...),
+    bbox: Optional[str] = Form(None),
 ) -> Any:
     """MobileGaze ONNX — pitch/yaw + direction for proctoring."""
     raw = await image.read()
     try:
-        result = gaze_ai_service.analyze_image_bytes(raw)
+        normalized_box = None
+        if bbox:
+            parsed = json.loads(bbox)
+            if isinstance(parsed, list) and len(parsed) == 4:
+                normalized_box = [float(v) for v in parsed]
+        result = gaze_ai_service.analyze_image_bytes(
+            raw,
+            normalized_face_bbox=normalized_box,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gaze failed: {e}")
     return {"ok": True, **result, "engine": "mobilegaze"}

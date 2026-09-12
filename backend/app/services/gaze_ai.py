@@ -151,14 +151,27 @@ class GazeAIService:
             "looking_away": direction != "center",
         }
 
-    def analyze_image_bytes(self, image_bytes: bytes, face_bbox: list[float] | None = None) -> dict:
+    def analyze_image_bytes(
+        self,
+        image_bytes: bytes,
+        face_bbox: list[float] | None = None,
+        normalized_face_bbox: list[float] | None = None,
+    ) -> dict:
         arr = np.frombuffer(image_bytes, dtype=np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         if img is None:
             raise ValueError("تعذّر قراءة الصورة للـ gaze")
 
         h, w = img.shape[:2]
-        if face_bbox and len(face_bbox) >= 4:
+        if normalized_face_bbox and len(normalized_face_bbox) >= 4:
+            nx1, ny1, nx2, ny2 = normalized_face_bbox[:4]
+            x1, y1, x2, y2 = (
+                int(nx1 * w),
+                int(ny1 * h),
+                int(nx2 * w),
+                int(ny2 * h),
+            )
+        elif face_bbox and len(face_bbox) >= 4:
             x1, y1, x2, y2 = [int(v) for v in face_bbox[:4]]
         else:
             # Try InsightFace detector for a tight face crop

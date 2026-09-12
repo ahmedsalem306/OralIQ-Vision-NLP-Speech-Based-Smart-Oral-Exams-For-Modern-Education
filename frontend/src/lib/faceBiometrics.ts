@@ -66,10 +66,16 @@ export async function buildFaceVerifyForm(video: HTMLVideoElement): Promise<Form
     return fd;
 }
 
-export async function buildGazeForm(video: HTMLVideoElement): Promise<FormData> {
+export async function buildGazeForm(
+    video: HTMLVideoElement,
+    normalizedFaceBox?: number[] | null,
+): Promise<FormData> {
     const fd = new FormData();
     const blob = await captureVideoJpeg(video, 0.65, 480);
     fd.append("image", blob, "gaze.jpg");
+    if (normalizedFaceBox?.length === 4) {
+        fd.append("bbox", JSON.stringify(normalizedFaceBox));
+    }
     return fd;
 }
 

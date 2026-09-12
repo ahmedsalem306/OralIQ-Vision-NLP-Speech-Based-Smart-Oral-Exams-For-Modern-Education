@@ -266,7 +266,22 @@ export default function LecturerResults() {
                                                                     <div>
                                                                         <p style={{ fontSize: "0.7rem", fontWeight: 800, color: "#ff4d4d", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>{t("exam.integrity")}</p>
                                                                         <div style={{ background: "rgba(255,77,109,0.05)", border: "1px solid rgba(255,77,109,0.2)", borderRadius: "1rem", padding: "1.25rem", color: "#ff4d4d", fontSize: "0.9rem", lineHeight: 1.6, direction: "rtl" }}>
-                                                                            {r.cheat_report}
+                                                                            <div>{r.cheat_report || "لم تُرصد مخالفات مؤثرة"}</div>
+                                                                            <div style={{
+                                                                                marginTop: "0.8rem",
+                                                                                paddingTop: "0.8rem",
+                                                                                borderTop: "1px solid rgba(255,255,255,0.1)",
+                                                                                color: r.face_score !== null && r.face_score !== undefined
+                                                                                    ? (r.face_score >= 32 ? "#4ade80" : "#ff4d4d")
+                                                                                    : "#a0a0a0",
+                                                                                fontWeight: 800,
+                                                                            }}>
+                                                                                {r.face_score !== null && r.face_score !== undefined
+                                                                                    ? (r.face_score >= 32
+                                                                                        ? `✅ Face ID: نفس الشخص المسجل (${r.face_score.toFixed(1)}%)`
+                                                                                        : `🚨 Face ID: الوجه غير مطابق (${r.face_score.toFixed(1)}%)`)
+                                                                                    : "Face ID: لم تصل قراءة صالحة أثناء الامتحان"}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>

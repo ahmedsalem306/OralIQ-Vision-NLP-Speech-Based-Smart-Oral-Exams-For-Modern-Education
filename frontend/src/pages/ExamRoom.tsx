@@ -72,6 +72,7 @@ export default function ExamRoom() {
     const objectDetectorRef = useRef<any>(null);
     const faceScoresRef = useRef<number[]>([]);
     const hasServerFaceRef = useRef(false);
+    const faceBoxRef = useRef<number[] | null>(null);
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
@@ -327,6 +328,7 @@ export default function ExamRoom() {
             const dt = Math.min(Math.max((now - lastFrameTimeRef.current) / 1000, 0), 0.12);
 
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                faceBoxRef.current = null;
                 const canvas = canvasRef.current;
                 if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
@@ -336,6 +338,14 @@ export default function ExamRoom() {
             }
 
             const lm = results.multiFaceLandmarks[0];
+            const xs = lm.map((p: any) => p.x);
+            const ys = lm.map((p: any) => p.y);
+            faceBoxRef.current = [
+                Math.max(0, Math.min(...xs) - 0.04),
+                Math.max(0, Math.min(...ys) - 0.08),
+                Math.min(1, Math.max(...xs) + 0.04),
+                Math.min(1, Math.max(...ys) + 0.08),
+            ];
             const lOuter = lm[33],  lInner = lm[133], lTop = lm[159], lBot = lm[145];
             const rOuter = lm[263], rInner = lm[362], rTop = lm[386], rBot = lm[374];
             const liris = lm[468], riris = lm[473];
@@ -496,7 +506,7 @@ export default function ExamRoom() {
             if (!video || video.readyState < 2) return;
             gazeBusy = true;
             try {
-                const fd = await buildGazeForm(video);
+                const fd = await buildGazeForm(video, faceBoxRef.current);
                 const { data } = await api.post("/face/gaze", fd, {
                     headers: { "Content-Type": "multipart/form-data" },
                     timeout: 30_000,
@@ -512,7 +522,7 @@ export default function ExamRoom() {
 
                 // First valid samples establish this student's neutral gaze/device angle.
                 // No alerts are emitted during calibration.
-                if (gazeCalibration.pitch.length < 4) {
+                if (gazeCalibration.pitch.length < 3) {
                     gazeCalibration.pitch.push(pitch);
                     gazeCalibration.yaw.push(yaw);
                     return;
@@ -520,7 +530,10 @@ export default function ExamRoom() {
 
                 const median = (values: number[]) => {
                     const sorted = [...values].sort((a, b) => a - b);
-                    return (sorted[1] + sorted[2]) / 2;
+                    const mid = Math.floor(sorted.length / 2);
+                    return sorted.length % 2
+                        ? sorted[mid]
+                        : (sorted[mid - 1] + sorted[mid]) / 2;
                 };
                 const relPitch = pitch - median(gazeCalibration.pitch);
                 const relYaw = yaw - median(gazeCalibration.yaw);
@@ -556,7 +569,7 @@ export default function ExamRoom() {
         // Warm models then poll (gaze more frequent than face ID)
         checkGaze();
         checkFace();
-        const gazeIv = setInterval(checkGaze, 900);
+        const gazeIv = setInterval(checkGaze, 600);
         const faceIv = setInterval(checkFace, 4000);
         return () => {
             cancelled = true;
@@ -651,6 +664,22 @@ export default function ExamRoom() {
         if (!rec || rec.state !== "recording") return;
 
         rec.onstop = async () => {
+            // Guarantee at least one Face ID reading before releasing the camera.
+            if (hasServerFaceRef.current && videoRef.current?.readyState >= 2) {
+                try {
+                    const fd = await buildFaceVerifyForm(videoRef.current);
+                    const { data } = await api.post("/face/verify", fd, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                        timeout: 45_000,
+                    });
+                    if (typeof data?.similarity_score === "number") {
+                        faceScoresRef.current.push(data.similarity_score);
+                    }
+                } catch {
+                    // Submission still succeeds; report will show no valid Face ID reading.
+                }
+            }
+
             // Stop camera (RAF loop stops itself when video disappears)
             stream?.getTracks().forEach(t => t.stop());
             setStream(null);
