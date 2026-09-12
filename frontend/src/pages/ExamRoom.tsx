@@ -386,6 +386,24 @@ export default function ExamRoom() {
                 eyeVerticalOffset(liris, lOuter, lInner) +
                 eyeVerticalOffset(riris, rOuter, rInner)
             ) / 2;
+            const eyeOpenness = (
+                top: { x: number; y: number },
+                bot: { x: number; y: number },
+                outer: { x: number; y: number },
+                inner: { x: number; y: number },
+            ) => {
+                const lidGap = Math.hypot(bot.x - top.x, bot.y - top.y);
+                const eyeWidth = Math.max(
+                    Math.hypot(inner.x - outer.x, inner.y - outer.y),
+                    1e-6,
+                );
+                return lidGap / eyeWidth;
+            };
+            // A blink collapses the lid gap and makes the iris landmark jump upward.
+            const eyesClosed = (
+                eyeOpenness(lTop, lBot, lOuter, lInner) +
+                eyeOpenness(rTop, rBot, rOuter, rInner)
+            ) / 2 < 0.12;
             const hH = smooth(bufHH, rawHH);
             const hV = smooth(bufHV, rawHV);
             const pH = smooth(bufPH, rawPH);
@@ -403,15 +421,18 @@ export default function ExamRoom() {
                 const relEyeV = eyeV - gazeCenter.eyeV;
 
                 // Right/left/up are immediate. Full head turns are also detected.
-                const lookLeft = relH > 0.11 || hH < 0.30;
-                const lookRight = relH < -0.11 || hH > 0.70;
-                const lookUp = relEyeV < -0.025 || relV < -0.07 || hV < 0.38;
-                const lookDown = relEyeV > 0.035 || relV > 0.09 || hV > 2.35;
+                const lookLeft = (!eyesClosed && relH > 0.11) || hH < 0.30;
+                const lookRight = (!eyesClosed && relH < -0.11) || hH > 0.70;
+                const lookUp = !eyesClosed && (relEyeV < -0.025 || relV < -0.07 || hV < 0.38);
+                const lookDown = !eyesClosed && (relEyeV > 0.035 || relV > 0.09 || hV > 2.35);
 
                 if (lookLeft) accumulateDistraction("gaze_left", dt);
                 else if (lookRight) accumulateDistraction("gaze_right", dt);
 
-                if (lookUp) {
+                if (eyesClosed) {
+                    // Natural blink: ignore this frame completely.
+                    downHold = 0;
+                } else if (lookUp) {
                     downHold = 0;
                     accumulateDistraction("gaze_up", dt);
                 } else if (lookDown) {
