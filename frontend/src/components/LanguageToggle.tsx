@@ -1,34 +1,33 @@
-import { Languages } from "lucide-react";
+import { Languages, Moon, Sun } from "lucide-react";
 import { useI18n } from "../i18n";
+import { useTheme } from "../lib/theme";
+import { buttonClasses } from "./ui/button";
 
 export default function LanguageToggle({ compact = false }: { compact?: boolean }) {
-    const { t, toggleLang } = useI18n();
-
+    const { lang, toggleLang } = useI18n();
+    const next = lang === "ar" ? "English" : "العربية";
     return (
         <button
             type="button"
             onClick={toggleLang}
-            aria-label="Switch language"
-            style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: compact ? "0.3rem" : "0.45rem",
-                minHeight: 36,
-                padding: compact ? "0.45rem 0.6rem" : "0.5rem 0.85rem",
-                borderRadius: "999px",
-                border: "1px solid rgba(255,255,255,0.2)",
-                background: "rgba(255,255,255,0.06)",
-                color: "#ffffff",
-                fontSize: compact ? "0.7rem" : "0.78rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "'Inter', sans-serif",
-                whiteSpace: "nowrap",
-            }}
+            lang={lang === "ar" ? "en" : "ar"}
+            aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            className={buttonClasses("ghost", compact ? "sm" : "md")}
         >
-            <Languages size={compact ? 13 : 15} />
-            {t("language.toggle")}
+            <Languages className="size-4" aria-hidden />
+            {next}
+        </button>
+    );
+}
+
+export function ThemeToggle() {
+    const { resolved, toggle } = useTheme();
+    const { lang } = useI18n();
+    const toDark = resolved === "light";
+    const label = lang === "ar" ? (toDark ? "الوضع الليلي" : "الوضع النهاري") : (toDark ? "Dark mode" : "Light mode");
+    return (
+        <button type="button" onClick={toggle} aria-label={label} title={label} className={buttonClasses("ghost", "icon-sm")}>
+            {toDark ? <Moon className="size-[18px]" aria-hidden /> : <Sun className="size-[18px]" aria-hidden />}
         </button>
     );
 }

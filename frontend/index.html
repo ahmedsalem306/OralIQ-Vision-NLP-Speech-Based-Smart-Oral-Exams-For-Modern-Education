@@ -1,18 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="OralIQ — AI-Powered Smart Oral Exam & Interview Platform for Modern Education. Conduct, analyze, and grade oral assessments with cutting-edge AI." />
-  <meta name="theme-color" content="#0a0a0a" />
-  <title>OralIQ — Smart Oral Exams For Modern Education</title>
+  <meta name="description" content="OralIQ — منصة الامتحانات الشفوية الذكية: تصحيح تلقائي لإجابات الطلاب الصوتية مع التحقق من الهوية ومراقبة النزاهة." />
+  <meta name="theme-color" content="#F5F7FA" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0E1422" media="(prefers-color-scheme: dark)" />
+  <title>OralIQ — الامتحانات الشفوية الذكية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Antonio:wght@100;200;300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
+  <script>
+    // Apply saved language + theme before first paint to avoid a flash.
+    (function () {
+      try {
+        var lang = localStorage.getItem("oraliq_lang") === "en" ? "en" : "ar";
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+        var theme = localStorage.getItem("oraliq_theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch (e) { }
+    })();
+  </script>
 </head>
 
 <body>

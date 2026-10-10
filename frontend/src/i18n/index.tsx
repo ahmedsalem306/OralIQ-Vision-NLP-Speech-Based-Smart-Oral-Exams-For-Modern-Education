@@ -377,6 +377,8 @@ type I18nContextValue = {
     setLang: (lang: Language) => void;
     toggleLang: () => void;
     t: (key: TranslationKey) => string;
+    /** Inline bilingual text for one-off strings: l("نص", "Text"). */
+    l: (ar: string, en: string) => string;
 };
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -405,6 +407,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
         setLang,
         toggleLang: () => setLang(lang === "ar" ? "en" : "ar"),
         t: (key) => translations[lang][key] ?? translations.en[key] ?? key,
+        l: (ar, en) => (lang === "ar" ? ar : en),
     }), [dir, lang]);
 
     return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

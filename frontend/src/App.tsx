@@ -1,26 +1,29 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
-import ReactLenis from "lenis/react";
-import LoginPage from "./pages/Login";
-import RegisterPage from "./pages/Register";
+import { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./layouts/DashboardLayout";
-import Dashboard from "./pages/Dashboard";
-import Overview from "./pages/Overview";
-import InterviewRoom from "./pages/InterviewRoom";
-import LecturerResults from "./pages/LecturerResults";
-import Settings from "./pages/Settings";
-import ExamInvite from "./pages/ExamInvite";
-import ExamRoom from "./pages/ExamRoom";
-import MyGrades from "./pages/MyGrades";
-import StudentsPage from "./pages/StudentsPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import AttendancePage from "./pages/AttendancePage";
-import MessagesPage from "./pages/MessagesPage";
 import PrivateRoute from "./components/PrivateRoute";
+import { PageLoader } from "./components/PageLoader";
+
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const LoginPage = lazy(() => import("./pages/Login"));
+const RegisterPage = lazy(() => import("./pages/Register"));
+const ExamInvite = lazy(() => import("./pages/ExamInvite"));
+const ExamRoom = lazy(() => import("./pages/ExamRoom"));
+const Overview = lazy(() => import("./pages/Overview"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
+const LecturerResults = lazy(() => import("./pages/LecturerResults"));
+const StudentsPage = lazy(() => import("./pages/StudentsPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const AttendancePage = lazy(() => import("./pages/AttendancePage"));
+const Settings = lazy(() => import("./pages/Settings"));
+const MyGrades = lazy(() => import("./pages/MyGrades"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
     return (
-        <ReactLenis root options={{ lerp: 0.07, duration: 1.5, smoothTouch: false }}>
+        <Suspense fallback={<PageLoader fullscreen />}>
             <Routes>
                 {/* Public */}
                 <Route path="/login" element={<LoginPage />} />
@@ -36,22 +39,23 @@ function App() {
                 {/* Dashboard — requires auth */}
                 <Route element={<PrivateRoute />}>
                     <Route element={<DashboardLayout />}>
-                        <Route path="/dashboard" element={<Overview />} />
-                        <Route path="/dashboard/questions" element={<Dashboard />} />
-                        <Route path="/dashboard/interview/:questionId" element={<InterviewRoom />} />
-                        <Route path="/dashboard/results" element={<LecturerResults />} />
-                        <Route path="/dashboard/students" element={<StudentsPage />} />
-                        <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
-                        <Route path="/dashboard/attendance" element={<AttendancePage />} />
-                        <Route path="/dashboard/settings" element={<Settings />} />
-                        <Route path="/dashboard/grades" element={<MyGrades />} />
-                        <Route path="/dashboard/messages" element={<MessagesPage />} />
+                        <Route path="/dashboard" element={<Suspense fallback={<PageLoader />}><Overview /></Suspense>} />
+                        <Route path="/dashboard/questions" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+                        <Route path="/dashboard/interview/:questionId" element={<Suspense fallback={<PageLoader />}><InterviewRoom /></Suspense>} />
+                        <Route path="/dashboard/results" element={<Suspense fallback={<PageLoader />}><LecturerResults /></Suspense>} />
+                        <Route path="/dashboard/students" element={<Suspense fallback={<PageLoader />}><StudentsPage /></Suspense>} />
+                        <Route path="/dashboard/analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
+                        <Route path="/dashboard/attendance" element={<Suspense fallback={<PageLoader />}><AttendancePage /></Suspense>} />
+                        <Route path="/dashboard/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+                        <Route path="/dashboard/grades" element={<Suspense fallback={<PageLoader />}><MyGrades /></Suspense>} />
+                        <Route path="/dashboard/messages" element={<Suspense fallback={<PageLoader />}><MessagesPage /></Suspense>} />
                     </Route>
                 </Route>
+
+                <Route path="*" element={<NotFound />} />
             </Routes>
-        </ReactLenis>
+        </Suspense>
     );
 }
 
 export default App;
-
