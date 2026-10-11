@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
+// Real figures from the API, counted up on purpose (owner's choice). avoid-ai-design-ignore-file: M5
 import { CountUp } from "../motion";
 
 /** Numbers ("71%", "6", 91.5) count up once; anything else renders as-is. */

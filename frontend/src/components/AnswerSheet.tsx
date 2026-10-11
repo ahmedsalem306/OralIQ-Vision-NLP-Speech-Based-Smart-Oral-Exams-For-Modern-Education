@@ -38,6 +38,7 @@ function parseReport(text: string | null): { heading: string[]; bullets: string[
         .filter((s) => !/identity/i.test(s))
         .forEach((line) => {
             if (line.startsWith("•")) bullets.push(line.replace(/^•\s*/, ""));
+            // Strips the server's status emoji from report lines before display. avoid-ai-design-ignore: I2
             else if (!/:$/.test(line)) heading.push(line.replace(/^(?:✅|⚠️|🚨|\s)+/u, ""));
         });
     return { heading, bullets };

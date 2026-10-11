@@ -79,7 +79,8 @@ export function HeroStage({ startHref }: { startHref: string }) {
                     <div className="absolute left-1/2 top-[14%] hidden size-[min(52vw,620px)] -translate-x-1/2 rounded-full border border-white/40 lg:block" />
                 </div>
 
-                {/* Giant words (desktop): the first sits behind her, the second in front, for depth */}
+                {/* Giant words (desktop): the first sits behind her, the second in front, for depth.
+                    The hero's staggered page-load entrance is the page's one orchestrated moment: avoid-ai-design-ignore-file: M1 */}
                 <motion.p
                     aria-hidden
                     initial={{ opacity: 0, y: 30 }}
@@ -213,7 +214,7 @@ export function HeroStage({ startHref }: { startHref: string }) {
                             </span>
                         </div>
                         <p className="mt-4 text-[1.0625rem] font-semibold leading-snug">{l("كل درجة معاها السبب.", "Every grade shows its reasons.")}</p>
-                        <p className="mt-1 text-sm text-white/65">{l("محتوى · طلاقة · نزاهة، والمحاضر بيراجع قبل النشر.", "Content · fluency · integrity — reviewed before it's published.")}</p>
+                        <p className="mt-1 text-sm text-white/65">{l("محتوى وطلاقة ونزاهة، والمحاضر بيراجع قبل النشر.", "Content, fluency and integrity, reviewed before it's published.")}</p>
                     </div>
 
                     {/* The call to action sits on the edge between the stage and the tabs */}

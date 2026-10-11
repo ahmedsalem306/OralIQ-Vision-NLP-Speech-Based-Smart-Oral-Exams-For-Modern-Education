@@ -126,7 +126,7 @@ export default function Overview() {
                         </>
                     }
                     aside={avg != null && (
-                        <div className="w-64 rounded-2xl border border-white/15 bg-white/[0.08] p-5 backdrop-blur-sm">
+                        <div className="w-64 rounded-2xl border border-white/15 bg-white/[0.08] p-5">
                             <p className="text-sm text-white/70">{l("متوسط درجات طلابك", "Your students' average")}</p>
                             <div className="mt-3 flex items-center justify-between">
                                 <span className="font-display text-5xl font-bold tracking-tight" dir="ltr">{avg}<span className="text-2xl text-white/60">%</span></span>
@@ -295,13 +295,13 @@ export default function Overview() {
                             className="absolute end-2 top-0 h-60 w-56 rotate-2 rounded-[22px] object-cover shadow-float"
                         />
                         {pending[0] ? (
-                            <div className="absolute bottom-[-0.5rem] start-0 w-64 -rotate-1 rounded-2xl border border-rule bg-sheet/95 p-4 shadow-pop backdrop-blur">
+                            <div className="absolute bottom-[-0.5rem] start-0 w-64 -rotate-1 rounded-2xl border border-rule bg-sheet p-4 shadow-pop">
                                 <p className="text-xs font-medium text-pen">{l("الامتحان الجاي", "Up next")}</p>
                                 <p className="mt-1.5 line-clamp-2 font-display font-semibold leading-snug">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
                                 <p className="mt-2 text-xs text-ink-3">{pending[0].assigned_by_name}</p>
                             </div>
                         ) : (
-                            <div className="absolute bottom-2 start-6 flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet/95 px-4 py-3 shadow-pop backdrop-blur">
+                            <div className="absolute bottom-2 start-6 flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet px-4 py-3 shadow-pop">
                                 <span className="flex size-9 items-center justify-center rounded-full bg-pass-wash text-pass"><PartyPopper className="size-[18px]" aria-hidden /></span>
                                 <p className="text-sm font-semibold">{l("خلّصت كل امتحاناتك", "All exams done")}</p>
                             </div>

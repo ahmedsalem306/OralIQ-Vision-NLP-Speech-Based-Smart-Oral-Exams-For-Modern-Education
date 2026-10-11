@@ -250,18 +250,20 @@ export default function ExamRoom() {
         const now = Date.now();
         // Show a new direction immediately; throttle only repeats of the same alert.
         if (type !== lastAlertTypeRef.current || now - lastAlertTimeRef.current > 1500) {
+            // A calm nudge, not an accusation: say what to do, not what went wrong.
+            const eyesBack = l("رجّع عينك للشاشة", "Eyes back on the screen");
             const labels: Record<string, string> = {
-                "gaze_left": "⚠️ نظرت لليسار",
-                "gaze_right": "⚠️ نظرت لليمين",
-                "gaze_down": "⚠️ نظرت للأسفل",
-                "gaze_up": "⚠️ نظرت للأعلى",
-                "no_face": "⚠️ الوجه مش ظاهر",
-                "multiple_people": "⚠️ أكتر من شخص",
-                "phone_detected": "⚠️ تليفون ظاهر",
-                "book_detected": "⚠️ ورق/كتاب ظاهر",
-                "face_mismatch": "⚠️ Face ID — شخص مختلف",
+                "gaze_left": eyesBack,
+                "gaze_right": eyesBack,
+                "gaze_down": eyesBack,
+                "gaze_up": eyesBack,
+                "no_face": l("خلّي وشك ظاهر في الكاميرا", "Keep your face in the camera"),
+                "multiple_people": l("لازم تكون لوحدك في الكادر", "Only you should be in view"),
+                "phone_detected": l("بعّد الموبايل عن الكاميرا", "Put the phone out of view"),
+                "book_detected": l("بعّد الورق والكتب", "Put notes and books away"),
+                "face_mismatch": l("الوش مش مطابق للي متسجّل", "Face doesn't match your registration"),
             };
-            setLiveAlert(labels[type] || `⚠️ ${type}`);
+            setLiveAlert(labels[type] || eyesBack);
             lastAlertTimeRef.current = now;
             lastAlertTypeRef.current = type;
             const sequence = ++alertSequenceRef.current;
@@ -1043,6 +1045,7 @@ export default function ExamRoom() {
     return (
         <div className="relative isolate flex min-h-dvh flex-col bg-paper">
             <CalmBackdrop />
+            {/* Sticky bar over scrolling content. avoid-ai-design-ignore: K3 */}
             <header className="sticky top-0 z-20 border-b border-rule bg-sheet/90 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
                     <Logo size={26} showText={false} className="sm:hidden" />
@@ -1085,7 +1088,7 @@ export default function ExamRoom() {
                         // On phones, shrink the camera while answering so the question fits on screen —
                         // scrolling down to read it would itself register as looking down.
                         recording ? "max-w-[min(420px,55vw)] lg:max-w-[420px]" : "max-w-[420px]",
-                        liveAlert ? "ring-mark" : "ring-rule",
+                        liveAlert ? "ring-warn" : "ring-rule",
                     )}>
                         <video ref={videoRef} muted playsInline className={cn("size-full -scale-x-100 object-cover", !stream && "hidden")} />
                         <canvas ref={canvasRef} width={440} height={440} className="pointer-events-none absolute inset-0 size-full -scale-x-100" />
@@ -1107,8 +1110,9 @@ export default function ExamRoom() {
 
                         <div aria-live="assertive" className="absolute inset-x-3 bottom-3 flex justify-center">
                             {liveAlert && (
-                                <span className="rounded-[var(--radius-control)] bg-mark px-3.5 py-2 text-sm font-semibold text-white shadow-pop animate-[oiq-pop-in_160ms_ease-out]">
-                                    {liveAlert.replace(/^⚠️\s*/, "")}
+                                <span className="flex items-center gap-2 rounded-full bg-sheet px-4 py-2 text-sm font-semibold text-warn shadow-pop animate-[oiq-pop-in_160ms_ease-out]">
+                                    <span className="size-2 rounded-full bg-warn" aria-hidden />
+                                    {liveAlert}
                                 </span>
                             )}
                         </div>

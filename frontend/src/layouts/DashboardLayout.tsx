@@ -190,6 +190,7 @@ export function DashboardLayout() {
             {/* ── Main ── */}
             <div className="flex min-w-0 flex-1 flex-col">
                 {/* Mobile top bar */}
+                {/* Sticky bar over scrolling content: the one place glass belongs. avoid-ai-design-ignore: K3 */}
                 <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-rule bg-paper/90 px-4 backdrop-blur md:hidden">
                     <button
                         type="button"

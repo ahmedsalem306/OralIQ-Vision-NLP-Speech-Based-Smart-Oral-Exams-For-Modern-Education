@@ -41,6 +41,7 @@ export function AuthShell({ children, scene = "signin" }: { children: React.Reac
                 <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(70% 50% at 100% 0%, color-mix(in oklab, var(--pen) 45%, transparent), transparent 70%)" }} aria-hidden />
 
                 <div className="relative flex h-full flex-col justify-end px-12 pb-16 xl:px-16">
+                    {/* Floats over the photo, so the blur is real layering. avoid-ai-design-ignore: K3 */}
                     {scene === "signin" && <div className="mb-10 w-72 rounded-2xl border border-white/15 bg-white/10 p-5 text-white shadow-float backdrop-blur-md motion-safe:animate-[oiq-float_7s_ease-in-out_infinite]">
                         <div className="flex items-center justify-between">
                             <div>

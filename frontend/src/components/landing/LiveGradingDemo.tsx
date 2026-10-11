@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
-import { Check, Sparkles } from "lucide-react";
+import { Check, PenLine } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { cn } from "../../lib/utils";
 import { ScoreMark } from "../ui/score-mark";
@@ -63,7 +63,7 @@ export function LiveGradingDemo({ className }: { className?: string }) {
     ];
 
     return (
-        <div ref={ref} className={cn("rounded-[22px] border border-rule/70 bg-sheet/95 p-4 shadow-float backdrop-blur-md sm:p-5", className)}>
+        <div ref={ref} className={cn("rounded-[22px] border border-rule/70 bg-sheet p-4 shadow-float sm:p-5", className)}>
             {/* Status */}
             <div className="flex items-center justify-between gap-3">
                 <span className={cn(
@@ -76,7 +76,7 @@ export function LiveGradingDemo({ className }: { className?: string }) {
                             {l("بيسجّل إجابته…", "Recording…")}
                         </>
                     ) : s < 3 ? (
-                        <><Sparkles className="size-3.5 motion-safe:animate-pulse" aria-hidden />{l("بيصحّح…", "Grading…")}</>
+                        <><PenLine className="size-3.5" aria-hidden />{l("بيصحّح…", "Grading…")}</>
                     ) : (
                         <><Check className="size-3.5" aria-hidden />{l("اتصحّحت", "Graded")}</>
                     )}

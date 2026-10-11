@@ -1,54 +1,13 @@
 import * as React from "react";
 import {
     animate, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform,
-    type HTMLMotionProps, type Variants,
 } from "motion/react";
 import { cn } from "../lib/utils";
 
 /** One easing for the whole site: quick out, soft landing. */
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
-interface RevealProps extends HTMLMotionProps<"div"> {
-    delay?: number;
-    /** Distance travelled, px. */
-    y?: number;
-}
-
-/** Fades and lifts content in the first time it scrolls into view. */
-export function Reveal({ delay = 0, y = 28, className, children, ...props }: RevealProps) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.8, ease: EASE, delay }}
-            className={className}
-            {...props}
-        >
-            {children}
-        </motion.div>
-    );
-}
-
-const staggerParent: Variants = {
-    hidden: {},
-    show: (gap: number = 0.09) => ({ transition: { staggerChildren: gap } }),
-};
-export const staggerChild: Variants = {
-    hidden: { opacity: 0, y: 24 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } },
-};
-
-/** Children marked with `staggerChild` appear one after another. */
-export function Stagger({ gap = 0.09, className, children, as = "div", amount = 0.2 }: { gap?: number; className?: string; children: React.ReactNode; as?: "div" | "ul" | "ol" | "dl"; amount?: number }) {
-    const Comp = motion[as] as typeof motion.div;
-    return (
-        <Comp className={className} variants={staggerParent} custom={gap} initial="hidden" whileInView="show" viewport={{ once: true, amount }}>
-            {children}
-        </Comp>
-    );
-}
-
+// Used only for live dashboard figures. avoid-ai-design-ignore-file: M5
 /** Counts from 0 to `to` the first time it is seen. */
 export function CountUp({ to, decimals = 0, duration = 1.4, suffix = "", className }: { to: number; decimals?: number; duration?: number; suffix?: string; className?: string }) {
     const ref = React.useRef<HTMLSpanElement>(null);
@@ -76,7 +35,7 @@ export function ScrollProgress({ className }: { className?: string }) {
         <motion.div
             aria-hidden
             style={{ scaleX }}
-            className={cn("fixed inset-x-0 top-0 z-50 h-[3px] origin-[0%] bg-gradient-to-r from-pen via-violet to-teal rtl:origin-[100%]", className)}
+            className={cn("fixed inset-x-0 top-0 z-50 h-[3px] origin-[0%] bg-pen rtl:origin-[100%]", className)}
         />
     );
 }
@@ -96,50 +55,6 @@ function canHover() {
     if (typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(hover: hover) and (pointer: fine)").matches
         && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** A soft light that follows the pointer across the card (desktop only). */
-export function Spotlight({ className, children, color = "var(--pen)", ...props }: React.HTMLAttributes<HTMLDivElement> & { color?: string }) {
-    const ref = React.useRef<HTMLDivElement>(null);
-    const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        const el = ref.current;
-        if (!el || !canHover()) return;
-        const r = el.getBoundingClientRect();
-        el.style.setProperty("--mx", `${e.clientX - r.left}px`);
-        el.style.setProperty("--my", `${e.clientY - r.top}px`);
-    };
-    return (
-        <div ref={ref} onPointerMove={onMove} className={cn("group/spot relative isolate overflow-hidden", className)} {...props}>
-            <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 group-hover/spot:opacity-100"
-                style={{ background: `radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, ${color} 14%, transparent), transparent 45%)` }}
-            />
-            {children}
-        </div>
-    );
-}
-
-/** Tilts gently toward the pointer in 3D (desktop only). */
-export function TiltCard({ children, className, max = 6 }: { children: React.ReactNode; className?: string; max?: number }) {
-    const rx = useMotionValue(0);
-    const ry = useMotionValue(0);
-    const rotateX = useSpring(rx, { stiffness: 160, damping: 18 });
-    const rotateY = useSpring(ry, { stiffness: 160, damping: 18 });
-    const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!canHover()) return;
-        const r = e.currentTarget.getBoundingClientRect();
-        const px = (e.clientX - r.left) / r.width - 0.5;
-        const py = (e.clientY - r.top) / r.height - 0.5;
-        ry.set(px * max * 2);
-        rx.set(-py * max * 2);
-    };
-    const reset = () => { rx.set(0); ry.set(0); };
-    return (
-        <div className={cn("[perspective:1200px]", className)} onPointerMove={onMove} onPointerLeave={reset}>
-            <motion.div style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}>{children}</motion.div>
-        </div>
-    );
 }
 
 /** Pulls its child a few pixels toward the pointer — used once, on the main CTA. */
