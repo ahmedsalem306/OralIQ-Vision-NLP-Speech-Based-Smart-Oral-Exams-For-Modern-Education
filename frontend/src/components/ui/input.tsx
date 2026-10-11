@@ -3,9 +3,9 @@ import { cn } from "../../lib/utils";
 import { useI18n } from "../../i18n";
 
 const controlBase = cn(
-    "w-full rounded-[var(--radius-control)] border border-rule-strong bg-sheet text-ink",
+    "w-full rounded-[var(--radius-control)] border border-field bg-sheet text-ink",
     "placeholder:text-ink-3 transition-[border-color,box-shadow] duration-150",
-    "hover:border-ink-3 focus:border-pen focus:outline-none focus:ring-3 focus:ring-pen/15",
+    "hover:border-ink-2 focus:border-pen focus:outline-none focus:ring-3 focus:ring-pen/15",
     "disabled:opacity-60 disabled:cursor-not-allowed",
     "aria-[invalid=true]:border-mark aria-[invalid=true]:focus:ring-mark/15",
 );

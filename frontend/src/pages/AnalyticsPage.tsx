@@ -8,7 +8,7 @@ import { Alert, EmptyState, Skeleton } from "../components/ui/feedback";
 import { ButtonLink } from "../components/ui/button";
 import { ColumnChart } from "../components/charts/ColumnChart";
 import { formatScore } from "../lib/grades";
-import { parseServerDate } from "../lib/format";
+import { countOf, NOUNS, parseServerDate } from "../lib/format";
 import { getApiErrorMessage } from "../lib/apiErrors";
 import { needsReview, type Submission } from "../lib/types";
 
@@ -37,20 +37,20 @@ export default function AnalyticsPage() {
 
     const bands = useMemo(() => {
         const defs = [
-            { key: "weak", label: l("ضعيف (أقل من 45)", "Weak (<45)"), test: (s: number) => s < 45 },
-            { key: "fair", label: l("مقبول (45–64)", "Fair (45–64)"), test: (s: number) => s >= 45 && s < 65 },
-            { key: "good", label: l("جيد (65–84)", "Good (65–84)"), test: (s: number) => s >= 65 && s < 85 },
-            { key: "exc", label: l("ممتاز (85+)", "Excellent (85+)"), test: (s: number) => s >= 85 },
+            { key: "weak", label: l("ضعيف", "Weak"), range: l("أقل من 45%", "under 45%"), test: (s: number) => s < 45 },
+            { key: "fair", label: l("مقبول", "Fair"), range: "45–64%", test: (s: number) => s >= 45 && s < 65 },
+            { key: "good", label: l("جيد", "Good"), range: "65–84%", test: (s: number) => s >= 65 && s < 85 },
+            { key: "exc", label: l("ممتاز", "Excellent"), range: l("85% فأكثر", "85% and up"), test: (s: number) => s >= 85 },
         ];
         return defs.map((d) => {
             const n = scores.filter(d.test).length;
-            return { key: d.key, label: d.label, value: n, detail: scores.length ? [l(`${Math.round((n / scores.length) * 100)}% من الطلاب`, `${Math.round((n / scores.length) * 100)}% of students`)] : undefined };
+            return { key: d.key, label: d.label, value: n, detail: [d.range, ...(scores.length ? [l(`${Math.round((n / scores.length) * 100)}% من الطلاب`, `${Math.round((n / scores.length) * 100)}% of students`)] : [])] };
         });
     }, [scores, l]);
 
     const days = useMemo(() => {
         const loc = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
-        const fmt = new Intl.DateTimeFormat(loc, { day: "numeric", month: "numeric" });
+        const fmt = new Intl.DateTimeFormat(loc, { day: "numeric" });
         const full = new Intl.DateTimeFormat(loc, { weekday: "long", day: "numeric", month: "long" });
         const out: { key: string; label: string; value: number; detail?: string[] }[] = [];
         const today = new Date();
@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
                 <div className="space-y-6">
                     <StatStrip
                         items={[
-                            { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${Math.round(avg)}%` : "—", hint: l(`من ${scored.length} إجابة`, `from ${scored.length} answers`) },
+                            { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${Math.round(avg)}%` : "—", hint: `${l("من", "from")} ${countOf(lang, scored.length, NOUNS.answer)}` },
                             { label: l("نسبة النجاح", "Pass rate"), value: passRate != null ? `${passRate}%` : "—", hint: l("50% فأكثر", "50% or more") },
                             { label: l("يحتاجون دعم", "Need support"), value: struggling, hint: l("أقل من 50%", "below 50%") },
                             { label: l("ملاحظات نزاهة", "Integrity notes"), value: flagged },

@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { Field, Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
 import { Alert } from "../components/ui/feedback";
+import { usePageTitle } from "../lib/usePageTitle";
 
 export default function LoginPage() {
     const { l } = useI18n();
@@ -18,6 +19,7 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const redirectTo = searchParams.get("redirect") || "/dashboard";
+    usePageTitle(l("تسجيل الدخول", "Sign in"));
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -13,6 +13,8 @@ import { Alert } from "../components/ui/feedback";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
 import { gradeOf } from "../lib/grades";
+import { countOf, NOUNS } from "../lib/format";
+import { usePageTitle } from "../lib/usePageTitle";
 import { cn } from "../lib/utils";
 
 import api from "../lib/api";
@@ -42,7 +44,7 @@ interface ExamResult {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ExamRoom() {
-    const { t, l } = useI18n();
+    const { t, l, lang } = useI18n();
     const navigate = useNavigate();
     const examToken = localStorage.getItem("pendingExamToken") || "";
 
@@ -83,6 +85,7 @@ export default function ExamRoom() {
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
     const [showEnroll, setShowEnroll] = useState(false);
+    usePageTitle(l("الامتحان", "Exam"));
 
     // Remaining pending assignments
     const [remainingExams, setRemainingExams] = useState<{ exam_token: string; question_text: string }[]>([]);
@@ -866,8 +869,8 @@ export default function ExamRoom() {
                 {question ? (
                     <p className="mt-2 text-ink-2">
                         {multi
-                            ? l(`الامتحان ${allQuestions.length} أسئلة، ومعاك حوالي ${totalMinutes} دقيقة للإجابة عليهم بصوتك.`, `This exam has ${allQuestions.length} questions — about ${totalMinutes} minutes of speaking.`)
-                            : l(`سؤال واحد، ومعاك ${totalMinutes} ${totalMinutes === 1 ? "دقيقة" : "دقائق"} للإجابة بصوتك.`, `One question, with ${totalMinutes} minute${totalMinutes === 1 ? "" : "s"} to answer out loud.`)}
+                            ? l(`الامتحان فيه ${countOf("ar", allQuestions.length, NOUNS.question)}، ومعاك حوالي ${countOf("ar", totalMinutes, NOUNS.minute)} للإجابة عليهم بصوتك.`, `This exam has ${allQuestions.length} questions — about ${totalMinutes} minutes of speaking.`)
+                            : l(`سؤال واحد، ومعاك ${countOf("ar", totalMinutes, NOUNS.minute)} للإجابة بصوتك.`, `One question, with ${totalMinutes} minute${totalMinutes === 1 ? "" : "s"} to answer out loud.`)}
                     </p>
                 ) : (
                     <p className="mt-2 text-ink-2">{l("أكّد بياناتك.", "Confirm your details.")}</p>
@@ -1032,7 +1035,7 @@ export default function ExamRoom() {
                                 {mmss(timeLeft)}
                             </span>
                         ) : (
-                            <span className="text-sm text-ink-2">{question ? l(`الوقت: ${Math.round(question.timeLimit / 60)} دقيقة`, `Time: ${Math.round(question.timeLimit / 60)} min`) : null}</span>
+                            <span className="text-sm text-ink-2">{question ? `${l("الوقت", "Time")}: ${countOf(lang, Math.round(question.timeLimit / 60), NOUNS.minute)}` : null}</span>
                         )}
                         <span className="hidden max-w-40 truncate text-sm text-ink-3 md:inline">{studentName}</span>
                     </div>
@@ -1097,7 +1100,7 @@ export default function ExamRoom() {
                     <Panel className="overflow-hidden">
                         <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3 text-sm text-ink-2 sm:px-7">
                             <span>{multi ? l(`سؤال ${currentQIndex + 1} من ${allQuestions.length}`, `Question ${currentQIndex + 1} of ${allQuestions.length}`) : l("السؤال", "Question")}</span>
-                            {question && <span className="tabular">{l(`${Math.round(question.timeLimit / 60)} دقيقة`, `${Math.round(question.timeLimit / 60)} min`)}</span>}
+                            {question && <span className="tabular">{countOf(lang, Math.round(question.timeLimit / 60), NOUNS.minute)}</span>}
                         </div>
 
                         <div

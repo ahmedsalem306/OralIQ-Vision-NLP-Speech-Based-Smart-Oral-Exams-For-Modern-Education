@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, Inbox, Search, Send, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, Inbox, Printer, Search, Send, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
@@ -13,9 +13,10 @@ import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
 import { AnswerSheet } from "../components/AnswerSheet";
 import { gradeOf, formatScore } from "../lib/grades";
-import { formatDate, parseServerDate } from "../lib/format";
+import { countOf, formatDate, NOUNS, parseServerDate } from "../lib/format";
 import { needsReview, type Submission } from "../lib/types";
 import { getApiErrorMessage } from "../lib/apiErrors";
+import { useToast } from "../components/ui/toast";
 
 type Filter = "all" | "review" | "unpublished" | "published";
 
@@ -40,6 +41,7 @@ function downloadCsv(rows: Submission[], lang: "ar" | "en") {
 
 export default function LecturerResults() {
     const { l, lang } = useI18n();
+    const toast = useToast();
     const [params, setParams] = useSearchParams();
     const [results, setResults] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
@@ -96,6 +98,7 @@ export default function LecturerResults() {
         try {
             await api.patch(`/exams/submissions/${id}/visibility?visible=${visibleFlag}`);
             setResults((prev) => prev.map((r) => (r.id === id ? { ...r, grade_visible: visibleFlag ? 1 : 0 } : r)));
+            toast(visibleFlag ? l("اتنشرت الدرجة للطالب", "Grade published to the student") : l("الدرجة اتخفت عن الطالب", "Grade hidden from the student"));
         } catch (err) {
             setActionError(getApiErrorMessage(err, l("تعذّر تحديث حالة النشر.", "Couldn't update the grade.")));
         } finally {
@@ -114,6 +117,7 @@ export default function LecturerResults() {
             } catch { /* keep going; report below */ }
         }
         setResults((prev) => prev.map((r) => (done.includes(r.id) ? { ...r, grade_visible: 1 } : r)));
+        if (done.length) toast(`${l("اتنشر", "Published")} ${countOf(lang, done.length, NOUNS.grade)}`);
         if (done.length < bulkEligible.length) {
             setActionError(l(`اتنشر ${done.length} من ${bulkEligible.length}. جرّب الباقي تاني.`, `Published ${done.length} of ${bulkEligible.length}. Try the rest again.`));
         }
@@ -161,7 +165,7 @@ export default function LecturerResults() {
                         </Button>
                         {bulkEligible.length > 0 && (
                             <Button onClick={() => setConfirmBulk(true)}>
-                                <Send className="size-4 rtl:-scale-x-100" aria-hidden />{l(`نشر ${bulkEligible.length} درجة`, `Publish ${bulkEligible.length} grades`)}
+                                <Send className="size-4 rtl:-scale-x-100" aria-hidden />{`${l("نشر", "Publish")} ${countOf(lang, bulkEligible.length, NOUNS.grade)}`}
                             </Button>
                         )}
                     </>
@@ -247,6 +251,12 @@ export default function LecturerResults() {
                                             <span className="flex items-center gap-2 max-md:col-start-3 max-md:row-start-1">
                                                 <ScoreMark score={r.overall_score} size="sm" plain className="w-auto" />
                                             </span>
+                                            {/* Mobile: status under the question line */}
+                                            <span className="col-span-2 col-start-2 row-start-3 flex flex-wrap gap-1.5 md:hidden">
+                                                {flagged && <Badge tone="warn">{l("مراجعة", "Review")}</Badge>}
+                                                {g && !flagged && <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge>}
+                                                {r.grade_visible ? <Badge tone="pass">{l("منشورة", "Published")}</Badge> : null}
+                                            </span>
                                             <span className="hidden flex-wrap gap-1.5 md:flex">
                                                 {flagged && <Badge tone="warn">{l("مراجعة", "Review")}</Badge>}
                                                 {g && !flagged && <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge>}
@@ -273,10 +283,14 @@ export default function LecturerResults() {
                             <p className="truncate font-semibold">{current.student_name}</p>
                             <p className="text-xs text-ink-3 tabular">{current.student_number}</p>
                         </div>
+                        <span className="hidden font-display font-bold print:inline">OralIQ</span>
                         {openIndex >= 0 && (
-                            <span className="hidden text-sm text-ink-3 tabular sm:inline">{openIndex + 1} / {visible.length}</span>
+                            <span className="hidden text-sm text-ink-3 tabular sm:inline print:hidden">{openIndex + 1} / {visible.length}</span>
                         )}
-                        <div className="flex items-center">
+                        <div className="flex items-center print:hidden">
+                            <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => window.print()} aria-label={l("طباعة ورقة الإجابة", "Print answer sheet")} title={l("طباعة / PDF", "Print / PDF")}>
+                                <Printer className="size-[18px]" aria-hidden />
+                            </button>
                             <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => goTo(openIndex - 1)} disabled={openIndex <= 0} aria-label={l("الإجابة السابقة", "Previous answer")}>
                                 <Prev className="size-5" aria-hidden />
                             </button>
@@ -324,7 +338,7 @@ export default function LecturerResults() {
                 open={confirmBulk}
                 onClose={() => !bulkBusy && setConfirmBulk(false)}
                 size="sm"
-                title={l(`نشر ${bulkEligible.length} درجة؟`, `Publish ${bulkEligible.length} grades?`)}
+                title={`${l("نشر", "Publish")} ${countOf(lang, bulkEligible.length, NOUNS.grade)}${l("؟", "?")}`}
                 description={l("هننشر الدرجات المصححة اللي مفيهاش ملاحظات نزاهة. اللي محتاجة مراجعة هتفضل مخفية.",
                     "We'll publish graded answers without integrity notes. Ones needing review stay hidden.")}
                 footer={

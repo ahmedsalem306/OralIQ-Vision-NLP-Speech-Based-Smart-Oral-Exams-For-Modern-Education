@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Field, Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
 import { Alert } from "../components/ui/feedback";
+import { usePageTitle } from "../lib/usePageTitle";
 
 export default function RegisterPage() {
     const { l } = useI18n();
@@ -22,6 +23,7 @@ export default function RegisterPage() {
     const redirectTo = searchParams.get("redirect") || "/dashboard";
     const forcedRole = searchParams.get("role");
     const [role, setRole] = useState(forcedRole || "student");
+    usePageTitle(l("إنشاء حساب", "Create account"));
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -89,7 +91,7 @@ export default function RegisterPage() {
                                         className={cn(
                                             "relative flex cursor-pointer flex-col gap-1 rounded-[var(--radius-control)] border p-3.5 transition-colors",
                                             "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-pen has-[:focus-visible]:outline-offset-2",
-                                            active ? "border-pen bg-pen-wash" : "border-rule-strong bg-sheet hover:border-ink-3",
+                                            active ? "border-pen bg-pen-wash" : "border-field bg-sheet hover:border-ink-2",
                                         )}
                                     >
                                         <input type="radio" name="role" value={value} checked={active} onChange={() => setRole(value)} className="sr-only" />

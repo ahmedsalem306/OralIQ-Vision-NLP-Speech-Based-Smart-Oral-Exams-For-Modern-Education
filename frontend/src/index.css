@@ -15,7 +15,8 @@
   --rule-strong: #C3CDDC;
   --ink: #17213A;
   --ink-2: #4A5672;
-  --ink-3: #6F7A93;
+  --ink-3: #5F6A84;
+  --field: #868FA5;
   --pen: #2345B0;
   --pen-hover: #1B3890;
   --pen-wash: #E9EEFB;
@@ -42,6 +43,8 @@
     --ink: #E8ECF5;
     --ink-2: #AEB8CE;
     --ink-3: #8390AC;
+  --field: #62708F;
+    --field: #62708F;
     --pen: #7F9AFF;
     --pen-hover: #AABDFF;
     --pen-wash: #1C2750;
@@ -69,6 +72,7 @@
   --ink: #E8ECF5;
   --ink-2: #AEB8CE;
   --ink-3: #8390AC;
+  --field: #62708F;
   --pen: #7F9AFF;
   --pen-hover: #AABDFF;
   --pen-wash: #1C2750;
@@ -93,6 +97,7 @@
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
+  --color-field: var(--field);
   --color-pen: var(--pen);
   --color-pen-hover: var(--pen-hover);
   --color-pen-wash: var(--pen-wash);
@@ -194,4 +199,28 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── Print: only the open answer sheet, always on light paper ─────── */
+@media print {
+  :root:root, :root[data-theme] {
+    color-scheme: light;
+    --paper: #FFFFFF; --sheet: #FFFFFF; --sheet-2: #F7F8FA;
+    --rule: #D5DCE6; --rule-strong: #B9C3D2;
+    --ink: #000000; --ink-2: #333B4D; --ink-3: #555E72;
+    --pen: #1B3890; --pen-wash: #EEF2FC; --pen-ink: #FFFFFF;
+    --mark: #C0242F; --mark-wash: #FBEAEB;
+    --pass: #0F6B41; --pass-wash: #E2F3EA; --warn: #8A500A; --warn-wash: #FBF0DD;
+    --chart: #1B3890; --field: #868FA5;
+  }
+  body:has(dialog[open]) * { visibility: hidden; }
+  body:has(dialog[open]) dialog[open], body:has(dialog[open]) dialog[open] * { visibility: visible; }
+  dialog[open] {
+    position: absolute !important; inset: 0 auto auto 0 !important;
+    width: 100% !important; max-width: none !important; height: auto !important; max-height: none !important;
+    border: 0 !important; box-shadow: none !important; margin: 0 !important;
+  }
+  dialog::backdrop { display: none; }
+  .print-expand { height: auto !important; max-height: none !important; overflow: visible !important; }
+  @page { margin: 16mm; }
 }

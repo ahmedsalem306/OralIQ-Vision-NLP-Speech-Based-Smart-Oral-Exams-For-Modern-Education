@@ -1,9 +1,11 @@
 import { ButtonLink } from "../components/ui/button";
 import Logo from "../components/Logo";
 import { useI18n } from "../i18n";
+import { usePageTitle } from "../lib/usePageTitle";
 
 export default function NotFound() {
     const { l } = useI18n();
+    usePageTitle(l("الصفحة مش موجودة", "Page not found"));
     const loggedIn = (() => { try { return !!localStorage.getItem("token"); } catch { return false; } })();
     return (
         <main className="flex min-h-dvh flex-col items-center justify-center bg-paper px-6 text-center">

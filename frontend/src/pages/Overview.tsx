@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Mic, ShieldCheck, ScanFace, Inbox, ClipboardList, Lock } from "lucide-react";
+import { Check, Plus, Mic, ShieldCheck, ScanFace, Inbox, ClipboardList, Lock } from "lucide-react";
+import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
@@ -11,7 +12,7 @@ import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
 import { gradeOf } from "../lib/grades";
-import { difficultyInfo, parseServerDate, timeAgo } from "../lib/format";
+import { countOf, difficultyInfo, NOUNS, parseServerDate, timeAgo } from "../lib/format";
 import {
     isLecturerRole, needsReview,
     type Assignment, type BiometricStatus, type Me, type Question, type Submission,
@@ -92,7 +93,7 @@ export default function Overview() {
                     title={l(`أهلاً، ${user?.full_name ?? ""}`, `Welcome, ${user?.full_name ?? ""}`)}
                     description={
                         results.length
-                            ? l(`وصلتك ${results.length} إجابة حتى الآن.`, `You have ${results.length} submissions so far.`)
+                            ? `${l("وصلتك", "You have")} ${countOf(lang, results.length, NOUNS.answer)} ${l("حتى الآن.", "so far.")}`
                             : l("ابدأ بإضافة سؤال وأرسل رابطه للطلاب.", "Start by adding a question and sharing its link with students.")
                     }
                     actions={
@@ -103,28 +104,73 @@ export default function Overview() {
                     }
                 />
 
-                <StatStrip
+                {results.length === 0 && (
+                    <Panel className="mb-8">
+                        <PanelHeader
+                            title={l("ابدأ في 3 خطوات", "Get started in 3 steps")}
+                            description={l("بعد أول إجابة توصلك، الصفحة دي هتبقى ملخص لكل امتحاناتك.", "Once your first answer arrives, this page becomes a summary of all your exams.")}
+                        />
+                        <ol className="divide-y divide-rule">
+                            {[
+                                {
+                                    done: questions.length > 0,
+                                    title: l("اكتب أول سؤال وإجابته النموذجية", "Write your first question and model answer"),
+                                    body: l("الذكاء الاصطناعي بيصحح على أساس الإجابة النموذجية، فاكتبها بالمعنى الكامل.", "The AI grades against the model answer, so write out the full meaning."),
+                                    action: <ButtonLink to="/dashboard/questions?new=1" size="sm">{l("اكتب سؤال", "Write a question")}</ButtonLink>,
+                                },
+                                {
+                                    done: false,
+                                    title: l("ابعت الامتحان للطلاب", "Send the exam to students"),
+                                    body: l("انسخ رابط الامتحان وابعته على جروب المادة، أو ابعته لطالب معيّن من صفحة الأسئلة.", "Copy the exam link into your class group, or send it to specific students from the Questions page."),
+                                    action: questions.length > 0 ? <ButtonLink to="/dashboard/questions" variant="secondary" size="sm">{l("صفحة الأسئلة", "Questions page")}</ButtonLink> : null,
+                                },
+                                {
+                                    done: false,
+                                    title: l("راجع الإجابات وانشر الدرجات", "Review answers and publish grades"),
+                                    body: l("كل إجابة بتوصلك مصححة، ومعاها نصها وملاحظات النزاهة. الدرجة بتظهر في «درجاتي» عند الطالب بعد ما تنشرها.", "Each answer arrives graded, with its transcript and integrity notes. The grade appears in the student's My grades once you publish it."),
+                                    action: null,
+                                },
+                            ].map((s, i) => (
+                                <li key={i} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+                                    <span className={cn(
+                                        "flex size-8 shrink-0 items-center justify-center rounded-full border-2 font-display text-sm font-semibold",
+                                        s.done ? "border-pass bg-pass text-pen-ink" : "border-pen text-pen",
+                                    )}>
+                                        {s.done ? <Check className="size-4" aria-label={l("تم", "Done")} /> : i + 1}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className={cn("font-semibold", s.done && "text-ink-2 line-through decoration-ink-3")}>{s.title}</p>
+                                        <p className="mt-0.5 text-sm text-ink-2">{s.body}</p>
+                                    </div>
+                                    {!s.done && s.action}
+                                </li>
+                            ))}
+                        </ol>
+                    </Panel>
+                )}
+
+                {results.length > 0 && <StatStrip
                     className="mb-8"
                     items={[
-                        { label: l("الامتحانات", "Exams"), value: exams, hint: l(`${questions.length} سؤال`, `${questions.length} questions`) },
+                        { label: l("الامتحانات", "Exams"), value: exams, hint: countOf(lang, questions.length, NOUNS.question) },
                         { label: l("الإجابات", "Submissions"), value: results.length },
                         { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${avg}%` : "—" },
                         { label: l("تحتاج مراجعتك", "Need your review"), value: flagged.length, hint: l("النزاهة أو الهوية", "Integrity or identity") },
                     ]}
-                />
+                />}
 
                 {flagged.length > 0 && (
                     <Alert
                         tone="warning"
                         className="mb-8"
-                        title={l(`${flagged.length} إجابة فيها ملاحظات نزاهة`, `${flagged.length} submissions have integrity notes`)}
+                        title={l(`${countOf("ar", flagged.length, NOUNS.answer)} فيها ملاحظات نزاهة`, flagged.length === 1 ? "1 answer has integrity notes" : `${flagged.length} answers have integrity notes`)}
                         action={<ButtonLink to="/dashboard/results?filter=review" variant="secondary" size="sm">{l("راجعها", "Review")}</ButtonLink>}
                     >
                         {l("الذكاء الاصطناعي رصد سلوكاً يستحق نظرة منك قبل نشر الدرجة.", "The AI flagged behaviour worth a look before you publish the grade.")}
                     </Alert>
                 )}
 
-                <Panel>
+                {results.length > 0 && <Panel>
                     <PanelHeader
                         title={l("آخر الإجابات", "Latest submissions")}
                         actions={results.length > 0 && <ButtonLink to="/dashboard/results" variant="ghost" size="sm">{l("عرض الكل", "View all")}</ButtonLink>}
@@ -165,7 +211,7 @@ export default function Overview() {
                             })}
                         </RuledList>
                     )}
-                </Panel>
+                </Panel>}
             </>
         );
     }
@@ -190,7 +236,7 @@ export default function Overview() {
                 description={
                     pending.length
                         ? l(
-                            pending.length === 1 ? "عندك امتحان واحد في انتظارك." : `عندك ${pending.length} امتحانات في انتظارك.`,
+                            `عندك ${countOf("ar", pending.length, NOUNS.exam)} في انتظارك.`,
                             pending.length === 1 ? "You have one exam waiting." : `You have ${pending.length} exams waiting.`,
                         )
                         : l("لا توجد امتحانات مطلوبة منك الآن.", "No exams are waiting for you right now.")

@@ -30,7 +30,9 @@ function parseReport(text: string | null): { heading: string[]; bullets: string[
     const heading: string[] = [];
     const bullets: string[] = [];
     (text || "")
-        .split(/\s\|\s|\n/)
+        .split("\n")
+        // " | " joins report blocks at top level, but inside a bullet it separates two facts on one line
+        .flatMap((line) => (line.trim().startsWith("•") ? [line.replace(/\s\|\s/g, "، ")] : line.split(/\s\|\s/)))
         .map((s) => s.trim())
         .filter(Boolean)
         .filter((s) => !/identity/i.test(s))

@@ -11,6 +11,7 @@ import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import { Avatar } from "../components/ui/avatar";
 import { buttonClasses } from "../components/ui/button";
 import { useI18n } from "../i18n";
+import { usePageTitle } from "../lib/usePageTitle";
 
 type Me = { full_name: string; email: string; role: string };
 
@@ -67,6 +68,12 @@ export function DashboardLayout() {
             { icon: Inbox, label: l("دعوات الامتحانات", "Exam invites"), href: "/dashboard/messages" },
             { icon: Award, label: t("nav.grades"), href: "/dashboard/grades" },
         ];
+
+    const currentTitle =
+        location.pathname === "/dashboard/settings"
+            ? t("nav.settings")
+            : navItems.find((n) => n.href === location.pathname)?.label;
+    usePageTitle(user ? currentTitle : null);
 
     const NavLink = ({ icon: Icon, label, href }: { icon: typeof Users; label: string; href: string }) => {
         const active = location.pathname === href;

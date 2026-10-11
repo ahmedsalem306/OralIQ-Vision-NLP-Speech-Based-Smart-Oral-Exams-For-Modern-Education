@@ -107,7 +107,31 @@ export default function AttendancePage() {
                         body={rows.length ? l("جرّب فلتر أو بحث تاني.", "Try a different filter or search.") : l("ابعت امتحان لطالب من صفحة الأسئلة، وحضوره هيظهر هنا.", "Send an exam to a student from the Questions page and attendance shows up here.")}
                     />
                 ) : (
-                    <table className="w-full min-w-[720px] text-sm">
+                    <>
+                    {/* Phones: one ruled row per student — no sideways scrolling */}
+                    <ul className="divide-y divide-rule md:hidden">
+                        {visible.map((r) => {
+                            const done = r.status === "completed";
+                            return (
+                                <li key={`m-${r.id}-${r.question_title}`} className="flex items-start gap-3 px-4 py-3.5">
+                                    <Avatar name={r.student_name} size="sm" />
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="truncate font-semibold">{r.student_name}</p>
+                                            <span className="shrink-0 font-semibold tabular">{r.score != null ? `${formatScore(r.score)}%` : ""}</span>
+                                        </div>
+                                        <p className="truncate text-sm text-ink-2">{r.question_title}</p>
+                                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
+                                            {done ? <Badge tone="pass">{l("خلّص", "Completed")}</Badge> : <Badge tone="warn">{l("لسه", "Not yet")}</Badge>}
+                                            <span>{r.started_at ? formatDate(r.started_at, lang, true) : l(`اتبعت ${timeAgo(r.assigned_at, lang)}`, `Sent ${timeAgo(r.assigned_at, lang)}`)}</span>
+                                            {duration(r) !== "—" && <span className="tabular">{l(`المدة ${duration(r)}`, `took ${duration(r)}`)}</span>}
+                                        </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                    <table className="hidden w-full min-w-[720px] text-sm md:table">
                         <thead className="bg-sheet-2 text-ink-2">
                             <tr>
                                 <th scope="col" className="px-5 py-2.5 text-start font-medium">{l("الطالب", "Student")}</th>
@@ -142,6 +166,7 @@ export default function AttendancePage() {
                             })}
                         </tbody>
                     </table>
+                    </>
                 )}
             </Panel>
         </>

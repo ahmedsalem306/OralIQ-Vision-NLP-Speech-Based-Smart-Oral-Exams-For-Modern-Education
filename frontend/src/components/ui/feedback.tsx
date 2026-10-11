@@ -166,10 +166,10 @@ export function Drawer({ open, onClose, label, header, children, footer }: Drawe
             )}
         >
             {open && (
-                <div className="flex h-full flex-col">
+                <div className="print-expand flex h-full flex-col">
                     {header && <div className="shrink-0 border-b border-rule px-5 py-3 sm:px-7">{header}</div>}
-                    <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">{children}</div>
-                    {footer && <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-rule px-5 py-3 sm:px-7">{footer}</div>}
+                    <div className="print-expand flex-1 overflow-y-auto px-5 py-6 sm:px-7">{children}</div>
+                    {footer && <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-rule px-5 py-3 sm:px-7 print:hidden">{footer}</div>}
                 </div>
             )}
         </dialog>
@@ -186,7 +186,7 @@ interface SegmentedProps<T extends string> {
 
 export function Segmented<T extends string>({ value, onChange, options, label, className }: SegmentedProps<T>) {
     return (
-        <div role="radiogroup" aria-label={label} className={cn("inline-flex rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-1", className)}>
+        <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-1 [scrollbar-width:none]", className)}>
             {options.map((o) => {
                 const active = o.value === value;
                 return (
@@ -197,7 +197,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
                         aria-checked={active}
                         onClick={() => onChange(o.value)}
                         className={cn(
-                            "rounded-[7px] px-3 py-1.5 text-sm font-semibold transition-colors",
+                            "shrink-0 whitespace-nowrap rounded-[7px] px-3 py-1.5 text-sm font-semibold transition-colors",
                             active ? "bg-sheet text-ink shadow-[0_1px_2px_rgba(23,33,58,0.12)] ring-1 ring-rule" : "text-ink-2 hover:text-ink",
                         )}
                     >

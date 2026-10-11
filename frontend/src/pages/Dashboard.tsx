@@ -11,9 +11,10 @@ import { Panel, PageHeader } from "../components/ui/panel";
 import { Alert, EmptyState, ListSkeleton, Modal, Segmented } from "../components/ui/feedback";
 import { Badge } from "../components/ui/badge";
 import { Avatar } from "../components/ui/avatar";
-import { difficultyInfo, formatDate, parseServerDate } from "../lib/format";
+import { countOf, difficultyInfo, formatDate, NOUNS, parseServerDate } from "../lib/format";
 import { getApiErrorMessage } from "../lib/apiErrors";
 import type { Question, StudentRow } from "../lib/types";
+import { useToast } from "../components/ui/toast";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -27,6 +28,7 @@ const emptyDraft = { text: "", model_answer: "", keywords: "", category: "", dif
 
 export default function Dashboard() {
     const { l, lang } = useI18n();
+    const toast = useToast();
     const [params, setParams] = useSearchParams();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
@@ -91,6 +93,7 @@ export default function Dashboard() {
         try {
             await navigator.clipboard.writeText(examLink(token));
             setCopied(token);
+            toast(l("اتنسخ رابط الامتحان. ابعته للطلاب.", "Exam link copied. Send it to your students."));
             setTimeout(() => setCopied((c) => (c === token ? null : c)), 2000);
         } catch {
             setPageError(l("المتصفح منع النسخ. انسخ الرابط يدوياً من الخانة.", "The browser blocked copying. Copy the link from the field."));
@@ -126,7 +129,10 @@ export default function Dashboard() {
             setAddedNow((p) => [...p, data]);
             if (!groupToken) setGroupToken(data.group_token);
             setDraft((d) => ({ ...emptyDraft, category: d.category, difficulty: d.difficulty, duration_minutes: d.duration_minutes }));
-            if (!addAnother) setEditorOpen(false);
+            if (!addAnother) {
+                setEditorOpen(false);
+                toast(l("اتحفظ السؤال", "Question saved"));
+            }
         } catch (err) {
             setEditorError(getApiErrorMessage(err, l("تعذّر حفظ السؤال.", "Couldn't save the question.")));
         } finally {
@@ -142,6 +148,7 @@ export default function Dashboard() {
             await api.delete(`/questions/${toDelete.id}`);
             setQuestions((p) => p.filter((q) => q.id !== toDelete.id));
             setToDelete(null);
+            toast(l("اتحذف السؤال", "Question deleted"));
         } catch (err) {
             setPageError(getApiErrorMessage(err, l("تعذّر حذف السؤال. لو عليه إجابات طلاب، مش هينفع يتحذف.", "Couldn't delete. Questions with student answers can't be deleted.")));
             setToDelete(null);
@@ -171,6 +178,8 @@ export default function Dashboard() {
         try {
             await api.post("/exams/assign", { question_id: leader.id, student_id: sid });
             setAssigned((s) => new Set(s).add(sid));
+            const name = students?.find((x) => x.id === sid)?.full_name;
+            toast(l(`اتبعت الامتحان لـ ${name ?? "الطالب"}`, `Exam sent to ${name ?? "the student"}`));
         } catch (err) {
             setAssignError(getApiErrorMessage(err, l("تعذّر إرسال الامتحان.", "Couldn't send the exam.")));
         } finally {
@@ -235,8 +244,8 @@ export default function Dashboard() {
                                             {category && category !== "general" ? category : l("امتحان شفوي", "Oral exam")}
                                         </h2>
                                         <p className="mt-0.5 flex flex-wrap gap-x-4 text-sm text-ink-2">
-                                            <span>{l(g.questions.length === 1 ? "سؤال واحد" : `${g.questions.length} أسئلة`, g.questions.length === 1 ? "1 question" : `${g.questions.length} questions`)}</span>
-                                            <span className="inline-flex items-center gap-1"><Clock className="size-3.5" aria-hidden />{l(`${total} دقيقة`, `${total} min`)}</span>
+                                            <span>{countOf(lang, g.questions.length, NOUNS.question)}</span>
+                                            <span className="inline-flex items-center gap-1"><Clock className="size-3.5" aria-hidden />{countOf(lang, total, NOUNS.minute)}</span>
                                             <span className="text-ink-3">{formatDate(g.createdAt, lang)}</span>
                                         </p>
                                     </div>
@@ -266,7 +275,7 @@ export default function Dashboard() {
                                                             <p className="font-medium leading-relaxed">{q.text}</p>
                                                             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-3">
                                                                 <Badge tone={diff.tone}>{diff.label}</Badge>
-                                                                <span>{l(`${q.duration_minutes} دقيقة`, `${q.duration_minutes} min`)}</span>
+                                                                <span>{countOf(lang, q.duration_minutes, NOUNS.minute)}</span>
                                                             </p>
                                                         </div>
                                                         <ChevronDown className="chev mt-1 size-5 shrink-0 text-ink-3 transition-transform" aria-hidden />
@@ -317,7 +326,7 @@ export default function Dashboard() {
                 }
             >
                 {addedNow.length > 0 && (
-                    <Alert tone="success" className="mb-5" title={l(`اتضاف ${addedNow.length} ${addedNow.length === 1 ? "سؤال" : "أسئلة"} للامتحان`, `${addedNow.length} added to this exam`)}>
+                    <Alert tone="success" className="mb-5" title={l(`اتضاف ${countOf("ar", addedNow.length, NOUNS.question)} للامتحان`, `${countOf("en", addedNow.length, NOUNS.question)} added to this exam`)}>
                         <ol className="mt-1 list-decimal space-y-0.5 ps-5">
                             {addedNow.map((q) => <li key={q.id} className="truncate">{q.text}</li>)}
                         </ol>

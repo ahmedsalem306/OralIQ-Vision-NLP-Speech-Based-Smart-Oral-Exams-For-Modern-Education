@@ -10,13 +10,16 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { formatScore } from "../lib/grades";
+import { countOf, NOUNS } from "../lib/format";
 import { getApiErrorMessage } from "../lib/apiErrors";
 import type { StudentRow, Submission } from "../lib/types";
+import { useToast } from "../components/ui/toast";
 
 type Filter = "all" | "missing" | "unlocked";
 
 export default function StudentsPage() {
-    const { l } = useI18n();
+    const { l, lang } = useI18n();
+    const toast = useToast();
     const [students, setStudents] = useState<StudentRow[]>([]);
     const [subs, setSubs] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
@@ -59,6 +62,9 @@ export default function StudentsPage() {
         try {
             await api.post(`/voice/${s.voice_reenroll_allowed ? "revoke" : "allow"}-reenroll/${s.id}`);
             setStudents((prev) => prev.map((x) => (x.id === s.id ? { ...x, voice_reenroll_allowed: !s.voice_reenroll_allowed } : x)));
+            toast(s.voice_reenroll_allowed
+                ? l(`اتلغى إذن ${s.full_name}`, `Permission revoked for ${s.full_name}`)
+                : l(`${s.full_name} يقدر يعيد تسجيل هويته دلوقتي`, `${s.full_name} can now re-register`));
         } catch (err) {
             setError(getApiErrorMessage(err, l("تعذّر تغيير الإذن.", "Couldn't change the permission.")));
         } finally {
@@ -127,7 +133,7 @@ export default function StudentsPage() {
                                     </div>
                                     <div className="w-28 text-sm">
                                         <p className="font-semibold tabular">{avg != null ? `${formatScore(avg)}%` : "—"}</p>
-                                        <p className="text-ink-3">{l(`${scores.length} امتحان`, `${scores.length} exams`)}</p>
+                                        <p className="text-ink-3">{scores.length ? countOf(lang, scores.length, NOUNS.exam) : l("لا امتحانات", "No exams")}</p>
                                     </div>
                                     {enrolled ? (
                                         <Button

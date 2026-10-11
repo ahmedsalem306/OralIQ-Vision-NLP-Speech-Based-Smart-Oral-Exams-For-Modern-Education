@@ -66,7 +66,7 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
             )}
         >
             {items.map((item, i) => (
-                <div key={i} className="px-5 py-4">
+                <div key={i} className={cn("px-5 py-4", items.length % 2 === 1 && i === items.length - 1 && "max-sm:col-span-2 max-sm:border-e-0")}>
                     <dt className="text-sm text-ink-2">{item.label}</dt>
                     <dd className="mt-1 font-display text-[1.75rem] font-semibold leading-none text-ink">{item.value}</dd>
                     {item.hint && <dd className="mt-1.5 text-xs text-ink-3">{item.hint}</dd>}

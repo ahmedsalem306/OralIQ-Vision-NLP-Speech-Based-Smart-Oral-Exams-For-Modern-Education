@@ -17,7 +17,7 @@ const TEAM = [
 ];
 
 export default function LandingPage() {
-    const { l } = useI18n();
+    const { l, lang } = useI18n();
     let loggedIn = false;
     try { loggedIn = !!localStorage.getItem("token"); } catch { /* ignore */ }
 
@@ -66,7 +66,9 @@ export default function LandingPage() {
                     <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:py-24">
                         <div>
                             <h1 className="text-[2.4rem] font-bold leading-[1.25] sm:text-[3.1rem] lg:text-[3.5rem]">
-                                {l("أول منصة عربية للامتحانات الشفوية أونلاين.", "The first Arabic platform for online oral exams.")}
+                                {lang === "ar" ? (
+                                    <>أول منصة عربية <span className="whitespace-nowrap">للامتحانات الشفوية</span> أونلاين.</>
+                                ) : "The first Arabic platform for online oral exams."}
                             </h1>
                             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2 sm:text-xl">
                                 {l("الطالب يجاوب بصوته من أي مكان، والإجابة بتتصحح لوحدها: OralIQ يحوّلها لنص، ويقارنها بإجابتك النموذجية، ويتأكد إن الطالب نفسه هو اللي بيجاوب.",

@@ -40,6 +40,31 @@ export function formatDuration(totalSec: number): string {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/**
+ * Counted noun with correct grammar.
+ * Arabic: 1 → "سؤال واحد", 2 → "سؤالين", 3–10 → "3 أسئلة", 11+ → "11 سؤال".
+ * English: "1 question" / "2 questions".
+ */
+export function countOf(
+    lang: Language,
+    n: number,
+    noun: { ar: { one: string; two: string; few: string; many: string }; en: { one: string; other: string } },
+): string {
+    if (lang === "en") return `${n} ${n === 1 ? noun.en.one : noun.en.other}`;
+    if (n === 1) return noun.ar.one;
+    if (n === 2) return noun.ar.two;
+    if (n >= 3 && n <= 10) return `${n} ${noun.ar.few}`;
+    return `${n} ${noun.ar.many}`;
+}
+
+export const NOUNS = {
+    question: { ar: { one: "سؤال واحد", two: "سؤالين", few: "أسئلة", many: "سؤال" }, en: { one: "question", other: "questions" } },
+    exam: { ar: { one: "امتحان واحد", two: "امتحانين", few: "امتحانات", many: "امتحان" }, en: { one: "exam", other: "exams" } },
+    answer: { ar: { one: "إجابة واحدة", two: "إجابتين", few: "إجابات", many: "إجابة" }, en: { one: "answer", other: "answers" } },
+    grade: { ar: { one: "درجة واحدة", two: "درجتين", few: "درجات", many: "درجة" }, en: { one: "grade", other: "grades" } },
+    minute: { ar: { one: "دقيقة واحدة", two: "دقيقتين", few: "دقائق", many: "دقيقة" }, en: { one: "min", other: "min" } },
+};
+
 export function difficultyInfo(value: string | null | undefined, lang: Language): { label: string; tone: Tone } {
     const map: Record<string, { ar: string; en: string; tone: Tone }> = {
         easy: { ar: "سهل", en: "Easy", tone: "pass" },
