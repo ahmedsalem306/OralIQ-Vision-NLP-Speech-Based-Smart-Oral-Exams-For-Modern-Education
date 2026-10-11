@@ -4,10 +4,10 @@ import { formatScore } from "../../lib/grades";
 type Size = "sm" | "md" | "lg" | "xl";
 
 const sizes: Record<Size, { box: string; num: string; pct: string; stroke: number }> = {
-    sm: { box: "h-10 w-[4.5rem]", num: "text-[0.95rem]", pct: "text-[0.6rem]", stroke: 2.4 },
-    md: { box: "h-14 w-24", num: "text-xl", pct: "text-xs", stroke: 2.6 },
-    lg: { box: "h-20 w-36", num: "text-[2rem]", pct: "text-sm", stroke: 2.6 },
-    xl: { box: "h-32 w-56", num: "text-[3.4rem]", pct: "text-xl", stroke: 2.4 },
+    sm: { box: "h-10 w-[4.5rem]", num: "text-[0.95rem]", pct: "text-[0.6rem]", stroke: 4 },
+    md: { box: "h-14 w-24", num: "text-xl", pct: "text-xs", stroke: 3.6 },
+    lg: { box: "h-20 w-36", num: "text-[2rem]", pct: "text-sm", stroke: 2.8 },
+    xl: { box: "h-32 w-60", num: "text-[3.4rem]", pct: "text-xl", stroke: 2 },
 };
 
 interface ScoreMarkProps {
@@ -50,7 +50,6 @@ export function ScoreMark({ score, size = "md", animate = false, plain = false, 
                         strokeWidth={s.stroke}
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        vectorEffect="non-scaling-stroke"
                         pathLength={100}
                         strokeDasharray={100}
                         style={

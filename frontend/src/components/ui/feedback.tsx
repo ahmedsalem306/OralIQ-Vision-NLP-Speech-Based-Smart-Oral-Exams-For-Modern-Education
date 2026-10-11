@@ -116,12 +116,57 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         >
             {open && (
                 <div className="flex max-h-[min(85vh,760px)] flex-col">
-                    <header className="border-b border-rule px-6 py-4">
+                    <header className={cn("px-6 py-4", (children || footer) && "border-b border-rule")}>
                         <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
                         {description && <p className="mt-0.5 text-sm text-ink-2">{description}</p>}
                     </header>
-                    <div className="overflow-y-auto px-6 py-5">{children}</div>
+                    {children && <div className="overflow-y-auto px-6 py-5">{children}</div>}
                     {footer && <footer className="flex flex-wrap justify-end gap-2 border-t border-rule px-6 py-4">{footer}</footer>}
+                </div>
+            )}
+        </dialog>
+    );
+}
+
+interface DrawerProps {
+    open: boolean;
+    onClose: () => void;
+    label: string;
+    header?: React.ReactNode;
+    children?: React.ReactNode;
+    footer?: React.ReactNode;
+}
+
+/** Side sheet on the end side of the page — for reviewing one record without losing the list. */
+export function Drawer({ open, onClose, label, header, children, footer }: DrawerProps) {
+    const ref = React.useRef<HTMLDialogElement>(null);
+
+    React.useEffect(() => {
+        const dlg = ref.current;
+        if (!dlg) return;
+        if (open && !dlg.open) {
+            dlg.showModal();
+            dlg.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+        }
+        if (!open && dlg.open) dlg.close();
+    }, [open]);
+
+    return (
+        <dialog
+            ref={ref}
+            aria-label={label}
+            onCancel={(e) => { e.preventDefault(); onClose(); }}
+            onClick={(e) => { if (e.target === ref.current) onClose(); }}
+            className={cn(
+                "fixed inset-y-0 m-0 ms-auto h-dvh max-h-dvh w-full max-w-2xl border-s border-rule bg-sheet p-0 text-ink shadow-pop",
+                "backdrop:bg-overlay open:animate-[oiq-fade-in_160ms_ease-out]",
+            )}
+        >
+            {open && (
+                <div className="flex h-full flex-col">
+                    {header && <div className="shrink-0 border-b border-rule px-5 py-3 sm:px-7">{header}</div>}
+                    <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">{children}</div>
+                    {footer && <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-rule px-5 py-3 sm:px-7">{footer}</div>}
                 </div>
             )}
         </dialog>
