@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCheck, Search } from "lucide-react";
+import { CalendarCheck, CircleCheck, Hourglass, Search } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, StatStrip } from "../components/ui/panel";
@@ -76,9 +76,9 @@ export default function AttendancePage() {
             <StatStrip
                 className="mb-6 sm:grid-cols-3"
                 items={[
-                    { label: l("المطلوب", "Expected"), value: rows.length },
-                    { label: l("خلّصوا", "Completed"), value: completed, hint: rows.length ? l(`${Math.round((completed / rows.length) * 100)}% من المطلوب`, `${Math.round((completed / rows.length) * 100)}% of expected`) : undefined },
-                    { label: l("لسه", "Not yet"), value: pending },
+                    { label: l("المطلوب", "Expected"), value: rows.length, icon: CalendarCheck, tone: "pen" },
+                    { label: l("خلّصوا", "Completed"), value: completed, hint: rows.length ? l(`${Math.round((completed / rows.length) * 100)}% من المطلوب`, `${Math.round((completed / rows.length) * 100)}% of expected`) : undefined, icon: CircleCheck, tone: "pass" },
+                    { label: l("لسه", "Not yet"), value: pending, icon: Hourglass, tone: "warn" },
                 ]}
             />
 

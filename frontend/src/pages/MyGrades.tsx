@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Award, X } from "lucide-react";
+import { Award, TrendingUp, Trophy, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, RuledList, StatStrip } from "../components/ui/panel";
@@ -51,9 +51,9 @@ export default function MyGrades() {
                 <StatStrip
                     className="mb-6 sm:grid-cols-3"
                     items={[
-                        { label: l("امتحانات منشورة", "Published"), value: grades.length },
-                        { label: l("متوسطك", "Your average"), value: avg != null ? `${formatScore(avg)}%` : "—" },
-                        { label: l("أعلى درجة", "Best"), value: best != null ? `${formatScore(best)}%` : "—" },
+                        { label: l("امتحانات منشورة", "Published"), value: grades.length, icon: Award, tone: "pen" },
+                        { label: l("متوسطك", "Your average"), value: avg != null ? `${formatScore(avg)}%` : "—", icon: TrendingUp, tone: "teal" },
+                        { label: l("أعلى درجة", "Best"), value: best != null ? `${formatScore(best)}%` : "—", icon: Trophy, tone: "violet" },
                     ]}
                 />
             )}

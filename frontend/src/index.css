@@ -1,55 +1,63 @@
 @import "tailwindcss";
 
 /* ══════════════════════════════════════════════════════════════════
-   OralIQ — "Answer sheet" design system
-   Paper, ballpoint-blue ink, and the grader's red pen.
-   Red is reserved for marks (grades) and danger — nothing decorative.
+   OralIQ design system
+   Confident ink-blue, warm paper, the grader's red pen for marks only,
+   navy for depth. Layered cards with soft shadows.
    ══════════════════════════════════════════════════════════════════ */
 
 :root {
   color-scheme: light;
-  --paper: #F5F7FA;
+  --paper: #F4F6FB;
   --sheet: #FFFFFF;
-  --sheet-2: #F9FAFC;
-  --rule: #DDE3EC;
-  --rule-strong: #C3CDDC;
-  --ink: #17213A;
-  --ink-2: #4A5672;
+  --sheet-2: #F8FAFD;
+  --rule: #E1E6EF;
+  --rule-strong: #C9D2E0;
+  --ink: #111B34;
+  --ink-2: #47536E;
   --ink-3: #5F6A84;
   --field: #868FA5;
-  --pen: #2345B0;
-  --pen-hover: #1B3890;
-  --pen-wash: #E9EEFB;
+  --pen: #2348C8;
+  --pen-hover: #1A39A6;
+  --pen-wash: #EAF0FF;
   --pen-ink: #FFFFFF;
-  --chart: #2345B0;
-  --mark: #CC2936;
-  --mark-wash: #FBEAEB;
-  --pass: #127A4B;
-  --pass-wash: #E2F3EA;
+  --chart: #2348C8;
+  --mark: #C62A39;
+  --mark-wash: #FDECEE;
+  --pass: #0F7A4C;
+  --pass-wash: #E3F5EC;
   --warn: #9A5B0C;
-  --warn-wash: #FBF0DD;
-  --overlay: rgba(23, 33, 58, 0.45);
-  --shadow-pop: 0 18px 50px -12px rgba(23, 33, 58, 0.28), 0 2px 6px rgba(23, 33, 58, 0.06);
+  --warn-wash: #FFF3DC;
+  --violet: #6B4BE0;
+  --violet-wash: #F0ECFF;
+  --teal: #0A7166;
+  --teal-wash: #DFF5F2;
+  --navy: #0C1633;
+  --navy-2: #16234A;
+  --navy-ink: #F2F5FF;
+  --navy-muted: #A3AFCC;
+  --overlay: rgba(12, 22, 51, 0.5);
+  --shadow-card: 0 1px 2px rgba(17, 27, 52, 0.04), 0 6px 20px -8px rgba(17, 27, 52, 0.10);
+  --shadow-float: 0 30px 60px -18px rgba(17, 27, 52, 0.30), 0 8px 20px -10px rgba(17, 27, 52, 0.14);
+  --shadow-pop: 0 18px 50px -12px rgba(17, 27, 52, 0.28), 0 2px 6px rgba(17, 27, 52, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #0E1422;
-    --sheet: #151C2D;
-    --sheet-2: #121929;
-    --rule: #253049;
-    --rule-strong: #34415F;
-    --ink: #E8ECF5;
+    --paper: #0B1120;
+    --sheet: #131B2E;
+    --sheet-2: #101728;
+    --rule: #232E48;
+    --rule-strong: #33405F;
+    --ink: #E9EDF7;
     --ink-2: #AEB8CE;
-    --ink-3: #8390AC;
-  --field: #62708F;
+    --ink-3: #8592AE;
     --field: #62708F;
     --pen: #7F9AFF;
-    --pen-hover: #AABDFF;
-    --pen-wash: #1C2750;
-    --pen-ink: #0E1422;
-  --chart: #6E8BFA;
+    --pen-hover: #A3B6FF;
+    --pen-wash: #1B2654;
+    --pen-ink: #0B1120;
     --chart: #6E8BFA;
     --mark: #FF6E7B;
     --mark-wash: #3A1A24;
@@ -57,26 +65,36 @@
     --pass-wash: #12322A;
     --warn: #F1B45A;
     --warn-wash: #392A13;
+    --violet: #A894FF;
+    --violet-wash: #261F4D;
+    --teal: #4FD1C1;
+    --teal-wash: #0F3330;
+    --navy: #070C19;
+    --navy-2: #111A33;
+    --navy-ink: #F2F5FF;
+    --navy-muted: #8E9AB8;
     --overlay: rgba(4, 7, 14, 0.7);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
+    --shadow-float: 0 30px 60px -18px rgba(0, 0, 0, 0.7), 0 8px 20px -10px rgba(0, 0, 0, 0.4);
     --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #0E1422;
-  --sheet: #151C2D;
-  --sheet-2: #121929;
-  --rule: #253049;
-  --rule-strong: #34415F;
-  --ink: #E8ECF5;
+  --paper: #0B1120;
+  --sheet: #131B2E;
+  --sheet-2: #101728;
+  --rule: #232E48;
+  --rule-strong: #33405F;
+  --ink: #E9EDF7;
   --ink-2: #AEB8CE;
-  --ink-3: #8390AC;
+  --ink-3: #8592AE;
   --field: #62708F;
   --pen: #7F9AFF;
-  --pen-hover: #AABDFF;
-  --pen-wash: #1C2750;
-  --pen-ink: #0E1422;
+  --pen-hover: #A3B6FF;
+  --pen-wash: #1B2654;
+  --pen-ink: #0B1120;
   --chart: #6E8BFA;
   --mark: #FF6E7B;
   --mark-wash: #3A1A24;
@@ -84,7 +102,17 @@
   --pass-wash: #12322A;
   --warn: #F1B45A;
   --warn-wash: #392A13;
+  --violet: #A894FF;
+  --violet-wash: #261F4D;
+  --teal: #4FD1C1;
+  --teal-wash: #0F3330;
+  --navy: #070C19;
+  --navy-2: #111A33;
+  --navy-ink: #F2F5FF;
+  --navy-muted: #8E9AB8;
   --overlay: rgba(4, 7, 14, 0.7);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 30px 60px -18px rgba(0, 0, 0, 0.7), 0 8px 20px -10px rgba(0, 0, 0, 0.4);
   --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
@@ -109,14 +137,24 @@
   --color-pass-wash: var(--pass-wash);
   --color-warn: var(--warn);
   --color-warn-wash: var(--warn-wash);
+  --color-violet: var(--violet);
+  --color-violet-wash: var(--violet-wash);
+  --color-teal: var(--teal);
+  --color-teal-wash: var(--teal-wash);
+  --color-navy: var(--navy);
+  --color-navy-2: var(--navy-2);
+  --color-navy-ink: var(--navy-ink);
+  --color-navy-muted: var(--navy-muted);
   --color-overlay: var(--overlay);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
   --shadow-pop: var(--shadow-pop);
 
   --font-sans: "IBM Plex Sans Arabic", system-ui, sans-serif;
   --font-display: "Alexandria", "IBM Plex Sans Arabic", system-ui, sans-serif;
 
-  --radius-control: 10px;
-  --radius-panel: 16px;
+  --radius-control: 12px;
+  --radius-panel: 20px;
 }
 
 /* ── Base ─────────────────────────────────────────────────────────── */
@@ -184,6 +222,7 @@
 @keyframes oiq-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes oiq-pop-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes oiq-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@keyframes oiq-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes oiq-pulse-ring { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.9); opacity: 0; } }
 
 .oiq-skeleton {

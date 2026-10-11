@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, Inbox, Printer, Search, Send, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, Inbox, Printer, Search, Send, TrendingUp, Trophy, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
@@ -175,10 +175,10 @@ export default function LecturerResults() {
             <StatStrip
                 className="mb-6"
                 items={[
-                    { label: l("الإجابات", "Submissions"), value: results.length },
-                    { label: l("المتوسط", "Average"), value: avg != null ? `${avg}%` : "—" },
-                    { label: l("أعلى درجة", "Highest"), value: top != null ? `${formatScore(top)}%` : "—" },
-                    { label: l("لم تُنشر بعد", "Not published"), value: unpublished.length },
+                    { label: l("الإجابات", "Submissions"), value: results.length, icon: Inbox, tone: "violet" },
+                    { label: l("المتوسط", "Average"), value: avg != null ? `${avg}%` : "—", icon: TrendingUp, tone: "teal" },
+                    { label: l("أعلى درجة", "Highest"), value: top != null ? `${formatScore(top)}%` : "—", icon: Trophy, tone: "pen" },
+                    { label: l("لم تُنشر بعد", "Not published"), value: unpublished.length, icon: EyeOff, tone: "warn" },
                 ]}
             />
 
@@ -285,7 +285,7 @@ export default function LecturerResults() {
                         </div>
                         <span className="hidden font-display font-bold print:inline">OralIQ</span>
                         {openIndex >= 0 && (
-                            <span className="hidden text-sm text-ink-3 tabular sm:inline print:hidden">{openIndex + 1} / {visible.length}</span>
+                            <span className="hidden text-sm text-ink-3 tabular sm:inline print:hidden">{l(`${openIndex + 1} من ${visible.length}`, `${openIndex + 1} of ${visible.length}`)}</span>
                         )}
                         <div className="flex items-center print:hidden">
                             <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => window.print()} aria-label={l("طباعة ورقة الإجابة", "Print answer sheet")} title={l("طباعة / PDF", "Print / PDF")}>

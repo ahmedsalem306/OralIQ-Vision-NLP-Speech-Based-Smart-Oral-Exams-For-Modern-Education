@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Plus, Mic, ShieldCheck, ScanFace, Inbox, ClipboardList, Lock, RefreshCw, WifiOff } from "lucide-react";
+import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardList, Lock, RefreshCw, TrendingUp, WifiOff } from "lucide-react";
 import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
-import { Button, ButtonLink } from "../components/ui/button";
-import { Panel, PanelHeader, PageHeader, RuledList, StatStrip } from "../components/ui/panel";
+import { Button, ButtonLink, buttonClasses } from "../components/ui/button";
+import { Panel, PanelHeader, RuledList, StatStrip } from "../components/ui/panel";
+import { WelcomeBanner, onDark } from "../components/WelcomeBanner";
 import { Alert, EmptyState, ListSkeleton, Skeleton } from "../components/ui/feedback";
 import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
@@ -110,19 +111,31 @@ export default function Overview() {
 
         return (
             <>
-                <PageHeader
+                <WelcomeBanner
                     title={l(`أهلاً، ${user?.full_name ?? ""}`, `Welcome, ${user?.full_name ?? ""}`)}
                     description={
                         results.length
-                            ? `${l("وصلتك", "You have")} ${countOf(lang, results.length, NOUNS.answer)} ${l("حتى الآن.", "so far.")}`
-                            : l("ابدأ بإضافة سؤال وأرسل رابطه للطلاب.", "Start by adding a question and sharing its link with students.")
+                            ? `${l("وصلتك", "You have")} ${countOf(lang, results.length, NOUNS.answer)} ${l("حتى الآن", "so far")}${flagged.length ? l(`، منهم ${countOf("ar", flagged.length, NOUNS.answer)} محتاجة مراجعتك.`, `, ${flagged.length} need your review.`) : "."}`
+                            : l("ابدأ بإضافة سؤال وابعت رابطه للطلاب، والتصحيح هيوصلك جاهز.", "Add a question and share its link — the grading comes back to you done.")
                     }
                     actions={
                         <>
-                            <ButtonLink to="/dashboard/results" variant="secondary">{l("كل النتائج", "All results")}</ButtonLink>
-                            <ButtonLink to="/dashboard/questions?new=1"><Plus className="size-4" aria-hidden />{l("سؤال جديد", "New question")}</ButtonLink>
+                            <ButtonLink to="/dashboard/questions?new=1" className={onDark.primary}><Plus className="size-4" aria-hidden />{l("سؤال جديد", "New question")}</ButtonLink>
+                            {results.length > 0 && <ButtonLink to="/dashboard/results" variant="secondary" className={onDark.secondary}>{l("كل النتائج", "All results")}</ButtonLink>}
                         </>
                     }
+                    aside={avg != null && (
+                        <div className="w-64 rounded-2xl border border-white/15 bg-white/[0.08] p-5 backdrop-blur-sm">
+                            <p className="text-sm text-white/70">{l("متوسط درجات طلابك", "Your students' average")}</p>
+                            <div className="mt-3 flex items-center justify-between">
+                                <span className="font-display text-5xl font-bold tracking-tight" dir="ltr">{avg}<span className="text-2xl text-white/60">%</span></span>
+                                <span className="text-xs text-white/60">{countOf(lang, scored.length, NOUNS.answer)}</span>
+                            </div>
+                            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden>
+                                <div className="h-full rounded-full bg-[#9DB2FF]" style={{ width: `${avg}%` }} />
+                            </div>
+                        </div>
+                    )}
                 />
 
                 {results.length === 0 && (
@@ -173,10 +186,10 @@ export default function Overview() {
                 {results.length > 0 && <StatStrip
                     className="mb-8"
                     items={[
-                        { label: l("الامتحانات", "Exams"), value: exams, hint: countOf(lang, questions.length, NOUNS.question) },
-                        { label: l("الإجابات", "Submissions"), value: results.length },
-                        { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${avg}%` : "—" },
-                        { label: l("تحتاج مراجعتك", "Need your review"), value: flagged.length, hint: l("النزاهة أو الهوية", "Integrity or identity") },
+                        { label: l("الامتحانات", "Exams"), value: exams, hint: countOf(lang, questions.length, NOUNS.question), icon: ClipboardList, tone: "pen" },
+                        { label: l("الإجابات", "Submissions"), value: results.length, icon: Inbox, tone: "violet" },
+                        { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${avg}%` : "—", icon: TrendingUp, tone: "teal" },
+                        { label: l("تحتاج مراجعتك", "Need your review"), value: flagged.length, hint: l("النزاهة أو الهوية", "Integrity or identity"), icon: ShieldAlert, tone: "warn" },
                     ]}
                 />}
 
@@ -252,16 +265,30 @@ export default function Overview() {
 
     return (
         <>
-            <PageHeader
+            <WelcomeBanner
                 title={l(`أهلاً، ${firstName}`, `Hi, ${firstName}`)}
                 description={
                     pending.length
                         ? l(
-                            `عندك ${countOf("ar", pending.length, NOUNS.exam)} في انتظارك.`,
-                            pending.length === 1 ? "You have one exam waiting." : `You have ${pending.length} exams waiting.`,
+                            `عندك ${countOf("ar", pending.length, NOUNS.exam)} في انتظارك. خد نفس، واتكلم براحتك.`,
+                            pending.length === 1 ? "You have one exam waiting. Take a breath and speak at your own pace." : `You have ${pending.length} exams waiting. Take a breath and speak at your own pace.`,
                         )
-                        : l("لا توجد امتحانات مطلوبة منك الآن.", "No exams are waiting for you right now.")
+                        : l("مفيش امتحانات مطلوبة منك دلوقتي. هنبلّغك أول ما يوصل جديد.", "No exams are waiting right now. New ones will show up here.")
                 }
+                actions={pending.length > 0 && ready ? (
+                    <button type="button" onClick={() => startExam(pending[0].exam_token)} className={buttonClasses("primary", "lg", onDark.primary)}>
+                        <Mic className="size-5" aria-hidden />{l("ابدأ أول امتحان", "Start the first exam")}
+                    </button>
+                ) : pending.length === 0 ? (
+                    <ButtonLink to="/dashboard/grades" className={onDark.secondary} variant="secondary">{l("درجاتي", "My grades")}</ButtonLink>
+                ) : undefined}
+                aside={pending[0] && (
+                    <div className="w-72 rounded-2xl border border-white/15 bg-white/[0.08] p-5 backdrop-blur-sm">
+                        <p className="text-sm text-white/70">{l("الامتحان الجاي", "Up next")}</p>
+                        <p className="mt-2 line-clamp-3 font-display text-lg font-semibold leading-snug">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
+                        <p className="mt-3 text-sm text-white/60">{pending[0].assigned_by_name}</p>
+                    </div>
+                )}
             />
 
             {/* Identity setup */}

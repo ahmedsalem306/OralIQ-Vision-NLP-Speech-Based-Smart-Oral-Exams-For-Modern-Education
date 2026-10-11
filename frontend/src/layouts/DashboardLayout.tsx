@@ -96,17 +96,17 @@ export function DashboardLayout() {
             <aside
                 id="sidebar"
                 className={cn(
-                    "fixed inset-y-0 start-0 z-50 flex w-[17rem] shrink-0 flex-col border-e border-rule bg-sheet",
+                    "fixed inset-y-0 start-0 z-50 flex w-[17rem] shrink-0 flex-col bg-navy text-navy-ink",
                     "transition-transform duration-200 ease-out md:sticky md:top-0 md:h-dvh",
                     !isOpen && "max-md:ltr:-translate-x-full max-md:rtl:translate-x-full",
                 )}
                 aria-label={l("القائمة الرئيسية", "Main menu")}
             >
-                <div className="flex h-16 shrink-0 items-center justify-between px-5">
-                    <Link to="/dashboard" aria-label="OralIQ"><Logo size={30} /></Link>
+                <div className="flex h-[4.5rem] shrink-0 items-center justify-between px-5">
+                    <Link to="/dashboard" aria-label="OralIQ"><Logo size={32} light /></Link>
                     <button
                         type="button"
-                        className={cn(buttonClasses("ghost", "icon-sm"), "md:hidden")}
+                        className={cn(buttonClasses("ghost", "icon-sm", "text-navy-muted hover:bg-white/10 hover:text-white"), "md:hidden")}
                         onClick={() => setIsOpen(false)}
                         aria-label={l("إغلاق القائمة", "Close menu")}
                     >
@@ -114,7 +114,7 @@ export function DashboardLayout() {
                     </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto px-3 py-3">
+                <nav className="flex-1 overflow-y-auto px-3 py-2">
                     <ul role="list" className="space-y-0.5">
                         {(user ? navItems : []).map((item) => (
                             <li key={item.href}>
@@ -124,27 +124,27 @@ export function DashboardLayout() {
                     </ul>
                 </nav>
 
-                <div className="shrink-0 space-y-1 border-t border-rule px-3 py-3">
+                <div className="shrink-0 space-y-1 border-t border-white/10 px-3 py-3">
                     <NavItem icon={Settings} label={t("nav.settings")} href="/dashboard/settings" active={location.pathname === "/dashboard/settings"} onNavigate={() => setIsOpen(false)} />
                     <div className="flex items-center gap-1 px-1 pt-1">
-                        <LanguageToggle compact />
-                        <ThemeToggle />
+                        <LanguageToggle compact className="text-navy-muted hover:bg-white/10 hover:text-white" />
+                        <ThemeToggle className="text-navy-muted hover:bg-white/10 hover:text-white" />
                     </div>
                 </div>
 
                 {user && (
-                    <div className="flex shrink-0 items-center gap-3 border-t border-rule px-4 py-4">
+                    <div className="m-3 mt-0 flex shrink-0 items-center gap-3 rounded-2xl bg-white/[0.06] px-3 py-3">
                         <Avatar name={user.full_name} src={profilePic} />
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold">{user.full_name}</p>
-                            <p className="truncate text-xs text-ink-3">
+                            <p className="truncate text-xs text-navy-muted">
                                 {isLecturer ? t("auth.role.lecturer") : t("auth.role.student")}
                             </p>
                         </div>
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className={buttonClasses("ghost", "icon-sm", "hover:bg-mark-wash hover:text-mark")}
+                            className={buttonClasses("ghost", "icon-sm", "text-navy-muted hover:bg-white/10 hover:text-[#FF9AA4]")}
                             aria-label={t("nav.signOut")}
                             title={t("nav.signOut")}
                         >
@@ -197,8 +197,8 @@ function NavItem({ icon: Icon, label, href, active, onNavigate }: NavItemProps) 
             className={cn(
                 "relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-[0.9375rem] transition-colors",
                 active
-                    ? "bg-pen-wash font-semibold text-pen before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-pen"
-                    : "text-ink-2 hover:bg-sheet-2 hover:text-ink",
+                    ? "bg-white/[0.12] font-semibold text-white before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-[#8EA6FF]"
+                    : "text-navy-muted hover:bg-white/[0.06] hover:text-white",
             )}
         >
             <Icon className="size-[18px] shrink-0" aria-hidden />

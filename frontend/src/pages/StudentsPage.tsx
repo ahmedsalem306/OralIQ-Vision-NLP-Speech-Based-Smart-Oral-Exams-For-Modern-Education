@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Lock, LockOpen, Mic, ScanFace, Search, Users } from "lucide-react";
+import { Lock, LockOpen, Mic, ScanFace, Search, ShieldCheck, UserX, Users } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
@@ -84,9 +84,9 @@ export default function StudentsPage() {
             <StatStrip
                 className="mb-6 sm:grid-cols-3"
                 items={[
-                    { label: l("الطلاب", "Students"), value: students.length },
-                    { label: l("سجّلوا وشهم وصوتهم", "Identity set up"), value: ready },
-                    { label: l("لسه ماسجلوش", "Not set up yet"), value: students.length - ready, hint: l("مش هيقدروا يدخلوا امتحان", "Can't take exams yet") },
+                    { label: l("الطلاب", "Students"), value: students.length, icon: Users, tone: "pen" },
+                    { label: l("سجّلوا وشهم وصوتهم", "Identity set up"), value: ready, icon: ShieldCheck, tone: "pass" },
+                    { label: l("لسه ماسجلوش", "Not set up yet"), value: students.length - ready, hint: l("مش هيقدروا يدخلوا امتحان", "Can't take exams yet"), icon: UserX, tone: "warn" },
                 ]}
             />
 

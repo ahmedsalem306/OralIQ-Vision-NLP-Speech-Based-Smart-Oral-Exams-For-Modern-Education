@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, CircleCheck, LifeBuoy, ShieldAlert, TrendingUp } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
@@ -124,10 +124,10 @@ export default function AnalyticsPage() {
                 <div className="space-y-6">
                     <StatStrip
                         items={[
-                            { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${Math.round(avg)}%` : "—", hint: `${l("من", "from")} ${countOf(lang, scored.length, NOUNS.answer)}` },
-                            { label: l("نسبة النجاح", "Pass rate"), value: passRate != null ? `${passRate}%` : "—", hint: l("50% فأكثر", "50% or more") },
-                            { label: l("يحتاجون دعم", "Need support"), value: struggling, hint: l("أقل من 50%", "below 50%") },
-                            { label: l("ملاحظات نزاهة", "Integrity notes"), value: flagged },
+                            { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${Math.round(avg)}%` : "—", hint: `${l("من", "from")} ${countOf(lang, scored.length, NOUNS.answer)}`, icon: TrendingUp, tone: "pen" },
+                            { label: l("نسبة النجاح", "Pass rate"), value: passRate != null ? `${passRate}%` : "—", hint: l("50% فأكثر", "50% or more"), icon: CircleCheck, tone: "pass" },
+                            { label: l("يحتاجون دعم", "Need support"), value: struggling, hint: l("أقل من 50%", "below 50%"), icon: LifeBuoy, tone: "warn" },
+                            { label: l("ملاحظات نزاهة", "Integrity notes"), value: flagged, icon: ShieldAlert, tone: "mark" },
                         ]}
                     />
 

@@ -1,60 +1,8 @@
 import { Link } from "react-router-dom";
-import { Mic } from "lucide-react";
 import Logo from "./Logo";
 import LanguageToggle, { ThemeToggle } from "./LanguageToggle";
 import { ScoreMark } from "./ui/score-mark";
 import { useI18n } from "../i18n";
-
-/** A graded answer sheet — what OralIQ produces, shown instead of a stock photo. */
-export function SampleSheet() {
-    const { l } = useI18n();
-    const rows = [
-        { label: l("المحتوى", "Content"), value: 94 },
-        { label: l("الطلاقة", "Fluency"), value: 86 },
-        { label: l("النزاهة", "Integrity"), value: 100 },
-    ];
-    return (
-        <figure
-            aria-label={l("مثال لإجابة مصحّحة", "Example of a graded answer")}
-            className="relative w-full max-w-md rotate-[-1.2deg] rounded-[var(--radius-panel)] border border-rule bg-sheet p-6 shadow-pop sm:p-7"
-        >
-            <div className="flex items-start justify-between gap-4 border-b border-rule pb-4">
-                <div>
-                    <p className="text-sm text-ink-3">{l("سؤال 2 من 3", "Question 2 of 3")}</p>
-                    <p className="mt-1 font-display text-lg font-semibold leading-snug">
-                        {l("عرّف الذكاء الاصطناعي واذكر مثالين على استخدامه", "Define artificial intelligence and give two examples of its use")}
-                    </p>
-                </div>
-                <ScoreMark score={92} size="lg" animate />
-            </div>
-
-            <div className="flex items-center gap-2 py-4 text-pen" aria-hidden>
-                <Mic className="size-4 shrink-0" />
-                <svg viewBox="0 0 240 28" className="h-7 w-full" preserveAspectRatio="none">
-                    {Array.from({ length: 48 }).map((_, i) => {
-                        const h = 4 + Math.abs(Math.sin(i * 0.9) * 10 + Math.sin(i * 0.37) * 8);
-                        return <rect key={i} x={i * 5} y={14 - h / 2} width="2.4" height={h} rx="1.2" fill="currentColor" opacity={i < 34 ? 1 : 0.3} />;
-                    })}
-                </svg>
-                <span className="text-xs tabular text-ink-3 ltr">1:12</span>
-            </div>
-
-            <blockquote className="border-s-2 border-pen/40 ps-3 text-[0.95rem] leading-relaxed text-ink-2">
-                {l("الذكاء الاصطناعي هو قدرة الآلة على محاكاة التفكير البشري، زي المساعدات الصوتية وتشخيص الأشعة…",
-                    "AI is a machine's ability to imitate human thinking — like voice assistants and reading X-rays…")}
-            </blockquote>
-
-            <dl className="mt-5 grid grid-cols-3 border-t border-rule pt-4">
-                {rows.map((r) => (
-                    <div key={r.label}>
-                        <dt className="text-xs text-ink-3">{r.label}</dt>
-                        <dd className="font-display text-lg font-semibold tabular">{r.value}</dd>
-                    </div>
-                ))}
-            </dl>
-        </figure>
-    );
-}
 
 export function AuthShell({ children }: { children: React.ReactNode }) {
     const { l } = useI18n();
@@ -70,20 +18,32 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                 <p className="text-center text-xs text-ink-3">© 2026 OralIQ</p>
             </div>
 
-            {/* Brand side — ruled like an exam booklet */}
-            <aside
-                className="relative hidden flex-col justify-center overflow-hidden border-s border-rule bg-sheet-2 px-12 py-16 lg:flex xl:px-20"
-                style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0, transparent 39px, var(--rule) 39px, var(--rule) 40px)" }}
-            >
-                <div className="relative max-w-lg">
-                    <h2 className="text-[2.4rem] font-bold leading-[1.25] xl:text-[2.75rem]">
+            {/* Brand side — a real moment (student answering), with the product floating on top */}
+            <aside className="relative hidden overflow-hidden lg:block">
+                <img src="/photos/study-cafe.webp" alt="" className="absolute inset-0 size-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/10" aria-hidden />
+                <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(70% 50% at 100% 0%, color-mix(in oklab, var(--pen) 45%, transparent), transparent 70%)" }} aria-hidden />
+
+                <div className="relative flex h-full flex-col justify-end px-12 pb-16 xl:px-16">
+                    <div className="mb-10 w-72 rounded-2xl border border-white/15 bg-white/10 p-5 text-white shadow-float backdrop-blur-md motion-safe:animate-[oiq-float_7s_ease-in-out_infinite]">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs text-white/70">{l("سؤال 2 من 3", "Question 2 of 3")}</p>
+                                <p className="mt-1 font-display font-semibold">{l("عرّف الذكاء الاصطناعي", "Define artificial intelligence")}</p>
+                            </div>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                            <span className="[&_.text-ink]:text-white [&_.text-ink-2]:text-white/70"><ScoreMark score={92} size="md" animate /></span>
+                            <span className="rounded-md bg-white/15 px-2 py-0.5 text-xs font-semibold">{l("ممتاز", "Excellent")}</span>
+                        </div>
+                    </div>
+                    <h2 className="max-w-lg text-[2.4rem] font-bold leading-[1.25] text-white xl:text-[2.75rem]">
                         {l("الطالب يجاوب بصوته، والتصحيح يوصلك جاهز.", "Students answer out loud. You get the grading done.")}
                     </h2>
-                    <p className="mt-4 max-w-md text-lg text-ink-2">
+                    <p className="mt-4 max-w-md text-lg text-white/75">
                         {l("OralIQ بيحوّل الإجابة لنص، ويقارنها بإجابتك النموذجية، ويتأكد إن الطالب هو اللي بيجاوب.",
                             "OralIQ transcribes each answer, compares it with your model answer, and checks the right student is answering.")}
                     </p>
-                    <div className="mt-12"><SampleSheet /></div>
                 </div>
             </aside>
         </div>
