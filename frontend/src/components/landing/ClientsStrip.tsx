@@ -21,7 +21,7 @@ export function ClientsStrip() {
         return c.href ? <a href={c.href} target="_blank" rel="noopener noreferrer">{body}</a> : body;
     };
 
-    // The band repeats itself once so the loop is seamless; the copy is hidden from screen readers.
+    // The band repeats once so the loop has no visible jump; the copy is hidden from screen readers.
     const row = (hidden: boolean) => (
         <ul aria-hidden={hidden || undefined} className="flex shrink-0 items-center gap-14 pe-14">
             {preview
