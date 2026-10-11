@@ -5,23 +5,23 @@ import { buttonClasses } from "../ui/button";
 import { LogoMark } from "../Logo";
 
 /**
- * Two ways to work with OralIQ: use the platform as-is, or have the oral exam
- * built into the client's own website. Copy stays at the level of the offer;
- * the technical route is agreed per client, so none is promised here.
+ * What this site is (a demo to try the exams on) and what OralIQ really is
+ * (a feature added inside a university's, centre's or learning platform's own site).
+ * The technical route is agreed per client, so none is promised here.
  */
 export function IntegrationSection() {
     const { l } = useI18n();
 
     const ways = [
         {
-            title: l("على منصة OralIQ", "On the OralIQ platform"),
-            body: l("تعمل حساب وتبدأ النهارده: تكتب السؤال، تبعت الرابط، والنتايج توصلك هنا.", "Create an account and start today: write the question, send the link, results arrive here."),
-            points: [l("جاهز من غير أي تجهيز", "Ready with no setup"), l("مناسب للمدرس أو القسم", "Suits a teacher or a department")],
+            title: l("الموقع ده تجريبي", "This site is a demo"),
+            body: l("معمول عشان تجرّب الامتحانات الشفوية بنفسك: اعمل حساب، اكتب سؤال أو جاوب على امتحان، وشوف التصحيح بيطلع إزاي.", "It's here so you can try oral exams yourself: create an account, write a question or answer one, and see how the grading comes out."),
+            points: [l("مجاني للتجربة", "Free to try"), l("نفس التصحيح والتحقق من الهوية اللي هتاخدهم", "The same grading and identity checks you'd get")],
         },
         {
-            title: l("جوّه موقعك أنت", "Inside your own website"),
-            body: l("عندك موقع أو منصة تعليمية؟ بنضيف الامتحان الشفوي جوّاها، فالطالب يمتحن من غير ما يخرج من موقعك.", "Have a website or learning platform? We add the oral exam to it, so students never leave your site."),
-            points: [l("بشكل وألوان موقعك", "In your site's look and colours"), l("بنتفق سوا على طريقة الربط ونجهّزها معاك", "We agree the setup with you and build it together"), l("للجامعات والمدارس ومراكز التدريب والمدرسين", "For universities, schools, centres and teachers")],
+            title: l("OralIQ كميزة جوّه منصتك", "OralIQ as a feature inside your platform"),
+            body: l("الأساس إننا بننضم لموقعك: بنضيف الامتحان الشفوي كميزة جوّه موقع الجامعة أو المؤسسة أو السنتر أو المنصة التعليمية، والطالب يمتحن من غير ما يخرج منه.", "What we really do is join your site: we add the oral exam as a feature inside your university's, institution's, centre's or learning platform's website, and students take it without leaving."),
+            points: [l("جامعات ومؤسسات وسناتر ومنصات تعليمية", "Universities, institutions, centres and learning platforms"), l("بشكل وألوان موقعك وتحت اسمك", "In your site's look and under your name"), l("بنتفق سوا على طريقة الربط ونجهّزها معاك", "We agree the setup with you and build it together")],
             featured: true,
         },
     ];
@@ -31,7 +31,7 @@ export function IntegrationSection() {
             <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.05fr]">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">
-                        {l("مش لازم تنقل لمنصة جديدة. OralIQ ممكن ييجي لحد موقعك.", "No need to move to a new platform. OralIQ can come to your site.")}
+                        {l("جرّب هنا، وبعدين نضيفه جوّه منصتك.", "Try it here, then we add it inside your platform.")}
                     </h2>
                     <div className="mt-10 space-y-4">
                         {ways.map((w) => (
@@ -46,7 +46,7 @@ export function IntegrationSection() {
                             </div>
                         ))}
                     </div>
-                    <a href="#contact" className={buttonClasses("primary", "lg", "mt-8")}>{l("كلّمنا عن إضافته لموقعك", "Talk to us about your site")}</a>
+                    <a href="#contact" className={buttonClasses("primary", "lg", "mt-8")}>{l("كلّمنا عن إضافته لمنصتك", "Talk to us about your platform")}</a>
                 </div>
 
                 {/* Illustration: someone else's site, with the OralIQ exam living inside it */}
