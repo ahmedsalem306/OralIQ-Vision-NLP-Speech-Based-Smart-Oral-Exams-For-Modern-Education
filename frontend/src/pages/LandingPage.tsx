@@ -65,12 +65,12 @@ export default function LandingPage() {
                 <section className="relative overflow-hidden border-b border-rule" style={RULED}>
                     <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:py-24">
                         <div>
-                            <h1 className="text-[2.6rem] font-bold leading-[1.2] sm:text-[3.4rem] lg:text-[3.9rem]">
-                                {l("امتحانات شفوية بتتصحح لوحدها.", "Oral exams that grade themselves.")}
+                            <h1 className="text-[2.4rem] font-bold leading-[1.25] sm:text-[3.1rem] lg:text-[3.5rem]">
+                                {l("أول منصة عربية للامتحانات الشفوية أونلاين.", "The first Arabic platform for online oral exams.")}
                             </h1>
                             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2 sm:text-xl">
-                                {l("الطالب يجاوب بصوته. OralIQ يحوّل الإجابة لنص، ويقارنها بإجابتك النموذجية، ويتأكد إن الطالب نفسه هو اللي بيجاوب.",
-                                    "Students answer out loud. OralIQ transcribes each answer, compares it with your model answer, and checks the right student is the one answering.")}
+                                {l("الطالب يجاوب بصوته من أي مكان، والإجابة بتتصحح لوحدها: OralIQ يحوّلها لنص، ويقارنها بإجابتك النموذجية، ويتأكد إن الطالب نفسه هو اللي بيجاوب.",
+                                    "Students answer out loud from anywhere, and every answer grades itself: OralIQ transcribes it, compares it with your model answer, and checks the right student is the one answering.")}
                             </p>
                             <div className="mt-9 flex flex-wrap gap-3">
                                 <ButtonLink to={loggedIn ? "/dashboard" : "/register"} size="lg">{l("ابدأ مجاناً", "Get started free")}</ButtonLink>
