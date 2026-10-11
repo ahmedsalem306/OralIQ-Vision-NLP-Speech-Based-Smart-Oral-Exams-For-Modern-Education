@@ -160,7 +160,7 @@
   .tabular { font-variant-numeric: tabular-nums; }
 
   /* Latin strings (emails, IDs) stay LTR inside RTL text */
-  .ltr { direction: ltr; unicode-bidi: isolate; }
+  .ltr { direction: ltr; unicode-bidi: isolate; text-align: match-parent; }
 }
 
 /* Scrollbars — quiet, themed */

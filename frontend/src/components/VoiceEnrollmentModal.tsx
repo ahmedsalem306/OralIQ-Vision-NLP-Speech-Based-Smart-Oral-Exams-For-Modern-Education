@@ -1,7 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Mic, CheckCircle2, AlertCircle, Loader2, ShieldCheck, X, RefreshCw, ScanFace, Camera } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Check, CheckCircle2, Mic, RefreshCw, ScanFace } from "lucide-react";
 import api from "../lib/api";
+import { useI18n } from "../i18n";
+import { cn } from "../lib/utils";
+import { Button } from "./ui/button";
+import { Alert, Modal } from "./ui/feedback";
 import { buildFaceEnrollForm } from "../lib/faceBiometrics";
 import { getApiErrorMessage } from "../lib/apiErrors";
 
@@ -39,6 +42,8 @@ export default function VoiceEnrollmentModal({
     const [faceScanning, setFaceScanning] = useState(false);
     const [faceModelsLoading, setFaceModelsLoading] = useState(false);
     const [faceModelsReady, setFaceModelsReady] = useState(false);
+    const [camAttempt, setCamAttempt] = useState(0);
+    const { l } = useI18n();
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
@@ -120,7 +125,7 @@ export default function VoiceEnrollmentModal({
         })();
 
         return () => { cancelled = true; };
-    }, [isOpen, enrollPhase]);
+    }, [isOpen, enrollPhase, camAttempt]);
 
     if (!isOpen) return null;
 
@@ -158,7 +163,7 @@ export default function VoiceEnrollmentModal({
             clearInterval(progressTimer);
             setFaceScanning(false);
             setFaceScanProgress(0);
-            setErrorMsg(getApiErrorMessage(err, "فشل مسح Face ID — حاول مرة أخرى"));
+            setErrorMsg(getApiErrorMessage(err, l("ماقدرناش نمسح الوش. اتأكد من الإضاءة وجرّب تاني.", "Couldn't scan your face. Check the lighting and try again.")));
             setStep("error");
         }
     };
@@ -276,331 +281,178 @@ export default function VoiceEnrollmentModal({
         }
     };
 
-    const resetToIdle = () => {
-        cleanup();
-        setEnrollPhase("face");
-        setStep("idle");
+    /** Retry from where the student is — never throw away a finished face scan. */
+    const retry = () => {
         setErrorMsg("");
+        if (enrollPhase === "face") {
+            setStep("idle");
+            if (!streamRef.current) setCamAttempt((n) => n + 1); // camera was denied/stopped — ask again
+            return;
+        }
+        if (recordedBlobs.length >= totalPhrases) {
+            handleUpload(recordedBlobs); // all phrases recorded; only the upload failed
+            return;
+        }
+        stoppingRef.current = false;
         setRecordingTime(0);
-        setPhraseIndex(0);
-        setRecordedBlobs([]);
-        setFaceScanProgress(0);
-        setFaceScanning(false);
-        setFaceModelsReady(false);
+        setStep("idle");
     };
 
     const progress = Math.min((recordingTime / RECORD_SECONDS) * 100, 100);
     const completedCount = recordedBlobs.length;
+    const closable = !isRequired && !!onClose && step !== "uploading" && !faceScanning;
+
+    const stages = [
+        { key: "face", label: l("الوجه", "Face"), done: enrollPhase === "voice" || step === "success" },
+        { key: "voice", label: l("الصوت", "Voice"), done: step === "success" },
+    ];
 
     return (
-        <AnimatePresence>
-            <div
-                onClick={!isRequired && onClose ? onClose : undefined}
-                style={{
-                    position: "fixed", inset: 0, zIndex: 9999,
-                    background: "rgba(0,0,0,0.88)", backdropFilter: "blur(10px)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "1rem",
-                    cursor: !isRequired && onClose ? "pointer" : "default",
-                }}
-            >
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.94, y: 12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.94, y: 12 }}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                        background: "#0d0d0d",
-                        border: "1px solid rgba(255,255,255,0.13)",
-                        borderRadius: "1.5rem",
-                        padding: "2.5rem",
-                        maxWidth: 540, width: "100%",
-                        boxShadow: "0 30px 60px -15px rgba(0,0,0,0.8)",
-                        position: "relative",
-                        color: "#fff",
-                        cursor: "default",
-                    }}
-                >
-                    {/* Close button */}
-                    {!isRequired && onClose && step !== "uploading" && (
-                        <button
-                            onClick={onClose}
-                            style={{
-                                position: "absolute", top: "1.25rem", left: "1.25rem",
-                                background: "rgba(255,255,255,0.06)", border: "none", color: "#888",
-                                borderRadius: "50%", width: 36, height: 36,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                cursor: "pointer", transition: "all 0.2s",
-                            }}
-                        >
-                            <X size={18} />
-                        </button>
-                    )}
+        <Modal
+            open={isOpen}
+            onClose={() => { if (closable) onClose?.(); }}
+            size="md"
+            title={step === "success" ? l("هويتك اتسجلت", "Your identity is registered") : l("تسجيل الوجه والصوت", "Register your face and voice")}
+            description={step === "success"
+                ? l("هنقارن وشك وصوتك بيهم تلقائياً في كل امتحان.", "We'll compare your face and voice against these in every exam.")
+                : l("خطوتين بس، وبيتعملوا مرة واحدة.", "Two quick steps, done once.")}
+            footer={closable && step !== "success" ? <Button variant="ghost" onClick={onClose}>{l("بعدين", "Later")}</Button> : undefined}
+        >
+            {/* Stage indicator */}
+            {step !== "success" && (
+                <ol className="mb-6 flex items-center gap-3 text-sm">
+                    {stages.map((st, i) => {
+                        const current = st.key === enrollPhase;
+                        return (
+                            <li key={st.key} className="flex items-center gap-2" aria-current={current ? "step" : undefined}>
+                                {i > 0 && <span className="h-px w-8 bg-rule-strong" aria-hidden />}
+                                <span className={cn(
+                                    "flex size-7 items-center justify-center rounded-full border font-display text-xs font-semibold",
+                                    st.done ? "border-pass bg-pass text-pen-ink" : current ? "border-pen bg-pen-wash text-pen" : "border-rule-strong text-ink-3",
+                                )}>
+                                    {st.done ? <Check className="size-4" aria-hidden /> : i + 1}
+                                </span>
+                                <span className={cn(current ? "font-semibold text-ink" : "text-ink-2")}>{st.label}</span>
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
 
-                    {/* Header */}
-                    <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                        <div style={{
-                            width: 64, height: 64, borderRadius: "50%",
-                            background: step === "success" ? "rgba(74,222,128,0.12)" : "rgba(255,255,255,0.05)",
-                            border: `1px solid ${step === "success" ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.12)"}`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            margin: "0 auto 1rem", transition: "all 0.4s",
-                        }}>
-                            {step === "success"
-                                ? <CheckCircle2 size={32} color="#4ade80" />
-                                : <ShieldCheck size={32} color="#ffffff" />
-                            }
-                        </div>
-                        <h2 style={{
-                            fontFamily: "'Antonio', sans-serif", fontSize: "1.75rem", fontWeight: 700,
-                            letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "0.4rem",
-                        }}>
-                            {step === "success"
-                            ? "تم تسجيل الهوية البيومترية! ✅"
-                            : enrollPhase === "face"
-                                ? "Face ID — مسح الوجه"
-                                : "بصمة الصوت"}
-                        </h2>
-                        <p style={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.5)", lineHeight: "1.6" }}>
-                            {step === "success"
-                                ? "تم حفظ Face ID وبصمة صوتك. سيتم التحقق منهما تلقائياً أثناء الامتحانات."
-                                : enrollPhase === "face"
-                                    ? "انظر للكاميرا مباشرة — مثل Face ID في الآيفون — لمسح وجهك."
-                                    : "اقرأ 3 جمل مختلفة لتسجيل بصمة صوت دقيقة وموثوقة."}
-                        </p>
-                    </div>
-
-                    {/* Face ID scan */}
-                    {enrollPhase === "face" && step !== "success" && (
-                        <div style={{ marginBottom: "1.5rem" }}>
-                            <div style={{
-                                position: "relative", width: "100%", maxWidth: 280, margin: "0 auto",
-                                aspectRatio: "1", borderRadius: "50%", overflow: "hidden",
-                                border: faceScanning ? "3px solid #4ade80" : "2px solid rgba(255,255,255,0.2)",
-                                boxShadow: faceScanning ? "0 0 30px rgba(74,222,128,0.35)" : "none",
-                            }}>
-                                <video ref={faceVideoRef} muted playsInline
-                                    style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
-                                {faceScanning && (
-                                    <div style={{
-                                        position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                                        background: "rgba(0,0,0,0.35)",
-                                    }}>
-                                        <ScanFace size={48} color="#4ade80" style={{ animation: "pulse 1s infinite" }} />
-                                    </div>
-                                )}
+            {/* ── Face ── */}
+            {enrollPhase === "face" && step !== "success" && (
+                <div className="flex flex-col items-center text-center">
+                    <div className={cn(
+                        "relative aspect-square w-full max-w-60 overflow-hidden rounded-full bg-sheet-2 ring-4 transition-colors",
+                        faceScanning ? "ring-pen" : "ring-rule",
+                    )}>
+                        <video ref={faceVideoRef} muted playsInline className="size-full -scale-x-100 object-cover" />
+                        {faceScanning && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <ScanFace className="size-12 text-white motion-safe:animate-pulse" aria-hidden />
                             </div>
-                            {faceScanning && (
-                                <div style={{ marginTop: "1rem", maxWidth: 280, marginInline: "auto" }}>
-                                    <div style={{ height: 4, background: "rgba(255,255,255,0.1)", borderRadius: 999 }}>
-                                        <div style={{ height: "100%", width: `${faceScanProgress}%`, background: "#4ade80", borderRadius: 999, transition: "width 0.3s" }} />
-                                    </div>
-                                    <p style={{ textAlign: "center", fontSize: "0.75rem", color: "#4ade80", marginTop: "0.5rem" }}>جاري مسح الوجه...</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Progress Steps — voice only */}
-                    {enrollPhase === "voice" && step !== "success" && (
-                        <div style={{
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            gap: "0.5rem", marginBottom: "1.5rem",
-                        }}>
-                            {PHRASES.map((_, i) => (
-                                <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                    <div style={{
-                                        width: 32, height: 32, borderRadius: "50%",
-                                        background: i < completedCount
-                                            ? "rgba(74,222,128,0.15)"
-                                            : i === phraseIndex
-                                                ? "rgba(255,255,255,0.1)"
-                                                : "rgba(255,255,255,0.03)",
-                                        border: `2px solid ${i < completedCount
-                                            ? "#4ade80"
-                                            : i === phraseIndex
-                                                ? "rgba(255,255,255,0.4)"
-                                                : "rgba(255,255,255,0.08)"}`,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontSize: "0.75rem", fontWeight: 700,
-                                        color: i < completedCount ? "#4ade80" : i === phraseIndex ? "#fff" : "#555",
-                                        transition: "all 0.3s",
-                                    }}>
-                                        {i < completedCount ? "✓" : i + 1}
-                                    </div>
-                                    {i < totalPhrases - 1 && (
-                                        <div style={{
-                                            width: 40, height: 2,
-                                            background: i < completedCount ? "#4ade80" : "rgba(255,255,255,0.08)",
-                                            borderRadius: 999, transition: "background 0.3s",
-                                        }} />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Passphrase card */}
-                    {enrollPhase === "voice" && step !== "success" && step !== "uploading" && (
-                        <div style={{
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px dashed rgba(255,255,255,0.14)",
-                            borderRadius: "1rem", padding: "1.25rem",
-                            textAlign: "center", marginBottom: "1.5rem",
-                        }}>
-                            <p style={{ fontSize: "0.72rem", color: "#aaa", marginBottom: "0.5rem", fontWeight: 600 }}>
-                                📢 الجملة {phraseIndex + 1} من {totalPhrases} — اقرأ بصوت واضح:
-                            </p>
-                            <p style={{
-                                fontSize: "1rem", fontWeight: 700, color: "#fff", lineHeight: "1.65",
-                                background: "rgba(255,255,255,0.04)",
-                                padding: "0.875rem", borderRadius: "0.75rem",
-                                direction: "rtl",
-                            }}>
-                                "{PHRASES[phraseIndex]}"
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Error banner */}
-                    <AnimatePresence>
-                        {step === "error" && errorMsg && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                style={{
-                                    background: "rgba(255,77,77,0.08)",
-                                    border: "1px solid rgba(255,77,77,0.28)",
-                                    color: "#ff6b6b", borderRadius: "0.75rem",
-                                    padding: "0.75rem 1rem", fontSize: "0.82rem",
-                                    marginBottom: "1.25rem",
-                                    display: "flex", alignItems: "center", gap: "0.5rem",
-                                }}
-                            >
-                                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                                <span>{errorMsg}</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Controls */}
-                    <div style={{ textAlign: "center" }}>
-                        {enrollPhase === "face" && faceModelsLoading && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", color: "#aaa" }}>
-                                <Loader2 size={24} style={{ animation: "spin 1s linear infinite" }} />
-                                <span style={{ fontSize: "0.85rem" }}>جاري تحميل موديل Face ID (~6MB)...</span>
-                            </div>
-                        )}
-
-                        {enrollPhase === "face" && !faceScanning && !faceModelsLoading && faceModelsReady && step !== "error" && (
-                            <button
-                                onClick={startFaceScan}
-                                style={{
-                                    background: "#4ade80", color: "#0a0a0a", border: "none",
-                                    borderRadius: "1rem", padding: "1rem 2.25rem",
-                                    fontSize: "1rem", fontWeight: 800, cursor: "pointer",
-                                    display: "inline-flex", alignItems: "center", gap: "0.625rem",
-                                }}
-                            >
-                                <Camera size={20} /> مسح Face ID
-                            </button>
-                        )}
-
-                        {enrollPhase === "voice" && step === "idle" && (
-                            <button
-                                onClick={startRecording}
-                                style={{
-                                    background: "#ffffff", color: "#000000", border: "none",
-                                    borderRadius: "1rem", padding: "1rem 2.25rem",
-                                    fontSize: "1rem", fontFamily: "'Antonio', sans-serif",
-                                    fontWeight: 700, letterSpacing: "0.05em",
-                                    cursor: "pointer",
-                                    display: "inline-flex", alignItems: "center", gap: "0.625rem",
-                                    transition: "transform 0.15s, box-shadow 0.15s",
-                                    boxShadow: "0 4px 20px rgba(255,255,255,0.12)",
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
-                            >
-                                <Mic size={20} />
-                                {completedCount === 0 ? `بدء التسجيل (${RECORD_SECONDS} ثوانٍ)` : `تسجيل الجملة ${phraseIndex + 1}`}
-                            </button>
-                        )}
-
-                        {step === "recording" && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-                                <motion.div
-                                    animate={{ scale: [1, 1.12, 1], boxShadow: ["0 0 0px rgba(255,77,77,0)", "0 0 24px rgba(255,77,77,0.5)", "0 0 0px rgba(255,77,77,0)"] }}
-                                    transition={{ repeat: Infinity, duration: 1.2 }}
-                                    style={{
-                                        width: 72, height: 72, borderRadius: "50%",
-                                        background: "rgba(255,77,77,0.12)",
-                                        border: "2px solid #ff4d4d",
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                    }}
-                                >
-                                    <Mic size={32} color="#ff4d4d" />
-                                </motion.div>
-                                <p style={{ fontSize: "1.1rem", fontWeight: 700, color: "#ff4d4d" }}>
-                                    جاري التسجيل... ({RECORD_SECONDS - recordingTime}s)
-                                </p>
-                                <div style={{
-                                    width: "100%", maxWidth: 300, height: 6,
-                                    background: "rgba(255,255,255,0.08)", borderRadius: 999, overflow: "hidden",
-                                }}>
-                                    <motion.div
-                                        style={{
-                                            height: "100%", background: "#ff4d4d",
-                                            borderRadius: 999, width: `${progress}%`,
-                                        }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {step === "uploading" && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", color: "#aaa" }}>
-                                <Loader2 size={24} style={{ animation: "spin 1s linear infinite" }} />
-                                <span style={{ fontSize: "0.9rem" }}>جاري حفظ بصمة الصوت...</span>
-                            </div>
-                        )}
-
-                        {step === "success" && (
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem", color: "#4ade80" }}
-                            >
-                                <CheckCircle2 size={28} />
-                                <span style={{ fontSize: "1.05rem", fontWeight: 700 }}>تم الحفظ بنجاح!</span>
-                            </motion.div>
-                        )}
-
-                        {step === "error" && (
-                            <button
-                                onClick={resetToIdle}
-                                style={{
-                                    background: "rgba(255,255,255,0.06)",
-                                    color: "#ffffff", border: "1px solid rgba(255,255,255,0.2)",
-                                    borderRadius: "1rem", padding: "0.875rem 1.75rem",
-                                    fontSize: "0.9rem", fontFamily: "'Antonio', sans-serif",
-                                    fontWeight: 700, letterSpacing: "0.04em",
-                                    cursor: "pointer",
-                                    display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                                }}
-                            >
-                                <RefreshCw size={17} />
-                                إعادة التسجيل من البداية
-                            </button>
                         )}
                     </div>
-
-                    {isRequired && step !== "success" && (
-                        <p style={{ textAlign: "center", marginTop: "1.5rem", fontSize: "0.72rem", color: "rgba(255,160,0,0.7)" }}>
-                            ⚠️ Face ID + بصمة الصوت مطلوبان للمتابعة
+                    {faceScanning ? (
+                        <div className="mt-5 w-full max-w-60" role="status">
+                            <div className="h-1.5 overflow-hidden rounded-full bg-rule">
+                                <div className="h-full rounded-full bg-pen transition-[width] duration-300" style={{ width: `${faceScanProgress}%` }} />
+                            </div>
+                            <p className="mt-2 text-sm text-ink-2">{l("ثبّت راسك… بناخد كام صورة", "Hold still… taking a few photos")}</p>
+                        </div>
+                    ) : (
+                        <p className="mt-5 max-w-sm text-ink-2">
+                            {l("بص للكاميرا مباشرة في مكان منوّر، ومن غير نضارة شمس أو كمامة.", "Look straight at the camera in good light, without sunglasses or a mask.")}
                         </p>
                     )}
-                </motion.div>
+                </div>
+            )}
+
+            {/* ── Voice ── */}
+            {enrollPhase === "voice" && step !== "success" && step !== "uploading" && (
+                <div>
+                    <p className="text-sm text-ink-2">
+                        {l(`اقرأ الجملة بصوت عالي وواضح (${phraseIndex + 1} من ${totalPhrases})`, `Read the sentence aloud, clearly (${phraseIndex + 1} of ${totalPhrases})`)}
+                    </p>
+                    <blockquote
+                        className="mt-3 rounded-[var(--radius-control)] border border-rule bg-sheet-2 px-5 py-4 font-display text-xl font-medium leading-[2.4rem]"
+                        dir="rtl"
+                        style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0, transparent calc(2.4rem - 1px), var(--rule) calc(2.4rem - 1px), var(--rule) 2.4rem)", backgroundPositionY: "1rem" }}
+                    >
+                        {PHRASES[phraseIndex]}
+                    </blockquote>
+                    <div className="mt-3 flex gap-1.5" aria-hidden>
+                        {PHRASES.map((_, i) => (
+                            <span key={i} className={cn("h-1 flex-1 rounded-full", i < completedCount ? "bg-pass" : i === phraseIndex ? "bg-pen" : "bg-rule")} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {step === "error" && errorMsg && <Alert tone="error" className="mt-5">{errorMsg}</Alert>}
+
+            {/* ── Controls ── */}
+            <div className="mt-6 flex flex-col items-center gap-3">
+                {enrollPhase === "face" && faceModelsLoading && (
+                    <p className="flex items-center gap-2 text-sm text-ink-2" role="status">
+                        <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+                        {l("بنجهّز المسح…", "Getting ready…")}
+                    </p>
+                )}
+
+                {enrollPhase === "face" && !faceScanning && !faceModelsLoading && faceModelsReady && step !== "error" && (
+                    <Button size="lg" className="w-full sm:w-auto" onClick={startFaceScan}>
+                        <ScanFace className="size-5" aria-hidden />{l("امسح وشي", "Scan my face")}
+                    </Button>
+                )}
+
+                {enrollPhase === "voice" && step === "idle" && (
+                    <Button size="lg" className="w-full sm:w-auto" onClick={startRecording}>
+                        <Mic className="size-5" aria-hidden />
+                        {completedCount === 0
+                            ? l(`ابدأ التسجيل (${RECORD_SECONDS} ثواني)`, `Start recording (${RECORD_SECONDS}s)`)
+                            : l(`سجّل الجملة ${phraseIndex + 1}`, `Record sentence ${phraseIndex + 1}`)}
+                    </Button>
+                )}
+
+                {step === "recording" && (
+                    <div className="flex w-full max-w-xs flex-col items-center gap-3" role="status">
+                        <span className="relative flex size-14 items-center justify-center">
+                            <span className="absolute inset-0 rounded-full bg-mark/20 motion-safe:animate-[oiq-pulse-ring_1.4s_ease-out_infinite]" />
+                            <span className="relative flex size-14 items-center justify-center rounded-full bg-mark text-white"><Mic className="size-6" aria-hidden /></span>
+                        </span>
+                        <p className="font-semibold text-mark tabular">{l(`بنسجّل… ${RECORD_SECONDS - recordingTime} ثانية`, `Recording… ${RECORD_SECONDS - recordingTime}s`)}</p>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-rule">
+                            <div className="h-full rounded-full bg-mark transition-[width] duration-300" style={{ width: `${progress}%` }} />
+                        </div>
+                    </div>
+                )}
+
+                {step === "uploading" && (
+                    <p className="flex items-center gap-2 text-ink-2" role="status">
+                        <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+                        {l("بنحفظ بصمة صوتك…", "Saving your voiceprint…")}
+                    </p>
+                )}
+
+                {step === "success" && (
+                    <div className="flex flex-col items-center gap-3 py-4 text-center" role="status">
+                        <span className="flex size-14 items-center justify-center rounded-full bg-pass-wash text-pass"><CheckCircle2 className="size-8" aria-hidden /></span>
+                        <p className="font-semibold">{l("تمام! تقدر تدخل امتحاناتك دلوقتي.", "All set — you can take your exams now.")}</p>
+                    </div>
+                )}
+
+                {step === "error" && (
+                    <Button variant="secondary" onClick={retry}>
+                        <RefreshCw className="size-4" aria-hidden />
+                        {enrollPhase === "face"
+                            ? l("جرّب المسح تاني", "Try the scan again")
+                            : recordedBlobs.length >= totalPhrases
+                                ? l("جرّب الحفظ تاني", "Try saving again")
+                                : l(`سجّل الجملة ${phraseIndex + 1} تاني`, `Record sentence ${phraseIndex + 1} again`)}
+                    </Button>
+                )}
             </div>
-        </AnimatePresence>
+        </Modal>
     );
 }

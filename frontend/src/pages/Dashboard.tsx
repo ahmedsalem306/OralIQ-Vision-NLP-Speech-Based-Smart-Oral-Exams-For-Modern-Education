@@ -398,7 +398,7 @@ export default function Dashboard() {
                                         <Avatar name={s.full_name} size="sm" />
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-semibold">{s.full_name}</p>
-                                            <p className="truncate text-xs text-ink-3 ltr text-start">{s.email}</p>
+                                            <p className="truncate text-xs text-ink-3 ltr">{s.email}</p>
                                         </div>
                                         {!bioReady && <Badge tone="warn">{l("لم يسجل هويته", "No ID setup")}</Badge>}
                                         {s.voice_locked && !s.voice_reenroll_allowed && (

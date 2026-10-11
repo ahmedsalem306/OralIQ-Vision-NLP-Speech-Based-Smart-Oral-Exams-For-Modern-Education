@@ -1,203 +1,135 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, ArrowRight, BookOpen, Clock, X, Sparkles } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Inbox, Mic, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
+import { Panel, PageHeader, RuledList } from "../components/ui/panel";
+import { Alert, EmptyState, ListSkeleton } from "../components/ui/feedback";
+import { Badge } from "../components/ui/badge";
+import { Button, ButtonLink, buttonClasses } from "../components/ui/button";
+import { difficultyInfo, timeAgo } from "../lib/format";
+import { getApiErrorMessage } from "../lib/apiErrors";
+import type { Assignment } from "../lib/types";
 
-interface AssignedExam {
-    id: number;
-    question_id: number;
-    assigned_at: string | null;
-    status: string;
-    question_text: string | null;
-    question_category: string | null;
-    question_difficulty: string | null;
-    exam_token: string | null;
-    assigned_by_name: string | null;
+const DISMISSED_KEY = "dismissedExamTokens";
+
+function readDismissed(): string[] {
+    try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || "[]"); } catch { return []; }
 }
 
-interface ExamMessage {
-    id: string;
-    type: "exam_invite";
-    title: string;
-    body: string;
-    token: string;
-    createdAt: string;
-    read: boolean;
-}
-
-const G = "rgba(255,255,255,";
-
+/** Exam invites for students: assigned exams plus an invite link they opened. */
 export default function MessagesPage() {
-    const { t } = useI18n();
-    const [messages, setMessages] = useState<ExamMessage[]>([]);
-    const [user, setUser] = useState<{ role: string } | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { l, lang } = useI18n();
     const navigate = useNavigate();
+    const [items, setItems] = useState<Assignment[]>([]);
+    const [dismissed, setDismissed] = useState<string[]>(readDismissed);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        let cancelled = false;
-
-        const loadMessages = async () => {
-            setLoading(true);
-            try {
-                const me = await api.get("/users/me");
-                if (cancelled) return;
-                setUser(me.data);
-
-                const dismissed = JSON.parse(localStorage.getItem("dismissedExamTokens") || "[]");
-                const msgs: ExamMessage[] = [];
-
-                if (me.data.role === "student") {
-                    const { data } = await api.get("/exams/my-assignments");
-                    if (cancelled) return;
-
-                    (data as AssignedExam[])
-                        .filter(a => a.exam_token && !dismissed.includes(a.exam_token))
-                        .forEach(a => {
-                            msgs.push({
-                                id: `exam-${a.id}`,
-                                type: "exam_invite",
-                                title: t("messages.inviteTitle"),
-                                body: `${a.assigned_by_name || "Your lecturer"} - ${a.question_text || "Oral exam"}`,
-                                token: a.exam_token!,
-                                createdAt: a.assigned_at || new Date().toISOString(),
-                                read: false,
-                            });
-                        });
-                } else {
-                    const token = localStorage.getItem("pendingExamToken");
-                    if (token && !dismissed.includes(token)) {
-                        msgs.push({
-                            id: `exam-${token}`,
-                            type: "exam_invite",
-                            title: t("messages.inviteTitle"),
-                            body: t("auth.create.studentInvite"),
-                            token,
-                            createdAt: new Date().toISOString(),
-                            read: false,
-                        });
-                    }
-                }
-
-                setMessages(msgs);
-            } catch (err: any) {
+        api.get("/exams/my-assignments")
+            .then((res) => setItems(res.data))
+            .catch((err) => {
                 const status = err?.response?.status;
                 if (status === 401 || status === 403) {
                     localStorage.removeItem("token");
                     navigate("/login", { replace: true });
+                    return;
                 }
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
+                setError(getApiErrorMessage(err, l("تعذّر تحميل الدعوات.", "Couldn't load invites.")));
+            })
+            .finally(() => setLoading(false));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-        loadMessages();
-        return () => { cancelled = true; };
-    }, []);
+    let inviteToken: string | null = null;
+    try { inviteToken = localStorage.getItem("pendingExamToken"); } catch { /* ignore */ }
 
-    const handleStartExam = (token: string) => {
+    const visible = items.filter((a) => a.status === "pending" && a.exam_token && !dismissed.includes(a.exam_token));
+    const showInviteLink = inviteToken && !dismissed.includes(inviteToken) && !items.some((a) => a.exam_token === inviteToken);
+
+    const start = (token: string) => {
         localStorage.setItem("pendingExamToken", token);
         navigate("/exam/start");
     };
 
-    const handleDismiss = (msg: ExamMessage) => {
-        const dismissed = JSON.parse(localStorage.getItem("dismissedExamTokens") || "[]");
-        dismissed.push(msg.token);
-        localStorage.setItem("dismissedExamTokens", JSON.stringify(dismissed));
-        setMessages(prev => prev.filter(m => m.id !== msg.id));
+    const dismiss = (token: string) => {
+        const next = [...dismissed, token];
+        setDismissed(next);
+        try { localStorage.setItem(DISMISSED_KEY, JSON.stringify(next)); } catch { /* ignore */ }
     };
 
-    const isStudent = user?.role === "student";
-    const unreadCount = messages.filter(m => !m.read).length;
+    const restore = () => {
+        setDismissed([]);
+        try { localStorage.removeItem(DISMISSED_KEY); } catch { /* ignore */ }
+    };
 
     return (
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2rem" }}>
-                <div>
-                    <h1 style={{ color: "#f0f0f0", fontSize: "1.75rem", fontWeight: 800, fontFamily: "'Amiamie', serif", marginBottom: "0.25rem" }}>{t("messages.title")}</h1>
-                    <p style={{ color: "#808080", fontSize: "0.85rem" }}>
-                        {unreadCount > 0 ? `${unreadCount} ${t("messages.title")}` : t("messages.none")}
-                    </p>
-                </div>
-                {unreadCount > 0 && (
-                    <div style={{ background: "#ffffff", color: "#0a0a0a", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.9rem" }}>
-                        {unreadCount}
-                    </div>
-                )}
-            </div>
+        <>
+            <PageHeader
+                title={l("دعوات الامتحانات", "Exam invites")}
+                description={l("الامتحانات اللي المحاضرين بعتوهالك. ابدأ أي واحد لما تكون جاهز.", "Exams your lecturers sent you. Start any of them when you're ready.")}
+            />
 
-            {/* Messages List */}
-            <AnimatePresence mode="popLayout">
-                {loading ? (
-                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        style={{ textAlign: "center", padding: "4rem 2rem", color: "#808080" }}>
-                        <div style={{ width: 30, height: 30, border: `2px solid ${G}0.12)`, borderTopColor: "#ffffff", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 1rem" }} />
-                        {t("messages.loading")}
-                    </motion.div>
-                ) : messages.length === 0 ? (
-                    <motion.div key="empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        style={{ textAlign: "center", padding: "4rem 2rem" }}>
-                        <div style={{ width: 80, height: 80, borderRadius: "1.5rem", background: `${G}0.06)`, border: `1px solid ${G}0.12)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
-                            <MessageSquare size={36} color="#ffffff" strokeWidth={1.5} />
-                        </div>
-                        <h3 style={{ color: "#f0f0f0", fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{t("messages.emptyTitle")}</h3>
-                        <p style={{ color: "#808080", fontSize: "0.9rem", maxWidth: 360, margin: "0 auto" }}>
-                            {isStudent
-                                ? t("messages.emptyStudent")
-                                : t("messages.emptyDefault")}
-                        </p>
-                    </motion.div>
-                ) : (
-                    messages.map((msg, i) => (
-                        <motion.div key={msg.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ delay: i * 0.05 }}
-                            style={{ background: msg.read ? `${G}0.02)` : `${G}0.05)`, border: `1px solid ${msg.read ? `${G}0.08)` : `${G}0.18)`}`, borderRadius: "1.25rem", padding: "1.5rem", marginBottom: "1rem", position: "relative", overflow: "hidden" }}>
+            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
-                            {/* Unread indicator */}
-                            {!msg.read && (
-                                <div style={{ position: "absolute", top: "1.5rem", right: "1.5rem", width: 10, height: 10, borderRadius: "50%", background: "#ffffff", boxShadow: "0 0 12px rgba(255,255,255,0.5)" }} />
-                            )}
-
-                            {/* Dismiss button */}
-                            <button onClick={() => handleDismiss(msg)} style={{ position: "absolute", top: "0.75rem", right: "0.75rem", background: "none", border: "none", cursor: "pointer", padding: "0.35rem", color: "#808080", opacity: 0.6, transition: "opacity 0.15s" }}
-                                onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                                onMouseLeave={e => (e.currentTarget.style.opacity = "0.6")}>
-                                <X size={16} />
+            {showInviteLink && (
+                <Alert
+                    tone="info"
+                    className="mb-6"
+                    title={l("امتحان من رابط دعوة", "Exam from an invite link")}
+                    action={
+                        <div className="flex gap-1">
+                            <Button size="sm" onClick={() => start(inviteToken!)}>{l("ابدأ", "Start")}</Button>
+                            <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => dismiss(inviteToken!)} aria-label={l("إخفاء", "Hide")}>
+                                <X className="size-4" aria-hidden />
                             </button>
+                        </div>
+                    }
+                >
+                    {l("فتحت رابط امتحان قبل كده ولسه مابدأتوش.", "You opened an exam link earlier and haven't started it yet.")}
+                </Alert>
+            )}
 
-                            <div style={{ display: "flex", gap: "1.25rem", alignItems: "flex-start" }}>
-                                {/* Icon */}
-                                <div style={{ width: 52, height: 52, borderRadius: "1rem", background: `${G}0.08)`, border: `1px solid ${G}0.15)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                    {msg.type === "exam_invite" ? <BookOpen size={24} color="#ffffff" /> : <MessageSquare size={24} color="#ffffff" />}
-                                </div>
-
-                                {/* Content */}
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
-                                        <h3 style={{ color: "#f0f0f0", fontSize: "1rem", fontWeight: 700 }}>{msg.title}</h3>
-                                        <Sparkles size={14} color="#ffffff" />
+            <Panel className="overflow-hidden">
+                {loading ? (
+                    <ListSkeleton rows={3} />
+                ) : visible.length === 0 ? (
+                    <EmptyState
+                        icon={<Inbox />}
+                        title={l("مفيش دعوات جديدة", "No new invites")}
+                        body={l("لما محاضر يبعتلك امتحان هيظهر هنا وفي الصفحة الرئيسية.", "When a lecturer sends you an exam, it shows up here and on your overview.")}
+                        action={dismissed.length > 0
+                            ? <Button variant="secondary" onClick={restore}>{l("إظهار الدعوات المخفية", "Show hidden invites")}</Button>
+                            : <ButtonLink to="/dashboard/grades" variant="secondary">{l("درجاتي", "My grades")}</ButtonLink>}
+                    />
+                ) : (
+                    <RuledList>
+                        {visible.map((a) => {
+                            const diff = difficultyInfo(a.question_difficulty, lang);
+                            return (
+                                <li key={a.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm text-ink-3">
+                                            {l(`من ${a.assigned_by_name || "المحاضر"}`, `From ${a.assigned_by_name || "your lecturer"}`)} <span className="ms-2">{timeAgo(a.assigned_at, lang)}</span>
+                                        </p>
+                                        <p className="mt-0.5 font-semibold leading-snug">{a.question_text || l("امتحان شفوي", "Oral exam")}</p>
+                                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                            {a.question_category && a.question_category !== "general" && <Badge>{a.question_category}</Badge>}
+                                            {a.question_difficulty && <Badge tone={diff.tone}>{diff.label}</Badge>}
+                                        </div>
                                     </div>
-                                    <p style={{ color: "#808080", fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "1rem" }}>{msg.body}</p>
-
-                                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                        {msg.type === "exam_invite" && (
-                                            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => handleStartExam(msg.token)}
-                                                style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1.5rem", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: "0.75rem", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                                {t("messages.startExam")} <ArrowRight size={16} />
-                                            </motion.button>
-                                        )}
-                                        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", color: "#808080" }}>
-                                            <Clock size={12} /> {t("messages.justNow")}
-                                        </span>
+                                    <div className="flex items-center gap-1">
+                                        <Button onClick={() => start(a.exam_token!)}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
+                                        <button type="button" className={buttonClasses("ghost", "icon")} onClick={() => dismiss(a.exam_token!)} aria-label={l("إخفاء الدعوة", "Hide invite")} title={l("إخفاء", "Hide")}>
+                                            <X className="size-4" aria-hidden />
+                                        </button>
                                     </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))
+                                </li>
+                            );
+                        })}
+                    </RuledList>
                 )}
-            </AnimatePresence>
-        </div>
+            </Panel>
+        </>
     );
 }

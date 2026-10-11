@@ -239,7 +239,7 @@ export default function LecturerResults() {
                                                 <Avatar name={r.student_name} size="sm" />
                                                 <span className="min-w-0">
                                                     <span className="block truncate font-semibold">{r.student_name}</span>
-                                                    <span className="block text-xs text-ink-3 tabular ltr text-start">{r.student_number}</span>
+                                                    <span className="block text-xs text-ink-3 tabular ltr">{r.student_number}</span>
                                                 </span>
                                             </span>
                                             <span className="truncate text-sm text-ink-2 max-md:col-span-3 max-md:col-start-2 max-md:row-start-2">{r.question_text || "—"}</span>
