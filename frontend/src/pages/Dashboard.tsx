@@ -1,275 +1,422 @@
-import { useState, useEffect } from "react";
-import { Plus, Copy, Check, Trash2, Link2, BookOpen, ChevronDown, ChevronUp, UserPlus, X, Search, ShieldCheck } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Check, ChevronDown, ClipboardList, Clock, Copy, Lock, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
+import { cn } from "../lib/utils";
 import VoiceRecordButton from "../components/VoiceRecordButton";
+import { Button, buttonClasses } from "../components/ui/button";
+import { Field, Input, Textarea } from "../components/ui/input";
+import { Panel, PageHeader } from "../components/ui/panel";
+import { Alert, EmptyState, ListSkeleton, Modal, Segmented } from "../components/ui/feedback";
+import { Badge } from "../components/ui/badge";
+import { Avatar } from "../components/ui/avatar";
+import { difficultyInfo, formatDate, parseServerDate } from "../lib/format";
+import { getApiErrorMessage } from "../lib/apiErrors";
+import type { Question, StudentRow } from "../lib/types";
 
-interface Question {
-    id: number; text: string; model_answer: string; keywords: string;
-    difficulty: string; category: string; duration_minutes: number;
-    exam_token: string; group_token?: string; order_index?: number; created_at: string;
+type Difficulty = "easy" | "medium" | "hard";
+
+interface ExamGroup {
+    token: string;
+    questions: Question[];
+    createdAt: string | null;
 }
 
-const DIFF_COLOR: Record<string, string> = { easy: "#4ade80", medium: "#fbbf24", hard: "#ff4d4d" };
-const G = "rgba(255,255,255,";
+const emptyDraft = { text: "", model_answer: "", keywords: "", category: "", difficulty: "medium" as Difficulty, duration_minutes: 2 };
 
 export default function Dashboard() {
-    const { t } = useI18n();
+    const { l, lang } = useI18n();
+    const [params, setParams] = useSearchParams();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+    const [pageError, setPageError] = useState("");
+    const [copied, setCopied] = useState<string | null>(null);
+
+    // Editor
+    const [editorOpen, setEditorOpen] = useState(false);
+    const [draft, setDraft] = useState(emptyDraft);
+    const [groupToken, setGroupToken] = useState<string | null>(null);
+    const [addedNow, setAddedNow] = useState<Question[]>([]);
     const [saving, setSaving] = useState(false);
-    const [copiedId, setCopiedId] = useState<number | null>(null);
-    const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [assignQuestion, setAssignQuestion] = useState<Question | null>(null);
-    const [students, setStudents] = useState<{ id: number; full_name: string; email: string; has_voiceprint?: boolean; voice_locked?: boolean; voice_reenroll_allowed?: boolean }[]>([]);
-    const [studentSearch, setStudentSearch] = useState("");
-    const [assigning, setAssigning] = useState(false);
-    const [allowingVoice, setAllowingVoice] = useState<number | null>(null);
-    const [assignedTo, setAssignedTo] = useState<number | null>(null);
-    const [text, setText] = useState("");
-    const [modelAnswer, setModelAnswer] = useState("");
-    const [keywords, setKeywords] = useState("");
-    const [category, setCategory] = useState("general");
-    const [difficulty, setDifficulty] = useState("medium");
-    const [durationMinutes, setDurationMinutes] = useState(2);
-    const [examQuestions, setExamQuestions] = useState<Question[]>([]);
-    const [activeGroupToken, setActiveGroupToken] = useState<string | null>(null);
-    const baseUrl = window.location.origin;
+    const [editorError, setEditorError] = useState("");
 
-    const loadQuestions = async () => { try { const res = await api.get("/questions/"); setQuestions(res.data); } catch { console.error("Failed"); } finally { setLoading(false); } };
-    useEffect(() => { loadQuestions(); }, []);
+    // Delete
+    const [toDelete, setToDelete] = useState<Question | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
-    const handleCreate = async (addAnother = false) => {
-        if (!text.trim() || !modelAnswer.trim()) return; setSaving(true);
+    // Assign
+    const [assignFor, setAssignFor] = useState<ExamGroup | null>(null);
+    const [students, setStudents] = useState<StudentRow[] | null>(null);
+    const [studentQuery, setStudentQuery] = useState("");
+    const [assigned, setAssigned] = useState<Set<number>>(new Set());
+    const [busyStudent, setBusyStudent] = useState<number | null>(null);
+    const [assignError, setAssignError] = useState("");
+
+    useEffect(() => {
+        api.get("/questions/")
+            .then((res) => setQuestions(res.data))
+            .catch((err) => setPageError(getApiErrorMessage(err, l("تعذّر تحميل الأسئلة.", "Couldn't load questions."))))
+            .finally(() => setLoading(false));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // /dashboard/questions?new=1 opens the editor straight away
+    useEffect(() => {
+        if (params.get("new")) {
+            openEditor(null);
+            const next = new URLSearchParams(params);
+            next.delete("new");
+            setParams(next, { replace: true });
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const groups = useMemo<ExamGroup[]>(() => {
+        const map = new Map<string, Question[]>();
+        for (const q of questions) {
+            const key = q.group_token || q.exam_token;
+            map.set(key, [...(map.get(key) || []), q]);
+        }
+        return [...map.entries()]
+            .map(([token, qs]) => {
+                const sorted = [...qs].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+                return { token, questions: sorted, createdAt: sorted[0]?.created_at ?? null };
+            })
+            .sort((a, b) => (parseServerDate(b.createdAt)?.getTime() ?? 0) - (parseServerDate(a.createdAt)?.getTime() ?? 0));
+    }, [questions]);
+
+    const categories = useMemo(() => [...new Set(questions.map((q) => q.category).filter((c) => c && c !== "general"))], [questions]);
+
+    const examLink = (token: string) => `${window.location.origin}/exam/${token}`;
+    const copyLink = async (token: string) => {
         try {
-            const payload: any = { text, model_answer: modelAnswer, keywords, category, difficulty, duration_minutes: durationMinutes };
-            if (activeGroupToken) payload.group_token = activeGroupToken;
-            const res = await api.post("/questions/", payload);
-            setQuestions(p => [res.data, ...p]);
-            setExamQuestions(p => [...p, res.data]);
-            if (!activeGroupToken) setActiveGroupToken(res.data.group_token);
-            resetFormFields();
-            if (!addAnother) { setShowModal(false); setExamQuestions([]); setActiveGroupToken(null); }
-        } catch (err: any) { alert(err.response?.data?.detail || "Failed."); } finally { setSaving(false); }
+            await navigator.clipboard.writeText(examLink(token));
+            setCopied(token);
+            setTimeout(() => setCopied((c) => (c === token ? null : c)), 2000);
+        } catch {
+            setPageError(l("المتصفح منع النسخ. انسخ الرابط يدوياً من الخانة.", "The browser blocked copying. Copy the link from the field."));
+        }
     };
-    const handleDelete = async (id: number) => { if (!confirm("Delete this question?")) return; try { await api.delete(`/questions/${id}`); setQuestions(p => p.filter(q => q.id !== id)); } catch { alert("Failed."); } };
-    const copyLink = (q: Question) => { const token = q.group_token || q.exam_token; navigator.clipboard.writeText(`${baseUrl}/exam/${token}`); setCopiedId(q.id); setTimeout(() => setCopiedId(null), 2000); };
-    const resetFormFields = () => { setText(""); setModelAnswer(""); setKeywords(""); };
-    const resetForm = () => { resetFormFields(); setCategory("general"); setDifficulty("medium"); setDurationMinutes(2); setExamQuestions([]); setActiveGroupToken(null); };
-    const openAssign = async (q: Question) => { setAssignQuestion(q); setAssignedTo(null); setStudentSearch(""); if (!students.length) { try { const r = await api.get("/exams/students"); setStudents(r.data); } catch { setStudents([]); } } };
-    const handleAllowVoiceReenroll = async (sid: number) => {
-        setAllowingVoice(sid);
+
+    // ── Editor ────────────────────────────────────────────────────────────────
+    const openEditor = (group: ExamGroup | null) => {
+        setGroupToken(group?.token ?? null);
+        setDraft({ ...emptyDraft, category: group?.questions[0]?.category && group.questions[0].category !== "general" ? group.questions[0].category : "" });
+        setAddedNow([]);
+        setEditorError("");
+        setEditorOpen(true);
+    };
+
+    const save = async (addAnother: boolean) => {
+        if (!draft.text.trim() || !draft.model_answer.trim()) {
+            setEditorError(l("اكتب السؤال والإجابة النموذجية الأول.", "Write the question and the model answer first."));
+            return;
+        }
+        setSaving(true);
+        setEditorError("");
+        try {
+            const payload = {
+                ...draft,
+                text: draft.text.trim(),
+                model_answer: draft.model_answer.trim(),
+                category: draft.category.trim() || "general",
+                ...(groupToken ? { group_token: groupToken } : {}),
+            };
+            const { data } = await api.post("/questions/", payload);
+            setQuestions((p) => [...p, data]);
+            setAddedNow((p) => [...p, data]);
+            if (!groupToken) setGroupToken(data.group_token);
+            setDraft((d) => ({ ...emptyDraft, category: d.category, difficulty: d.difficulty, duration_minutes: d.duration_minutes }));
+            if (!addAnother) setEditorOpen(false);
+        } catch (err) {
+            setEditorError(getApiErrorMessage(err, l("تعذّر حفظ السؤال.", "Couldn't save the question.")));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+    const confirmDelete = async () => {
+        if (!toDelete) return;
+        setDeleting(true);
+        try {
+            await api.delete(`/questions/${toDelete.id}`);
+            setQuestions((p) => p.filter((q) => q.id !== toDelete.id));
+            setToDelete(null);
+        } catch (err) {
+            setPageError(getApiErrorMessage(err, l("تعذّر حذف السؤال. لو عليه إجابات طلاب، مش هينفع يتحذف.", "Couldn't delete. Questions with student answers can't be deleted.")));
+            setToDelete(null);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // ── Assign ────────────────────────────────────────────────────────────────
+    const openAssign = async (g: ExamGroup) => {
+        setAssignFor(g);
+        setAssigned(new Set());
+        setStudentQuery("");
+        setAssignError("");
+        if (!students) {
+            try { setStudents((await api.get("/exams/students")).data); }
+            catch (err) { setStudents([]); setAssignError(getApiErrorMessage(err, l("تعذّر تحميل الطلاب.", "Couldn't load students."))); }
+        }
+    };
+
+    // Assigning the first question opens the whole exam for the student (ExamRoom loads by group).
+    const assign = async (sid: number) => {
+        const leader = assignFor?.questions[0];
+        if (!leader) return;
+        setBusyStudent(sid);
+        setAssignError("");
+        try {
+            await api.post("/exams/assign", { question_id: leader.id, student_id: sid });
+            setAssigned((s) => new Set(s).add(sid));
+        } catch (err) {
+            setAssignError(getApiErrorMessage(err, l("تعذّر إرسال الامتحان.", "Couldn't send the exam.")));
+        } finally {
+            setBusyStudent(null);
+        }
+    };
+
+    const allowReenroll = async (sid: number) => {
+        setBusyStudent(sid);
         try {
             await api.post(`/voice/allow-reenroll/${sid}`);
-            setStudents(prev => prev.map(s => s.id === sid ? { ...s, voice_reenroll_allowed: true } : s));
-            alert("تم السماح للطالب بإعادة تسجيل بصمة الصوت");
-        } catch (e: any) {
-            alert(e?.response?.data?.detail || "فشل");
+            setStudents((prev) => prev?.map((s) => (s.id === sid ? { ...s, voice_reenroll_allowed: true } : s)) ?? prev);
+        } catch (err) {
+            setAssignError(getApiErrorMessage(err, l("تعذّر تغيير الإذن.", "Couldn't change the permission.")));
         } finally {
-            setAllowingVoice(null);
+            setBusyStudent(null);
         }
     };
-    const handleAssign = async (sid: number) => {
-        if (!assignQuestion) return;
-        setAssigning(true);
-        try {
-            await api.post("/exams/assign", { question_id: assignQuestion.id, student_id: sid });
-            setAssignedTo(sid);
-        } catch {
-            alert("Failed.");
-        } finally {
-            setAssigning(false);
-        }
-    };
-    const filteredStudents = students.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase()));
 
-    const inp: React.CSSProperties = { width: "100%", padding: "0.75rem 1rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${G}0.15)`, borderRadius: "0.75rem", color: "#f0f0f0", fontSize: "0.9rem", fontFamily: "'Inter',sans-serif", outline: "none", boxSizing: "border-box" };
-    const sel: React.CSSProperties = { ...inp, appearance: "none" as const, WebkitAppearance: "none" as const, background: "rgba(255,255,255,0.04)", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8b73' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 1rem center", paddingRight: "2.5rem", cursor: "pointer" };
-    const lbl: React.CSSProperties = { fontSize: "0.75rem", fontWeight: 700, color: "#808080", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.4rem" };
+    const filteredStudents = (students ?? []).filter((s) => {
+        const q = studentQuery.trim().toLowerCase();
+        return !q || s.full_name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
+    });
+
+    const difficulties: { value: Difficulty; label: string }[] = [
+        { value: "easy", label: l("سهل", "Easy") },
+        { value: "medium", label: l("متوسط", "Medium") },
+        { value: "hard", label: l("صعب", "Hard") },
+    ];
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", fontFamily: "'Inter',sans-serif" }}>
-            {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-                <div>
-                    <h1 style={{ fontFamily: "'Antonio', sans-serif", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, color: "#fff", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "-0.01em" }}>{t("dashboard.questions.title")}</h1>
-                    <p style={{ color: "#808080", fontSize: "0.875rem" }}>{questions.length} - {t("dashboard.questions.subtitle")}</p>
-                </div>
-                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setShowModal(true)} data-tooltip="Create a new exam question"
-                    style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1.25rem", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: "0.75rem", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "'Antonio',sans-serif", boxShadow: "0 4px 20px rgba(255,255,255,0.08)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    <Plus size={16} /> {t("dashboard.questions.new")}
-                </motion.button>
-            </motion.div>
+        <>
+            <PageHeader
+                title={l("أسئلة الامتحانات", "Exam questions")}
+                description={l("كل امتحان له رابط واحد. الطالب بيجاوب على أسئلته بالترتيب.", "Each exam has one link. Students answer its questions in order.")}
+                actions={<Button onClick={() => openEditor(null)}><Plus className="size-4" aria-hidden />{l("امتحان جديد", "New exam")}</Button>}
+            />
 
-            {/* Create Modal */}
-            <AnimatePresence>
-                {showModal && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: "#141414", border: `1px solid ${G}0.2)`, borderRadius: "1.5rem", padding: "2rem", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", boxShadow: `0 0 80px ${G}0.1)` }}>
-                            <h2 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#f0f0f0", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                <BookOpen size={20} color="#ffffff" /> {t("dashboard.questions.new")}
-                            </h2>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                                <div>
-                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                                        <label style={{ ...lbl, marginBottom: 0 }}>{t("dashboard.questions.question")} *</label>
-                                        <VoiceRecordButton
-                                            label="سجّل السؤال"
-                                            hint="سؤال امتحان شفوي"
-                                            onTranscribed={txt => setText(prev => prev ? `${prev} ${txt}` : txt)}
-                                        />
-                                    </div>
-                                    <textarea value={text} onChange={e => setText(e.target.value)} placeholder={t("dashboard.questions.question")} rows={3} style={{ ...inp, resize: "vertical" }} />
-                                </div>
-                                <div>
-                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                                        <label style={{ ...lbl, marginBottom: 0 }}>{t("dashboard.questions.answer")} *</label>
-                                        <VoiceRecordButton
-                                            label="سجّل الإجابة"
-                                            hint="إجابة نموذجية للسؤال"
-                                            onTranscribed={txt => setModelAnswer(prev => prev ? `${prev} ${txt}` : txt)}
-                                        />
-                                    </div>
-                                    <textarea value={modelAnswer} onChange={e => setModelAnswer(e.target.value)} placeholder={t("dashboard.questions.answer")} rows={3} style={{ ...inp, resize: "vertical" }} />
-                                </div>
-                                <div><label style={lbl}>{t("dashboard.questions.keywords")}</label><input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="AI, NLP, speech" style={inp} /></div>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                                    <div><label style={lbl}>{t("dashboard.questions.category")}</label><select value={category} onChange={e => setCategory(e.target.value)} style={sel}><option value="general" style={{ background: "#141414" }}>General</option><option value="technical" style={{ background: "#141414" }}>Technical</option><option value="behavioral" style={{ background: "#141414" }}>Behavioral</option><option value="hr" style={{ background: "#141414" }}>HR</option></select></div>
-                                    <div><label style={lbl}>{t("dashboard.questions.difficulty")}</label><select value={difficulty} onChange={e => setDifficulty(e.target.value)} style={{ ...sel, color: DIFF_COLOR[difficulty] || "#f0f0f0", borderColor: `${DIFF_COLOR[difficulty]}55` || `${G}0.15)` }}><option value="easy" style={{ background: "#141414", color: "#4ade80" }}>Easy</option><option value="medium" style={{ background: "#141414", color: "#fbbf24" }}>Medium</option><option value="hard" style={{ background: "#141414", color: "#ff4d4d" }}>Hard</option></select></div>
-                                </div>
-                                <div><label style={lbl}>{t("dashboard.questions.duration")}</label><input type="number" min={1} max={10} value={durationMinutes} onChange={e => setDurationMinutes(parseInt(e.target.value) || 2)} style={inp} /></div>
-                            </div>
-                            {/* Already added questions in this exam */}
-                            {examQuestions.length > 0 && (
-                                <div style={{ marginTop: "1rem", padding: "0.75rem", background: "rgba(74,222,128,0.05)", border: "1px solid rgba(74,222,128,0.15)", borderRadius: "0.75rem" }}>
-                                    <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "#4ade80", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                                        أسئلة مضافة في هذا الامتحان ({examQuestions.length})
-                                    </p>
-                                    {examQuestions.map((eq, i) => (
-                                        <div key={eq.id} style={{ fontSize: "0.8rem", color: "#bbb", padding: "0.3rem 0", borderBottom: i < examQuestions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                                            {i + 1}. {eq.text.slice(0, 60)}{eq.text.length > 60 ? "..." : ""}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.5rem", flexWrap: "wrap" }}>
-                                <button onClick={() => { setShowModal(false); resetForm(); }} style={{ padding: "0.8rem 1rem", background: "transparent", border: `1px solid ${G}0.12)`, borderRadius: "0.75rem", color: "#808080", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" }}>{t("dashboard.questions.cancel")}</button>
-                                <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleCreate(true)} disabled={saving || !text.trim() || !modelAnswer.trim()} style={{ flex: 1, padding: "0.8rem", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "0.75rem", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Inter',sans-serif", opacity: saving || !text.trim() || !modelAnswer.trim() ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}>
-                                    <Plus size={14} /> إضافة سؤال آخر
-                                </motion.button>
-                                <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleCreate(false)} disabled={saving || !text.trim() || !modelAnswer.trim()} style={{ flex: 1, padding: "0.8rem", background: "#ffffff", border: "none", borderRadius: "0.75rem", color: "#0a0a0a", fontWeight: 800, cursor: "pointer", fontFamily: "'Inter',sans-serif", opacity: saving || !text.trim() || !modelAnswer.trim() ? 0.5 : 1 }}>{saving ? t("dashboard.questions.creating") : "حفظ وإنهاء"}</motion.button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {pageError && <Alert tone="error" className="mb-6" action={<button className="text-sm font-semibold text-pen" onClick={() => setPageError("")}>{l("إغلاق", "Dismiss")}</button>}>{pageError}</Alert>}
 
-            {/* Questions List */}
             {loading ? (
-                <div style={{ textAlign: "center", padding: "4rem", color: "#808080" }}>
-                    <div style={{ width: 36, height: 36, border: `3px solid ${G}0.15)`, borderTopColor: "#ffffff", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />Loading...
-                </div>
-            ) : questions.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "5rem 2rem", background: "#141414", border: `1px dashed ${G}0.15)`, borderRadius: "1.25rem" }}>
-                    <BookOpen size={48} color="#404040" style={{ margin: "0 auto 1rem" }} /><h3 style={{ color: "#808080", fontWeight: 600, marginBottom: "0.5rem" }}>{t("dashboard.questions.emptyTitle")}</h3><p style={{ color: "#404040", fontSize: "0.875rem" }}>{t("dashboard.questions.emptySubtitle")}</p>
-                </div>
+                <Panel><ListSkeleton rows={4} /></Panel>
+            ) : groups.length === 0 ? (
+                <Panel>
+                    <EmptyState
+                        icon={<ClipboardList />}
+                        title={l("لسه مفيش امتحانات", "No exams yet")}
+                        body={l("اكتب السؤال وإجابته النموذجية، والذكاء الاصطناعي هيصحح إجابات الطلاب على أساسها.", "Write a question and its model answer — the AI grades student answers against it.")}
+                        action={<Button onClick={() => openEditor(null)}><Plus className="size-4" aria-hidden />{l("أنشئ أول امتحان", "Create your first exam")}</Button>}
+                    />
+                </Panel>
             ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    {questions.map((q, idx) => {
-                        const isExp = expandedId === q.id; const isCopied = copiedId === q.id; const link = `${baseUrl}/exam/${q.exam_token}`;
+                <div className="space-y-6">
+                    {groups.map((g) => {
+                        const total = g.questions.reduce((s, q) => s + (q.duration_minutes || 0), 0);
+                        const category = g.questions[0]?.category;
                         return (
-                            <motion.div key={q.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-                                style={{ background: "#141414", border: `1px solid ${G}0.08)`, borderRadius: "1.25rem", overflow: "hidden", transition: "border-color 0.3s" }}
-                                className="hover:border-[rgba(255,255,255,0.2)]">
-                                <div style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "flex-start", gap: "1rem" }}>
-                                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: DIFF_COLOR[q.difficulty] || "#808080", marginTop: 6, flexShrink: 0, boxShadow: `0 0 8px ${DIFF_COLOR[q.difficulty]}40` }} />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem", flexWrap: "wrap" }}>
-                                            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.1em", background: `${G}0.08)`, padding: "0.2rem 0.5rem", borderRadius: "999px" }}>{q.category}</span>
-                                            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: DIFF_COLOR[q.difficulty], textTransform: "uppercase", letterSpacing: "0.1em" }}>{q.difficulty}</span>
-                                        </div>
-                                        <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#f0f0f0", lineHeight: 1.5, marginBottom: "0.5rem" }}>{q.text}</p>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.02)", border: `1px solid ${G}0.08)`, borderRadius: "0.5rem", padding: "0.4rem 0.75rem", maxWidth: "100%", overflow: "hidden" }}>
-                                            <Link2 size={12} color="#ffffff" style={{ flexShrink: 0 }} />
-                                            <span style={{ fontSize: "0.75rem", color: "#808080", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link}</span>
-                                        </div>
+                            <Panel key={g.token} className="overflow-hidden">
+                                <header className="flex flex-col gap-4 border-b border-rule px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="min-w-0">
+                                        <h2 className="text-lg font-semibold">
+                                            {category && category !== "general" ? category : l("امتحان شفوي", "Oral exam")}
+                                        </h2>
+                                        <p className="mt-0.5 flex flex-wrap gap-x-4 text-sm text-ink-2">
+                                            <span>{l(g.questions.length === 1 ? "سؤال واحد" : `${g.questions.length} أسئلة`, g.questions.length === 1 ? "1 question" : `${g.questions.length} questions`)}</span>
+                                            <span className="inline-flex items-center gap-1"><Clock className="size-3.5" aria-hidden />{l(`${total} دقيقة`, `${total} min`)}</span>
+                                            <span className="text-ink-3">{formatDate(g.createdAt, lang)}</span>
+                                        </p>
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => copyLink(q)} data-tooltip={isCopied ? "Copied!" : "Copy exam link"} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.9rem", background: isCopied ? "rgba(74,222,128,0.08)" : `${G}0.06)`, border: `1px solid ${isCopied ? "rgba(74,222,128,0.25)" : `${G}0.15)`}`, borderRadius: "0.6rem", color: isCopied ? "#4ade80" : "#ffffff", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif", transition: "all 0.2s" }}>
-                                            {isCopied ? <><Check size={14} /> {t("dashboard.questions.copied")}</> : <><Copy size={14} /> {t("dashboard.questions.copy")}</>}
-                                        </motion.button>
-                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => openAssign(q)} data-tooltip="Assign to a student" style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.9rem", background: `${G}0.04)`, border: `1px solid ${G}0.12)`, borderRadius: "0.6rem", color: "#ffffff", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" }}>
-                                            <UserPlus size={14} /> {t("dashboard.questions.assign")}
-                                        </motion.button>
-                                        <button onClick={() => setExpandedId(isExp ? null : q.id)} data-tooltip="View details" style={{ padding: "0.5rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${G}0.08)`, borderRadius: "0.6rem", color: "#808080", cursor: "pointer" }}>
-                                            {isExp ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                        </button>
-                                        <button onClick={() => handleDelete(q.id)} data-tooltip="Delete question" style={{ padding: "0.5rem", background: "rgba(255,77,77,0.05)", border: "1px solid rgba(255,77,77,0.15)", borderRadius: "0.6rem", color: "#ff4d4d", cursor: "pointer" }}>
-                                            <Trash2 size={16} />
-                                        </button>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Button variant="secondary" size="sm" onClick={() => copyLink(g.token)} aria-live="polite">
+                                            {copied === g.token ? <Check className="size-4 text-pass" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+                                            {copied === g.token ? l("اتنسخ", "Copied") : l("نسخ الرابط", "Copy link")}
+                                        </Button>
+                                        <Button variant="secondary" size="sm" onClick={() => openAssign(g)}>
+                                            <UserPlus className="size-4" aria-hidden />{l("إرسال لطالب", "Send to student")}
+                                        </Button>
+                                        <Button variant="ghost" size="sm" onClick={() => openEditor(g)}>
+                                            <Plus className="size-4" aria-hidden />{l("سؤال", "Question")}
+                                        </Button>
                                     </div>
-                                </div>
-                                <AnimatePresence>
-                                    {isExp && (
-                                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                                            <div style={{ padding: "0 1.5rem 1.25rem", borderTop: `1px solid ${G}0.05)`, paddingTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                                                <div><p style={lbl}>{t("dashboard.questions.answer")}</p><p style={{ fontSize: "0.875rem", color: "#bbb", lineHeight: 1.7 }}>{q.model_answer}</p></div>
-                                                {q.keywords && (<div><p style={lbl}>{t("dashboard.questions.keywords")}</p><div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>{q.keywords.split(",").map((k, i) => (<span key={i} style={{ fontSize: "0.75rem", padding: "0.2rem 0.6rem", background: `${G}0.06)`, border: `1px solid ${G}0.12)`, borderRadius: "999px", color: "#ffffff" }}>{k.trim()}</span>))}</div></div>)}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
+                                </header>
+
+                                <ol className="divide-y divide-rule">
+                                    {g.questions.map((q, i) => {
+                                        const diff = difficultyInfo(q.difficulty, lang);
+                                        return (
+                                            <li key={q.id} className="group/q">
+                                                <details className="[&[open]_.chev]:rotate-180">
+                                                    <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-4 hover:bg-sheet-2 [&::-webkit-details-marker]:hidden">
+                                                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-rule-strong font-display text-sm font-semibold tabular text-ink-2">{i + 1}</span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="font-medium leading-relaxed">{q.text}</p>
+                                                            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+                                                                <Badge tone={diff.tone}>{diff.label}</Badge>
+                                                                <span>{l(`${q.duration_minutes} دقيقة`, `${q.duration_minutes} min`)}</span>
+                                                            </p>
+                                                        </div>
+                                                        <ChevronDown className="chev mt-1 size-5 shrink-0 text-ink-3 transition-transform" aria-hidden />
+                                                    </summary>
+                                                    <div className="space-y-4 bg-sheet-2 px-5 pb-5 ps-16 pt-1">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-ink-2">{l("الإجابة النموذجية", "Model answer")}</p>
+                                                            <p className="mt-1 leading-relaxed">{q.model_answer}</p>
+                                                        </div>
+                                                        {q.keywords && (
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-ink-2">{l("كلمات مفتاحية", "Keywords")}</p>
+                                                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                                                    {q.keywords.split(/[,،]/).map((k) => k.trim()).filter(Boolean).map((k) => <Badge key={k}>{k}</Badge>)}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <Button variant="danger-ghost" size="sm" className="-ms-3" onClick={() => setToDelete(q)}>
+                                                            <Trash2 className="size-4" aria-hidden />{l("حذف السؤال", "Delete question")}
+                                                        </Button>
+                                                    </div>
+                                                </details>
+                                            </li>
+                                        );
+                                    })}
+                                </ol>
+                            </Panel>
                         );
                     })}
                 </div>
             )}
 
-            {/* Assign Modal */}
-            <AnimatePresence>
-                {assignQuestion && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: "1rem" }}>
-                        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} style={{ background: "#141414", border: `1px solid ${G}0.2)`, borderRadius: "1.5rem", padding: "2rem", width: "100%", maxWidth: 480, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: `0 0 60px ${G}0.08)` }}>
-                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-                                <div><h2 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#f0f0f0", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}><UserPlus size={18} color="#ffffff" /> {t("dashboard.questions.assignTitle")}</h2><p style={{ fontSize: "0.8rem", color: "#808080", maxWidth: 340 }}>{assignQuestion.text.slice(0, 80)}{assignQuestion.text.length > 80 ? "..." : ""}</p></div>
-                                <button onClick={() => setAssignQuestion(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#808080", padding: "0.25rem" }}><X size={20} /></button>
-                            </div>
-                            <div style={{ position: "relative", marginBottom: "1rem" }}>
-                                <Search size={14} style={{ position: "absolute", left: "0.85rem", top: "50%", transform: "translateY(-50%)", color: "#808080" }} />
-                                <input type="text" placeholder={t("dashboard.questions.searchStudents")} value={studentSearch} onChange={e => setStudentSearch(e.target.value)} style={{ ...inp, paddingLeft: "2.25rem" }} />
-                            </div>
-                            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                                {filteredStudents.length === 0 ? (<p style={{ textAlign: "center", color: "#808080", padding: "2rem", fontSize: "0.875rem" }}>{t("dashboard.questions.noStudents")}</p>) : filteredStudents.map(s => {
-                                    const done = assignedTo === s.id;
-                                    return (<div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.85rem 1rem", background: done ? `${G}0.04)` : "rgba(255,255,255,0.015)", border: `1px solid ${done ? `${G}0.2)` : `${G}0.06)`}`, borderRadius: "0.75rem", transition: "all 0.2s", flexWrap: "wrap" }}>
-                                        <div style={{ flex: 1, minWidth: 140 }}>
-                                            <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f0f0f0", marginBottom: "0.15rem" }}>{s.full_name}</p>
-                                            <p style={{ fontSize: "0.75rem", color: "#808080" }}>{s.email}</p>
-                                            {s.has_voiceprint && (
-                                                <p style={{ fontSize: "0.65rem", color: s.voice_reenroll_allowed ? "#4ade80" : "#808080", marginTop: "0.25rem" }}>
-                                                    {s.voice_reenroll_allowed ? "✅ مسموح بإعادة تسجيل البصمة" : "🔒 البصمة مقفولة"}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                                            {s.has_voiceprint && s.voice_locked && !s.voice_reenroll_allowed && (
-                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleAllowVoiceReenroll(s.id)} disabled={allowingVoice === s.id}
-                                                    style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.45rem 0.75rem", background: "rgba(255,160,0,0.1)", border: "1px solid rgba(255,160,0,0.25)", borderRadius: "0.6rem", color: "#ffa000", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", fontFamily: "'Inter',sans-serif" }}>
-                                                    <ShieldCheck size={12} /> {allowingVoice === s.id ? "..." : "السماح بإعادة البصمة"}
-                                                </motion.button>
-                                            )}
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleAssign(s.id)} disabled={assigning || done} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.9rem", background: done ? `${G}0.08)` : "#ffffff", border: done ? `1px solid ${G}0.2)` : "none", borderRadius: "0.6rem", color: done ? "#ffffff" : "#0a0a0a", fontSize: "0.8rem", fontWeight: 700, cursor: done ? "default" : "pointer", fontFamily: "'Inter',sans-serif", opacity: assigning ? 0.6 : 1 }}>{done ? <><Check size={13} /> {t("dashboard.questions.copied")}</> : t("dashboard.questions.assign")}</motion.button>
-                                        </div>
-                                    </div>);
-                                })}
-                            </div>
-                            <button onClick={() => setAssignQuestion(null)} style={{ marginTop: "1.25rem", padding: "0.75rem", background: "transparent", border: `1px solid ${G}0.1)`, borderRadius: "0.75rem", color: "#808080", fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" }}>{t("dashboard.questions.done")}</button>
-                        </motion.div>
-                    </motion.div>
+            {/* ── Editor ── */}
+            <Modal
+                open={editorOpen}
+                onClose={() => !saving && setEditorOpen(false)}
+                size="lg"
+                title={groupToken ? l("إضافة سؤال للامتحان", "Add a question") : l("امتحان جديد", "New exam")}
+                description={l("الإجابة النموذجية هي اللي هيتقارن بيها كلام الطالب، فاكتبها بالمعنى الكامل.", "Student answers are compared against the model answer, so write out the full meaning.")}
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setEditorOpen(false)} disabled={saving} className="me-auto">
+                            {addedNow.length ? l("تم", "Done") : l("إلغاء", "Cancel")}
+                        </Button>
+                        <Button variant="secondary" onClick={() => save(true)} disabled={saving}>{l("حفظ وإضافة سؤال آخر", "Save and add another")}</Button>
+                        <Button onClick={() => save(false)} loading={saving}>{l("حفظ", "Save")}</Button>
+                    </>
+                }
+            >
+                {addedNow.length > 0 && (
+                    <Alert tone="success" className="mb-5" title={l(`اتضاف ${addedNow.length} ${addedNow.length === 1 ? "سؤال" : "أسئلة"} للامتحان`, `${addedNow.length} added to this exam`)}>
+                        <ol className="mt-1 list-decimal space-y-0.5 ps-5">
+                            {addedNow.map((q) => <li key={q.id} className="truncate">{q.text}</li>)}
+                        </ol>
+                    </Alert>
                 )}
-            </AnimatePresence>
-        </div>
+                {editorError && <Alert tone="error" className="mb-5">{editorError}</Alert>}
+
+                <div className="grid gap-5">
+                    <Field
+                        label={l("السؤال", "Question")} htmlFor="q-text"
+                        action={<VoiceRecordButton hint={l("سؤال امتحان شفوي", "oral exam question")} onTranscribed={(t) => setDraft((d) => ({ ...d, text: d.text ? `${d.text} ${t}` : t }))} />}
+                    >
+                        <Textarea id="q-text" data-autofocus rows={3} value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} placeholder={l("مثال: عرّف الذكاء الاصطناعي واذكر مثالين على استخدامه", "e.g. Define artificial intelligence and give two examples")} />
+                    </Field>
+                    <Field
+                        label={l("الإجابة النموذجية", "Model answer")} htmlFor="q-answer"
+                        action={<VoiceRecordButton hint={draft.text} onTranscribed={(t) => setDraft((d) => ({ ...d, model_answer: d.model_answer ? `${d.model_answer} ${t}` : t }))} />}
+                    >
+                        <Textarea id="q-answer" rows={4} value={draft.model_answer} onChange={(e) => setDraft({ ...draft, model_answer: e.target.value })} />
+                    </Field>
+                    <Field label={l("كلمات مفتاحية", "Keywords")} htmlFor="q-keywords" hint={l("اختياري. مصطلحات لازم تيجي في الإجابة، افصل بينها بفاصلة.", "Optional. Terms the answer must mention, separated by commas.")}>
+                        <Input id="q-keywords" value={draft.keywords} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} placeholder={l("محاكاة، تعلم، بيانات", "simulation, learning, data")} aria-describedby="q-keywords-hint" />
+                    </Field>
+                    <div className="grid gap-5 sm:grid-cols-[1fr_auto_8rem]">
+                        <Field label={l("المادة أو الموضوع", "Subject")} htmlFor="q-category">
+                            <Input id="q-category" list="q-categories" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} placeholder={l("مثال: تعلم الآلة", "e.g. Machine learning")} />
+                            <datalist id="q-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+                        </Field>
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-sm font-semibold" id="q-diff-label">{l("الصعوبة", "Difficulty")}</span>
+                            <Segmented label={l("الصعوبة", "Difficulty")} value={draft.difficulty} onChange={(v) => setDraft({ ...draft, difficulty: v })} options={difficulties} />
+                        </div>
+                        <Field label={l("الوقت (دقائق)", "Time (min)")} htmlFor="q-duration">
+                            <Input id="q-duration" type="number" min={1} max={10} value={draft.duration_minutes} className="tabular"
+                                onChange={(e) => setDraft({ ...draft, duration_minutes: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })} />
+                        </Field>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Delete confirm ── */}
+            <Modal
+                open={!!toDelete}
+                onClose={() => !deleting && setToDelete(null)}
+                size="sm"
+                title={l("حذف السؤال؟", "Delete this question?")}
+                description={toDelete?.text}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setToDelete(null)} disabled={deleting}>{l("إلغاء", "Cancel")}</Button>
+                        <Button variant="danger" onClick={confirmDelete} loading={deleting}>{l("حذف", "Delete")}</Button>
+                    </>
+                }
+            />
+
+            {/* ── Assign ── */}
+            <Modal
+                open={!!assignFor}
+                onClose={() => setAssignFor(null)}
+                title={l("إرسال الامتحان لطالب", "Send exam to a student")}
+                description={l("الامتحان هيظهر عند الطالب في صفحة دعوات الامتحانات.", "The exam appears on the student's Exam invites page.")}
+                footer={<Button onClick={() => setAssignFor(null)}>{l("تم", "Done")}</Button>}
+            >
+                {assignError && <Alert tone="error" className="mb-4">{assignError}</Alert>}
+                <Input data-autofocus icon={<Search />} value={studentQuery} onChange={(e) => setStudentQuery(e.target.value)} placeholder={l("ابحث بالاسم أو البريد", "Search by name or email")} aria-label={l("بحث عن طالب", "Search students")} />
+                <div className="mt-4 max-h-[50vh] overflow-y-auto rounded-[var(--radius-control)] border border-rule">
+                    {students === null ? (
+                        <ListSkeleton rows={3} />
+                    ) : filteredStudents.length === 0 ? (
+                        <p className="px-4 py-10 text-center text-ink-2">{students.length ? l("مفيش طالب بالاسم ده.", "No student matches that search.") : l("لسه مفيش طلاب مسجلين.", "No students have signed up yet.")}</p>
+                    ) : (
+                        <ul className="divide-y divide-rule">
+                            {filteredStudents.map((s) => {
+                                const done = assigned.has(s.id);
+                                const bioReady = s.has_voiceprint && s.has_faceprint;
+                                return (
+                                    <li key={s.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                                        <Avatar name={s.full_name} size="sm" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-semibold">{s.full_name}</p>
+                                            <p className="truncate text-xs text-ink-3 ltr text-start">{s.email}</p>
+                                        </div>
+                                        {!bioReady && <Badge tone="warn">{l("لم يسجل هويته", "No ID setup")}</Badge>}
+                                        {s.voice_locked && !s.voice_reenroll_allowed && (
+                                            <button type="button" onClick={() => allowReenroll(s.id)} disabled={busyStudent === s.id}
+                                                className={buttonClasses("ghost", "sm", "h-8 px-2 text-xs")} title={l("اسمح له يعيد تسجيل وجهه وصوته", "Let them re-register face and voice")}>
+                                                <Lock className="size-3.5" aria-hidden />{l("سماح بإعادة التسجيل", "Allow re-register")}
+                                            </button>
+                                        )}
+                                        <Button size="sm" variant={done ? "secondary" : "primary"} disabled={done} loading={busyStudent === s.id} onClick={() => assign(s.id)} className={cn(done && "text-pass")}>
+                                            {done ? <><Check className="size-4" aria-hidden />{l("اتبعت", "Sent")}</> : l("إرسال", "Send")}
+                                        </Button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </div>
+            </Modal>
+        </>
     );
 }

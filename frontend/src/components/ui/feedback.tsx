@@ -98,7 +98,10 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     React.useEffect(() => {
         const dlg = ref.current;
         if (!dlg) return;
-        if (open && !dlg.open) dlg.showModal();
+        if (open && !dlg.open) {
+            dlg.showModal();
+            dlg.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+        }
         if (!open && dlg.open) dlg.close();
     }, [open]);
 
