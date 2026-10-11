@@ -68,7 +68,8 @@ Dark mode redefines every token; components only reference tokens.
 
 - Arabic first: use logical properties (`ms-`, `pe-`, `start-`, `end-`) everywhere; mirror photos for LTR only when a composition depends on direction.
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
-- Home page order: hero, how it works, the answer sheet, the grading formula, features, the old way against OralIQ with who it is for, FAQ, contact, closing call to action, footer. Add sections only when they answer a question a buyer actually has.
+- Home page order: hero, how it works, the answer sheet, the grading formula, features, the old way against OralIQ with who it is for, clients, the two ways to work with us (platform or inside the client's site), FAQ, contact, closing call to action, footer.
+- Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
 
 ## Elevation & Depth
 

@@ -12,6 +12,8 @@ import { ButtonLink, buttonClasses } from "../components/ui/button";
 import { Avatar } from "../components/ui/avatar";
 import { LiveGradingDemo } from "../components/landing/LiveGradingDemo";
 import { HeroStage } from "../components/landing/HeroStage";
+import { ClientsStrip } from "../components/landing/ClientsStrip";
+import { IntegrationSection } from "../components/landing/IntegrationSection";
 import { usePageTitle } from "../lib/usePageTitle";
 import {
     EASE, ScrollProgress, motion, useEnterProgress, useScroll, useSpring, useTransform,
@@ -158,6 +160,7 @@ export default function LandingPage() {
         { q: l("لو الطالب جاوب صح بأسلوبه هو؟", "What if a student answers correctly in their own words?"), a: l("بياخد حقه. التصحيح بيقارن المعنى، مش الكلمات بالحرف، فمش لازم يحفظ نص الكتاب.", "They get the credit. Grading compares meaning, not exact wording, so there's no need to recite the book.") },
         { q: l("إزاي بتتأكدوا إن الطالب هو اللي بيجاوب؟", "How do you know the right student is answering?"), a: l("الطالب بيسجّل وشه وصوته مرة واحدة، وفي كل امتحان بيتقارنوا. لو في اختلاف، الإجابة بتتعلّم «مراجعة» عشان المحاضر يشوفها.", "Each student registers their face and voice once, and both are checked on every exam. If something doesn't match, the answer is flagged for the lecturer to review.") },
         { q: l("الطالب بيشوف درجته إمتى؟", "When does a student see their grade?"), a: l("بعد ما المحاضر يراجعها وينشرها. لحد كده الدرجة بتفضل مخفية عن الطالب.", "Once the lecturer has reviewed and published it. Until then it stays hidden from the student.") },
+        { q: l("ينفع أضيف OralIQ لموقعي بدل ما أستخدم منصتكم؟", "Can I add OralIQ to my own website instead?"), a: l("أيوه. لو عندك موقع أو منصة تعليمية، بنتفق معاك على طريقة الربط ونضيف الامتحان الشفوي جوّاها بشكل موقعك، والطالب يمتحن من غير ما يخرج منه. كلّمنا ونشوف المناسب ليك.", "Yes. If you have a website or learning platform, we agree the setup with you and add the oral exam inside it, in your site's look, so students never leave it. Get in touch and we'll find what suits you.") },
         { q: l("بيشتغل بالعربي بس؟", "Is it Arabic only?"), a: l("لأ، عربي وإنجليزي، في الواجهة وفي الإجابات.", "No — Arabic and English, in the interface and in the answers.") },
     ];
 
@@ -177,6 +180,7 @@ export default function LandingPage() {
                             <a href="#how" className={buttonClasses("ghost", "sm")}>{l("إزاي بيشتغل", "How it works")}</a>
                             <a href="#grading" className={buttonClasses("ghost", "sm")}>{l("التصحيح", "Grading")}</a>
                             <a href="#features" className={buttonClasses("ghost", "sm")}>{l("المميزات", "Features")}</a>
+                            <a href="#integrate" className={buttonClasses("ghost", "sm")}>{l("لموقعك", "For your site")}</a>
                             <a href="#faq" className={buttonClasses("ghost", "sm")}>{l("أسئلة شائعة", "FAQ")}</a>
                             <a href="#contact" className={buttonClasses("ghost", "sm")}>{l("تواصل معنا", "Contact")}</a>
                         </div>
@@ -394,6 +398,12 @@ export default function LandingPage() {
                         </div>
                     </section>
 
+                    {/* ── Who uses it (real clients only; see content/clients.ts) ── */}
+                    <ClientsStrip />
+
+                    {/* ── Two ways to work with us: the platform, or inside the client's site ── */}
+                    <IntegrationSection />
+
                     {/* ── FAQ ── */}
                     <section id="faq" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-24 sm:px-6">
                         <h2 className="text-center text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("أسئلة بتتسأل كتير", "Questions we hear a lot")}</h2>
@@ -490,6 +500,7 @@ export default function LandingPage() {
                                 <li><a href="#how" className="hover:text-pen">{l("إزاي بيشتغل", "How it works")}</a></li>
                                 <li><a href="#grading" className="hover:text-pen">{l("التصحيح", "Grading")}</a></li>
                                 <li><a href="#features" className="hover:text-pen">{l("المميزات", "Features")}</a></li>
+                                <li><a href="#integrate" className="hover:text-pen">{l("إضافته لموقعك", "Add it to your site")}</a></li>
                                 <li><a href="#faq" className="hover:text-pen">{l("أسئلة شائعة", "FAQ")}</a></li>
                             </ul>
                         </nav>
