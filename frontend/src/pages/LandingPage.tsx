@@ -160,7 +160,7 @@ export default function LandingPage() {
         { q: l("لو الطالب جاوب صح بأسلوبه هو؟", "What if a student answers correctly in their own words?"), a: l("بياخد حقه. التصحيح بيقارن المعنى، مش الكلمات بالحرف، فمش لازم يحفظ نص الكتاب.", "They get the credit. Grading compares meaning, not exact wording, so there's no need to recite the book.") },
         { q: l("إزاي بتتأكدوا إن الطالب هو اللي بيجاوب؟", "How do you know the right student is answering?"), a: l("الطالب بيسجّل وشه وصوته مرة واحدة، وفي كل امتحان بيتقارنوا. لو في اختلاف، الإجابة بتتعلّم «مراجعة» عشان المحاضر يشوفها.", "Each student registers their face and voice once, and both are checked on every exam. If something doesn't match, the answer is flagged for the lecturer to review.") },
         { q: l("الطالب بيشوف درجته إمتى؟", "When does a student see their grade?"), a: l("بعد ما المحاضر يراجعها وينشرها. لحد كده الدرجة بتفضل مخفية عن الطالب.", "Once the lecturer has reviewed and published it. Until then it stays hidden from the student.") },
-        { q: l("الموقع ده هو المنتج؟", "Is this site the product?"), a: l("الموقع ده تجريبي، معمول عشان تجرّب الامتحانات الشفوية بنفسك. المنتج الأساسي إننا بنضيف OralIQ كميزة جوّه موقع الجامعة أو المؤسسة أو السنتر أو المنصة التعليمية، بشكل موقعك، والطالب يمتحن من غير ما يخرج منه. كلّمنا ونتفق على طريقة الربط المناسبة ليك.", "This site is a demo, here so you can try oral exams yourself. The product is OralIQ added as a feature inside your university's, institution's, centre's or learning platform's website, in your site's look, so students never leave it. Get in touch and we'll agree the right setup for you.") },
+        { q: l("عندي منصتي الخاصة، ينفع أضيف OralIQ جوّاها؟", "I have my own platform. Can OralIQ go inside it?"), a: l("أيوه. لو عندك منصة جامعة أو مؤسسة أو سنتر أو منصة تعليمية ومش عايز تستخدم منصة تانية، بنضيف الامتحان الشفوي كميزة جوّاها بشكل منصتك، والطالب يمتحن من غير ما يخرج منها. بنتفق معاك على طريقة الربط المناسبة.", "Yes. If you run a university, institution, centre or learning platform and don't want another one, we add the oral exam as a feature inside yours, in its look, so students never leave it. We agree the right setup with you.") },
         { q: l("بيشتغل بالعربي بس؟", "Is it Arabic only?"), a: l("لأ، عربي وإنجليزي، في الواجهة وفي الإجابات.", "No — Arabic and English, in the interface and in the answers.") },
     ];
 
@@ -168,14 +168,6 @@ export default function LandingPage() {
         <MotionConfig reducedMotion="user">
             <div className="min-h-dvh overflow-x-clip bg-paper text-ink">
                 <ScrollProgress />
-
-                {/* What this site is, said up front */}
-                <p className="relative z-50 bg-navy px-4 py-2 text-center text-sm text-white/85">
-                    {l("ده موقع تجريبي تقدر تجرّب عليه الامتحانات الشفوية. ", "This is a demo site where you can try oral exams. ")}
-                    <a href="#integrate" className="font-semibold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white">
-                        {l("OralIQ بيتضاف كميزة جوّه جامعتك أو منصتك التعليمية", "OralIQ is added as a feature inside your university or learning platform")}
-                    </a>
-                </p>
 
                 {/* ── Nav ── */}
                 <header className={cn(
@@ -432,9 +424,9 @@ export default function LandingPage() {
                     <section id="contact" className="scroll-mt-20 border-y border-rule/70 bg-sheet">
                         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.2fr]">
                             <div>
-                                <h2 className="text-3xl font-bold tracking-tight sm:text-[2.4rem] sm:leading-tight">{l("عايز OralIQ جوّه مؤسستك؟", "Want OralIQ inside your institution?")}</h2>
+                                <h2 className="text-3xl font-bold tracking-tight sm:text-[2.4rem] sm:leading-tight">{l("عايز تجرّبه في مؤسستك؟", "Want it for your institution?")}</h2>
                                 <p className="mt-4 text-lg leading-relaxed text-ink-2">
-                                    {l("بنضيف OralIQ كميزة جوّه مواقع الجامعات والمدارس والسناتر والمنصات التعليمية. كلّمنا ونرتب معاك تجربة على امتحان حقيقي.", "We add OralIQ as a feature inside the websites of universities, schools, centres and learning platforms. Get in touch and we'll arrange a trial on a real exam.")}
+                                    {l("بنجهّز OralIQ للجامعات والمدارس ومراكز التدريب. كلّمنا ونرتب معاك تجربة على امتحان حقيقي.", "We set OralIQ up for universities, schools and training centres. Get in touch and we'll arrange a trial on a real exam.")}
                                 </p>
                                 <ul className="mt-8 space-y-3 text-ink-2">
                                     <li className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-pen-wash text-pen"><Mail className="size-5" aria-hidden /></span><a className="ltr hover:text-pen" href="mailto:ahmedsalem250500@gmail.com">ahmedsalem250500@gmail.com</a></li>
@@ -468,11 +460,11 @@ export default function LandingPage() {
                             <Wave bars={90} className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full text-white/[0.07]" />
                             <div className="relative grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
                                 <div className="max-w-xl">
-                                    <h2 className="text-3xl font-bold tracking-tight text-white sm:text-[2.6rem] sm:leading-tight">{l("جرّب الامتحان الشفوي بنفسك.", "Try an oral exam yourself.")}</h2>
-                                    <p className="mt-3 text-lg text-white/70">{l("الموقع ده تجريبي: اعمل حساب واكتب أول سؤال في أقل من دقيقتين. ولما تحب تضيفه جوّه منصتك، كلّمنا.", "This site is a demo: create an account and write your first question in under two minutes. When you want it inside your platform, talk to us.")}</p>
+                                    <h2 className="text-3xl font-bold tracking-tight text-white sm:text-[2.6rem] sm:leading-tight">{l("جرّبه في امتحانك الشفوي الجاي.", "Try it on your next oral exam.")}</h2>
+                                    <p className="mt-3 text-lg text-white/70">{l("أنشئ حساب محاضر، واكتب أول سؤال في أقل من دقيقتين. وطلابك يجاوبوا من أي مكان.", "Create a lecturer account and write your first question in under two minutes. Your students answer from anywhere.")}</p>
                                     <div className="mt-8 flex flex-wrap gap-3">
-                                        <ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] bg-white px-7 text-[1.0625rem] text-navy shadow-none hover:bg-white/90">{l("جرّب مجاناً", "Try it free")}</ButtonLink>
-                                        <a href="#contact" className={buttonClasses("secondary", "lg", "h-[3.25rem] border-white/25 bg-white/10 px-7 text-[1.0625rem] text-white hover:border-white/40 hover:bg-white/15")}>{l("ضيفه لمنصتك", "Add it to your platform")}</a>
+                                        <ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] bg-white px-7 text-[1.0625rem] text-navy shadow-none hover:bg-white/90">{l("أنشئ حساب محاضر", "Create a lecturer account")}</ButtonLink>
+                                        <a href="#contact" className={buttonClasses("secondary", "lg", "h-[3.25rem] border-white/25 bg-white/10 px-7 text-[1.0625rem] text-white hover:border-white/40 hover:bg-white/15")}>{l("كلّمنا", "Talk to us")}</a>
                                     </div>
                                 </div>
                                 <div className="relative mx-auto hidden w-full max-w-sm lg:block">
