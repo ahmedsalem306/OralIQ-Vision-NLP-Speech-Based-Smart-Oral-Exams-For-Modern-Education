@@ -70,7 +70,6 @@ function EnrollmentFlow({
     };
 
     // Stop camera/mic and timers when the flow closes (unmounts).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => () => cleanup(), []);
 
     // Face ID runs on the server (InsightFace) — no heavy browser models to preload
