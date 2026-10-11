@@ -1,5 +1,6 @@
 import * as React from "react";
 import { AlertCircle, CheckCircle2, Info, TriangleAlert } from "lucide-react";
+import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
@@ -185,6 +186,7 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ value, onChange, options, label, className }: SegmentedProps<T>) {
+    const pillId = React.useId();
     return (
         <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-1 [scrollbar-width:none]", className)}>
             {options.map((o) => {
@@ -197,11 +199,20 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
                         aria-checked={active}
                         onClick={() => onChange(o.value)}
                         className={cn(
-                            "shrink-0 whitespace-nowrap rounded-[7px] px-3 py-1.5 text-sm font-semibold transition-colors",
-                            active ? "bg-sheet text-ink shadow-[0_1px_2px_rgba(23,33,58,0.12)] ring-1 ring-rule" : "text-ink-2 hover:text-ink",
+                            "relative shrink-0 whitespace-nowrap rounded-[7px] px-3 py-1.5 text-sm font-semibold transition-colors",
+                            active ? "text-ink" : "text-ink-2 hover:text-ink",
                         )}
                     >
-                        {o.label}
+                        {/* The selected pill slides between options */}
+                        {active && (
+                            <motion.span
+                                layoutId={`seg-${pillId}`}
+                                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                                className="absolute inset-0 rounded-[7px] bg-sheet shadow-[0_1px_2px_rgba(23,33,58,0.12)] ring-1 ring-rule"
+                                aria-hidden
+                            />
+                        )}
+                        <span className="relative">{o.label}</span>
                     </button>
                 );
             })}

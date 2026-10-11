@@ -20,7 +20,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 
             {/* Brand side — a real moment (student answering), with the product floating on top */}
             <aside className="relative hidden overflow-hidden lg:block">
-                <img src="/photos/study-cafe.webp" alt="" className="absolute inset-0 size-full object-cover" />
+                <img src="/photos/study-cafe.webp" srcSet="/photos/study-cafe-800.webp 800w, /photos/study-cafe.webp 1200w" sizes="50vw" alt="" className="absolute inset-0 size-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/10" aria-hidden />
                 <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(70% 50% at 100% 0%, color-mix(in oklab, var(--pen) 45%, transparent), transparent 70%)" }} aria-hidden />
 

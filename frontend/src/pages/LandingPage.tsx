@@ -14,7 +14,7 @@ import { Avatar } from "../components/ui/avatar";
 import { ScoreMark } from "../components/ui/score-mark";
 import { usePageTitle } from "../lib/usePageTitle";
 import {
-    CountUp, EASE, Reveal, ScrollProgress, Stagger, motion, staggerChild, useEnterProgress, useScroll, useSpring, useTransform,
+    CountUp, EASE, Magnetic, Reveal, ScrollProgress, Spotlight, Stagger, TiltCard, motion, staggerChild, useEnterProgress, useScroll, useSpring, useTransform,
 } from "../components/motion";
 
 const TEAM = [
@@ -191,8 +191,8 @@ export default function LandingPage() {
                                 <ButtonLink to="/dashboard" size="sm" className="ms-2">{l("لوحة التحكم", "Dashboard")}</ButtonLink>
                             ) : (
                                 <>
-                                    <ButtonLink to="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">{l("تسجيل الدخول", "Sign in")}</ButtonLink>
-                                    <ButtonLink to="/register" size="sm" className="ms-1">{l("أنشئ حساب", "Create account")}</ButtonLink>
+                                    <ButtonLink to="/login" viewTransition variant="ghost" size="sm" className="hidden sm:inline-flex">{l("تسجيل الدخول", "Sign in")}</ButtonLink>
+                                    <ButtonLink to="/register" viewTransition size="sm" className="ms-1">{l("أنشئ حساب", "Create account")}</ButtonLink>
                                 </>
                             )}
                         </div>
@@ -247,7 +247,7 @@ export default function LandingPage() {
                                         "Students answer out loud from anywhere and every answer grades itself: OralIQ transcribes it, compares it with your model answer, and checks the right student is answering.")}
                                 </motion.p>
                                 <motion.div variants={staggerChild} className="mt-9 flex flex-wrap gap-3">
-                                    <ButtonLink to={startHref} size="lg" className="h-[3.25rem] px-7 text-[1.0625rem]">{l("ابدأ الآن", "Get started")}</ButtonLink>
+                                    <Magnetic><ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] px-7 text-[1.0625rem]">{l("ابدأ الآن", "Get started")}</ButtonLink></Magnetic>
                                     <a href="#how" className={buttonClasses("secondary", "lg", "h-[3.25rem] px-7 text-[1.0625rem]")}>{l("شوف إزاي بيشتغل", "See how it works")}</a>
                                 </motion.div>
                                 <motion.ul variants={staggerChild} className="mt-9 flex flex-wrap gap-x-6 gap-y-2 text-[0.9375rem] text-ink-2">
@@ -262,6 +262,7 @@ export default function LandingPage() {
                             {/* Photo with floating product cards */}
                             <div className="relative mx-auto w-full max-w-[480px] lg:mx-0 lg:justify-self-end">
                                 <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-br from-pen/25 via-violet/15 to-transparent blur-2xl" aria-hidden />
+                                <TiltCard max={5}>
                                 <motion.div
                                     style={{ y: photoY }}
                                     initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
@@ -274,6 +275,8 @@ export default function LandingPage() {
                                         animate={ready ? { scale: 1 } : {}}
                                         transition={{ duration: 1.6, ease: EASE, delay: 0.25 }}
                                         src="/photos/hero-student.webp"
+                                        srcSet="/photos/hero-student-480.webp 480w, /photos/hero-student.webp 960w"
+                                        sizes="(min-width: 1024px) 480px, 92vw"
                                         alt={l("طالبة بتجاوب على امتحان شفوي من اللابتوب", "A student answering an oral exam on her laptop")}
                                         width={960} height={1200}
                                         className="block aspect-[4/5] w-full object-cover"
@@ -290,6 +293,7 @@ export default function LandingPage() {
                                         <span className="tabular">01:12</span>
                                     </div>
                                 </motion.div>
+                                </TiltCard>
 
                                 {/* Score card */}
                                 <motion.div
@@ -360,7 +364,7 @@ export default function LandingPage() {
                         <div ref={productRef} className="relative mt-14 [perspective:1600px]">
                             <div className="absolute inset-x-10 -bottom-6 top-10 rounded-[40px] bg-gradient-to-b from-pen/20 to-violet/10 blur-3xl" aria-hidden />
                             <motion.div style={{ rotateX: tilt, scale: tiltScale, y: tiltY, transformOrigin: "50% 0%" }} className="relative">
-                                <BrowserFrame src="/screens/results.webp" alt={l("صفحة النتائج وورقة إجابة طالب", "The results page with a student's answer sheet open")} />
+                                <TiltCard max={3}><BrowserFrame src="/screens/results.webp" alt={l("صفحة النتائج وورقة إجابة طالب", "The results page with a student's answer sheet open")} /></TiltCard>
                             </motion.div>
                         </div>
                     </section>
@@ -411,7 +415,7 @@ export default function LandingPage() {
                             <motion.div
                                 variants={staggerChild}
                                 ref={phoneRef}
-                                className="relative overflow-hidden rounded-[26px] bg-navy p-8 pb-0 text-white lg:row-span-2"
+                                className="oiq-noise relative overflow-hidden rounded-[26px] bg-navy p-8 pb-0 text-white lg:row-span-2"
                                 style={{ backgroundImage: "radial-gradient(90% 60% at 100% 0%, color-mix(in oklab, var(--pen) 55%, transparent), transparent 60%)" }}
                             >
                                 <h3 className="text-2xl font-bold text-white">{l("يجاوب من موبايله", "Answers from their phone")}</h3>
@@ -424,7 +428,8 @@ export default function LandingPage() {
                             </motion.div>
 
                             {/* Identity */}
-                            <motion.div variants={staggerChild} whileHover={{ y: -4 }} className="rounded-[26px] border border-rule/80 bg-sheet p-7 shadow-card">
+                            <motion.div variants={staggerChild} whileHover={{ y: -4 }} className="rounded-[26px] border border-rule/80 bg-sheet shadow-card">
+                            <Spotlight className="h-full rounded-[26px] p-7">
                                 <span className="flex size-11 items-center justify-center rounded-xl bg-violet-wash text-violet"><ScanFace className="size-5" aria-hidden /></span>
                                 <h3 className="mt-5 text-xl font-semibold">{l("الوش والصوت لازم يطابقوا", "Face and voice must match")}</h3>
                                 <p className="mt-2 text-ink-2">{l("بصمة بتتسجل مرة واحدة، وتتقارن في كل امتحان. لو واحدة بس طابقت، الإجابة بتتعلّم «مراجعة».", "Registered once, checked every exam. If only one matches, the answer is flagged for review.")}</p>
@@ -452,10 +457,12 @@ export default function LandingPage() {
                                         <Check className="size-5" aria-hidden />
                                     </motion.span>
                                 </div>
+                            </Spotlight>
                             </motion.div>
 
                             {/* Meaning-based grading */}
-                            <motion.div variants={staggerChild} whileHover={{ y: -4 }} className="rounded-[26px] border border-rule/80 bg-sheet p-7 shadow-card">
+                            <motion.div variants={staggerChild} whileHover={{ y: -4 }} className="rounded-[26px] border border-rule/80 bg-sheet shadow-card">
+                            <Spotlight className="h-full rounded-[26px] p-7">
                                 <span className="flex size-11 items-center justify-center rounded-xl bg-pen-wash text-pen"><Sparkles className="size-5" aria-hidden /></span>
                                 <h3 className="mt-5 text-xl font-semibold">{l("بيفهم المعنى", "Understands meaning")}</h3>
                                 <p className="mt-2 text-ink-2">{l("الطالب مش لازم يحفظ نفس الكلام. لو قال المعنى صح بأسلوبه، بياخد الدرجة.", "Students don't need your exact words. The right idea in their own words earns the marks.")}</p>
@@ -465,10 +472,12 @@ export default function LandingPage() {
                                     {l(" و", " and ")}
                                     <Highlight delay={0.35}>{l("بتتعلّم من البيانات", "learns from data")}</Highlight>…
                                 </p>
+                            </Spotlight>
                             </motion.div>
 
                             {/* Proctoring */}
-                            <motion.div variants={staggerChild} whileHover={{ y: -4 }} className="rounded-[26px] border border-rule/80 bg-sheet p-7 shadow-card">
+                            <motion.div variants={staggerChild} whileHover={{ y: -4 }} className="rounded-[26px] border border-rule/80 bg-sheet shadow-card">
+                            <Spotlight className="h-full rounded-[26px] p-7">
                                 <span className="flex size-11 items-center justify-center rounded-xl bg-warn-wash text-warn"><Eye className="size-5" aria-hidden /></span>
                                 <h3 className="mt-5 text-xl font-semibold">{l("مراقبة عادلة", "Fair proctoring")}</h3>
                                 <p className="mt-2 text-ink-2">{l("بيرصد الموبايل والكتاب والنظر بعيد لفترة طويلة. النظرة العادية مش بتتحسب.", "Detects phones, books and long looks away. Ordinary glances don't count.")}</p>
@@ -482,6 +491,7 @@ export default function LandingPage() {
                                         <motion.li variants={staggerChild} key={t} className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-sheet-2 px-3 py-1.5 text-ink-2"><Icon className="size-4 text-warn" aria-hidden />{t}</motion.li>
                                     ))}
                                 </Stagger>
+                            </Spotlight>
                             </motion.div>
 
                             {/* Small facts */}
@@ -505,7 +515,7 @@ export default function LandingPage() {
                     {/* ── Grading formula (navy) ── */}
                     <section
                         id="grading"
-                        className="scroll-mt-20 bg-navy text-white"
+                        className="oiq-noise scroll-mt-20 bg-navy text-white"
                         style={{ backgroundImage: "radial-gradient(60% 80% at 0% 0%, color-mix(in oklab, var(--pen) 45%, transparent), transparent 60%), radial-gradient(50% 70% at 100% 100%, color-mix(in oklab, var(--violet) 35%, transparent), transparent 60%)" }}
                     >
                         <div className="mx-auto grid max-w-7xl gap-14 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.25fr]">
@@ -518,7 +528,19 @@ export default function LandingPage() {
                                 <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.05] p-6">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-white/60">{l("درجة نهائية", "Final grade")}</span>
-                                        <span className="font-display text-5xl font-bold" dir="ltr"><CountUp to={91.5} decimals={1} duration={1.8} /><span className="text-2xl text-white/50">%</span></span>
+                                        <span className="relative px-4 py-2 font-display text-5xl font-bold" dir="ltr">
+                                            <svg viewBox="-6 -4 132 88" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full -rotate-3 overflow-visible" aria-hidden>
+                                                <motion.path
+                                                    d="M92 10C113 17 121 44 102 62C82 80 33 80 14 63C-3 48 6 19 33 9C53 2 80 3 98 15"
+                                                    fill="none" stroke="#FF8A95" strokeWidth="2.6" strokeLinecap="round"
+                                                    initial={{ pathLength: 0 }}
+                                                    whileInView={{ pathLength: 1 }}
+                                                    viewport={{ once: true, amount: 0.8 }}
+                                                    transition={{ duration: 0.9, ease: EASE, delay: 1.6 }}
+                                                />
+                                            </svg>
+                                            <span className="relative"><CountUp to={91.5} decimals={1} duration={1.8} /><span className="text-2xl text-white/50">%</span></span>
+                                        </span>
                                     </div>
                                     <div className="mt-5 flex h-3 gap-1" aria-hidden>
                                         {parts.map((p, i) => (
@@ -575,6 +597,8 @@ export default function LandingPage() {
                                     >
                                         <motion.img
                                             src={b.img} alt={b.alt} width={1200} height={750} loading="lazy"
+                                            srcSet={`${b.img.replace(".webp", "-640.webp")} 640w, ${b.img} 1200w`}
+                                            sizes="(min-width: 1024px) 600px, 92vw"
                                             initial={{ scale: 1.2 }}
                                             whileInView={{ scale: 1 }}
                                             viewport={{ once: true, amount: 0.35 }}
@@ -637,7 +661,7 @@ export default function LandingPage() {
                             whileInView={{ opacity: 1, y: 0, scale: 1 }}
                             viewport={{ once: true, amount: 0.4 }}
                             transition={{ duration: 0.9, ease: EASE }}
-                            className="relative mx-auto max-w-7xl overflow-hidden rounded-[32px] bg-navy px-8 py-14 text-white shadow-float sm:px-14"
+                            className="oiq-noise relative mx-auto max-w-7xl overflow-hidden rounded-[32px] bg-navy px-8 py-14 text-white shadow-float sm:px-14"
                             style={{ backgroundImage: "radial-gradient(70% 120% at 100% 0%, color-mix(in oklab, var(--pen) 70%, transparent), transparent 60%)" }}
                         >
                             <Wave bars={90} className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full text-white/[0.07]" />
@@ -646,7 +670,7 @@ export default function LandingPage() {
                                     <h2 className="text-3xl font-bold tracking-tight text-white sm:text-[2.6rem] sm:leading-tight">{l("جرّبه في امتحانك الشفوي الجاي.", "Try it on your next oral exam.")}</h2>
                                     <p className="mt-3 text-lg text-white/70">{l("أنشئ حساب محاضر، واكتب أول سؤال في أقل من دقيقتين.", "Create a lecturer account and write your first question in under two minutes.")}</p>
                                 </div>
-                                <ButtonLink to={startHref} size="lg" className="h-[3.25rem] bg-white px-7 text-[1.0625rem] text-navy shadow-none hover:bg-white/90">{l("أنشئ حساب محاضر", "Create a lecturer account")}</ButtonLink>
+                                <ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] bg-white px-7 text-[1.0625rem] text-navy shadow-none hover:bg-white/90">{l("أنشئ حساب محاضر", "Create a lecturer account")}</ButtonLink>
                             </div>
                         </motion.div>
                     </section>

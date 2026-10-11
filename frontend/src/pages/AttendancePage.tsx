@@ -68,7 +68,15 @@ export default function AttendancePage() {
             <PageHeader
                 title={l("الحضور", "Attendance")}
                 description={l("مين دخل امتحاناتك ومين لسه. الصفحة بتتحدث لوحدها كل 30 ثانية.", "Who has taken your exams and who hasn't. Refreshes every 30 seconds.")}
-                actions={updatedAt && <span className="text-sm text-ink-3" aria-live="polite">{l(`آخر تحديث ${timeAgo(updatedAt, lang)}`, `Updated ${timeAgo(updatedAt, lang)}`)}</span>}
+                actions={updatedAt && (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-sheet px-3 py-1.5 text-sm text-ink-2 shadow-card" aria-live="polite">
+                        <span className="relative flex size-2">
+                            <span className="absolute inset-0 rounded-full bg-pass motion-safe:animate-[oiq-pulse-ring_1.6s_ease-out_infinite]" />
+                            <span className="relative size-2 rounded-full bg-pass" />
+                        </span>
+                        {l(`مباشر، آخر تحديث ${timeAgo(updatedAt, lang)}`, `Live, updated ${timeAgo(updatedAt, lang)}`)}
+                    </span>
+                )}
             />
 
             {error && <Alert tone="error" className="mb-6">{error}</Alert>}

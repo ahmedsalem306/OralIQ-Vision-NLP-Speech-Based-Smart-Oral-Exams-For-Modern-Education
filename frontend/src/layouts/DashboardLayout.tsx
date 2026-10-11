@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-    LayoutDashboard, Users, BarChart3, Settings, LogOut, Menu, X,
-    ClipboardList, Award, Inbox, TrendingUp, CalendarCheck,
+    Award, BarChart3, CalendarCheck, ClipboardList, EyeOff, Inbox, Languages, LayoutDashboard, LogOut, Menu, Moon, Plus, Search, Settings, ShieldAlert, TrendingUp, Users, X,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import api from "../lib/api";
@@ -13,11 +12,15 @@ import { buttonClasses } from "../components/ui/button";
 import { useI18n } from "../i18n";
 import { MotionConfig, motion } from "motion/react";
 import { usePageTitle } from "../lib/usePageTitle";
+import { useTheme } from "../lib/theme";
+import { CommandPalette, type Command } from "../components/CommandPalette";
 
 type Me = { full_name: string; email: string; role: string };
 
 export function DashboardLayout() {
-    const { t, l } = useI18n();
+    const { t, l, toggleLang, lang } = useI18n();
+    const { toggle: toggleTheme } = useTheme();
+    const [paletteOpen, setPaletteOpen] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [user, setUser] = useState<Me | null>(null);
     const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -75,6 +78,21 @@ export function DashboardLayout() {
             : navItems.find((n) => n.href === location.pathname)?.label;
     usePageTitle(user ? currentTitle : null);
 
+    const pagesGroup = l("الصفحات", "Pages");
+    const actionsGroup = l("أوامر", "Actions");
+    const commands: Command[] = [
+        ...navItems.map((n) => ({ id: n.href, label: n.label, group: pagesGroup, icon: n.icon, to: n.href })),
+        { id: "settings", label: t("nav.settings"), group: pagesGroup, icon: Settings, to: "/dashboard/settings" },
+        ...(isLecturer ? [
+            { id: "new-q", label: l("سؤال جديد", "New question"), group: actionsGroup, icon: Plus, to: "/dashboard/questions?new=1", keywords: "add create اضافة" },
+            { id: "review", label: l("الإجابات اللي محتاجة مراجعة", "Answers needing review"), group: actionsGroup, icon: ShieldAlert, to: "/dashboard/results?filter=review" },
+            { id: "unpublished", label: l("الدرجات اللي لسه ماتنشرتش", "Unpublished grades"), group: actionsGroup, icon: EyeOff, to: "/dashboard/results?filter=unpublished" },
+        ] : []),
+        { id: "theme", label: l("تبديل الوضع الليلي/النهاري", "Toggle dark/light mode"), group: actionsGroup, icon: Moon, run: toggleTheme, keywords: "dark light theme" },
+        { id: "lang", label: lang === "ar" ? "Switch to English" : "التبديل للعربية", group: actionsGroup, icon: Languages, run: toggleLang, keywords: "language لغة" },
+        { id: "logout", label: t("nav.signOut"), group: actionsGroup, icon: LogOut, run: handleLogout },
+    ];
+
     return (
         <div className="min-h-dvh bg-paper text-ink md:flex">
             <a
@@ -112,6 +130,18 @@ export function DashboardLayout() {
                         aria-label={l("إغلاق القائمة", "Close menu")}
                     >
                         <X className="size-5" aria-hidden />
+                    </button>
+                </div>
+
+                <div className="px-3 pb-2">
+                    <button
+                        type="button"
+                        onClick={() => setPaletteOpen(true)}
+                        className="flex w-full items-center gap-2.5 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-navy-muted transition-colors hover:bg-white/[0.08] hover:text-white"
+                    >
+                        <Search className="size-4" aria-hidden />
+                        <span className="flex-1 text-start">{l("بحث سريع", "Quick search")}</span>
+                        <kbd className="rounded border border-white/15 px-1.5 text-[0.6875rem] ltr" dir="ltr">Ctrl K</kbd>
                     </button>
                 </div>
 
@@ -154,6 +184,8 @@ export function DashboardLayout() {
                     </div>
                 )}
             </aside>
+
+            {user && <CommandPalette commands={commands} open={paletteOpen} onOpenChange={setPaletteOpen} />}
 
             {/* ── Main ── */}
             <div className="flex min-w-0 flex-1 flex-col">
@@ -206,13 +238,20 @@ function NavItem({ icon: Icon, label, href, active, onNavigate }: NavItemProps) 
             aria-current={active ? "page" : undefined}
             className={cn(
                 "relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-[0.9375rem] transition-colors",
-                active
-                    ? "bg-white/[0.12] font-semibold text-white before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-[#8EA6FF]"
-                    : "text-navy-muted hover:bg-white/[0.06] hover:text-white",
+                active ? "font-semibold text-white" : "text-navy-muted hover:bg-white/[0.06] hover:text-white",
             )}
         >
-            <Icon className="size-[18px] shrink-0" aria-hidden />
-            <span className="truncate">{label}</span>
+            {/* Active highlight glides to the selected page */}
+            {active && (
+                <motion.span
+                    layoutId="nav-active"
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    className="absolute inset-0 rounded-[var(--radius-control)] bg-white/[0.12] before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-[#8EA6FF]"
+                    aria-hidden
+                />
+            )}
+            <Icon className="relative size-[18px] shrink-0" aria-hidden />
+            <span className="relative truncate">{label}</span>
         </Link>
     );
 }

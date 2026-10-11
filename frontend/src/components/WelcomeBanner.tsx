@@ -8,31 +8,53 @@ export const onDark = {
     secondary: "border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/15",
 };
 
+/**
+ * What the banner's light says about the user's situation:
+ * calm (normal activity), attention (something needs you), done (all caught up).
+ */
+export type BannerMood = "calm" | "attention" | "done";
+
+const glows: Record<BannerMood, [string, string]> = {
+    calm: ["color-mix(in oklab, var(--pen) 75%, transparent)", "color-mix(in oklab, var(--violet) 55%, transparent)"],
+    attention: ["rgba(241, 160, 64, 0.55)", "color-mix(in oklab, var(--pen) 55%, transparent)"],
+    done: ["rgba(64, 196, 170, 0.5)", "color-mix(in oklab, var(--pen) 55%, transparent)"],
+};
+
 interface WelcomeBannerProps {
     title: React.ReactNode;
     description?: React.ReactNode;
     actions?: React.ReactNode;
     /** Optional visual on the end side (desktop). */
     aside?: React.ReactNode;
+    mood?: BannerMood;
     className?: string;
 }
 
 /**
- * Greeting at the top of the overview: navy-to-ink-blue, a faint voice waveform
- * drawn behind the text (the product's core gesture), and one clear next step.
+ * Greeting at the top of the overview: navy with slowly turning light whose colour
+ * follows the user's state, a faint voice waveform, and one clear next step.
  */
-export function WelcomeBanner({ title, description, actions, aside, className }: WelcomeBannerProps) {
+export function WelcomeBanner({ title, description, actions, aside, mood = "calm", className }: WelcomeBannerProps) {
+    const [a, b] = glows[mood];
     return (
         <motion.section
             initial={{ opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            data-mood={mood}
             className={cn(
-                "relative mb-8 overflow-hidden rounded-[24px] bg-navy px-6 py-8 text-white shadow-float sm:px-10 sm:py-10",
+                "oiq-noise relative mb-8 overflow-hidden rounded-[24px] bg-navy px-6 py-8 text-white shadow-float sm:px-10 sm:py-10",
                 className,
             )}
-            style={{ backgroundImage: "radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--pen) 70%, transparent) 0%, transparent 55%), radial-gradient(90% 120% at 0% 100%, color-mix(in oklab, var(--violet) 45%, transparent) 0%, transparent 60%)" }}
         >
+            {/* Ambient light: a large gradient field turning very slowly (GPU transform only) */}
+            <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+                <div
+                    className="absolute -inset-[60%] transition-[background] duration-1000 motion-safe:animate-[oiq-glow-spin_40s_linear_infinite]"
+                    style={{ background: `radial-gradient(30% 35% at 70% 30%, ${a}, transparent 70%), radial-gradient(28% 32% at 30% 70%, ${b}, transparent 70%)` }}
+                />
+            </div>
+
             {/* Decorative waveform */}
             <svg viewBox="0 0 600 120" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full text-white/[0.07]" aria-hidden>
                 {Array.from({ length: 75 }).map((_, i) => {

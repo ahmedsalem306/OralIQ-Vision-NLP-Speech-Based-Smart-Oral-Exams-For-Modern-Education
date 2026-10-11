@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Check, CheckCircle2, Mic, RefreshCw, ScanFace } from "lucide-react";
+import { Check, Mic, RefreshCw, ScanFace } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Alert, Modal } from "./ui/feedback";
+import { DrawnCheck } from "./motion";
 import { buildFaceEnrollForm } from "../lib/faceBiometrics";
 import { getApiErrorMessage } from "../lib/apiErrors";
 
@@ -447,7 +448,7 @@ function EnrollmentFlow({
 
                 {step === "success" && (
                     <div className="flex flex-col items-center gap-3 py-4 text-center" role="status">
-                        <span className="flex size-14 items-center justify-center rounded-full bg-pass-wash text-pass"><CheckCircle2 className="size-8" aria-hidden /></span>
+                        <DrawnCheck className="size-16 text-pass" />
                         <p className="font-semibold">{l("تمام! تقدر تدخل امتحاناتك دلوقتي.", "All set — you can take your exams now.")}</p>
                     </div>
                 )}

@@ -112,6 +112,7 @@ export default function Overview() {
         return (
             <>
                 <WelcomeBanner
+                    mood={flagged.length > 0 ? "attention" : results.length > 0 && results.every((r) => r.grade_visible) ? "done" : "calm"}
                     title={l(`أهلاً، ${user?.full_name ?? ""}`, `Welcome, ${user?.full_name ?? ""}`)}
                     description={
                         results.length
@@ -266,6 +267,7 @@ export default function Overview() {
     return (
         <>
             <WelcomeBanner
+                mood={bio && !ready ? "attention" : pending.length > 0 ? "calm" : "done"}
                 title={l(`أهلاً، ${firstName}`, `Hi, ${firstName}`)}
                 description={
                     pending.length

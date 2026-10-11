@@ -15,6 +15,7 @@ import { ScoreMark } from "../components/ui/score-mark";
 import { gradeOf } from "../lib/grades";
 import { countOf, NOUNS } from "../lib/format";
 import { usePageTitle } from "../lib/usePageTitle";
+import { DrawnCheck } from "../components/motion";
 import { cn } from "../lib/utils";
 
 import api from "../lib/api";
@@ -951,7 +952,8 @@ export default function ExamRoom() {
                     <p className="text-sm text-ink-3">
                         {multi ? l(`سؤال ${currentQIndex + 1} من ${allQuestions.length}`, `Question ${currentQIndex + 1} of ${allQuestions.length}`) : l("الامتحان", "Exam")}
                     </p>
-                    <h1 className="mt-1 text-2xl font-bold">{l("إجابتك اتسلّمت", "Your answer is in")}</h1>
+                    <DrawnCheck className="mx-auto mt-3 size-14 text-pass" />
+                    <h1 className="mt-3 text-2xl font-bold">{l("إجابتك اتسلّمت", "Your answer is in")}</h1>
 
                     {result && (
                         <>

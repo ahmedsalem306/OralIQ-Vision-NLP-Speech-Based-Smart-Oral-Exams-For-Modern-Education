@@ -1,5 +1,14 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
+import { CountUp } from "../motion";
+
+/** Numbers ("71%", "6", 91.5) count up once; anything else renders as-is. */
+function AnimatedValue({ value }: { value: React.ReactNode }) {
+    const text = typeof value === "number" ? String(value) : typeof value === "string" ? value : null;
+    const m = text?.match(/^(\d+(?:\.(\d+))?)(%?)$/);
+    if (!m) return <>{value}</>;
+    return <CountUp to={parseFloat(m[1])} decimals={m[2]?.length ?? 0} suffix={m[3]} duration={1.1} />;
+}
 
 /** The base surface: a card lifted off the page with a soft shadow. */
 export function Panel({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
@@ -90,7 +99,7 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
                                 </span>
                             )}
                         </div>
-                        <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink">{item.value}</dd>
+                        <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink"><AnimatedValue value={item.value} /></dd>
                         {item.hint && <dd className="mt-2 text-xs text-ink-3">{item.hint}</dd>}
                     </div>
                 );

@@ -12,6 +12,7 @@ import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
 import { AnswerSheet } from "../components/AnswerSheet";
+import { Tooltip } from "../components/ui/tooltip";
 import { gradeOf, formatScore } from "../lib/grades";
 import { countOf, formatDate, NOUNS, parseServerDate } from "../lib/format";
 import { needsReview, type Submission } from "../lib/types";
@@ -51,8 +52,12 @@ export default function LecturerResults() {
     const [actionError, setActionError] = useState("");
     const [confirmBulk, setConfirmBulk] = useState(false);
     const [bulkBusy, setBulkBusy] = useState(false);
+    // Render rows in pages so very large classes stay fast
+    const PAGE = 40;
+    const [shown, setShown] = useState(PAGE);
 
     const filter = (params.get("filter") as Filter) || "all";
+    const [pagingKey, setPagingKey] = useState("");
     const openId = Number(params.get("open")) || null;
 
     const setParam = (key: string, value: string | null) => {
@@ -61,6 +66,13 @@ export default function LecturerResults() {
         else next.set(key, value);
         setParams(next, { replace: true });
     };
+
+    // Back to the first page whenever the filter or search changes
+    const pageKey = `${filter}|${query}`;
+    if (pageKey !== pagingKey) {
+        setPagingKey(pageKey);
+        setShown(PAGE);
+    }
 
     useEffect(() => {
         api.get("/exams/all-results")
@@ -92,15 +104,18 @@ export default function LecturerResults() {
     const reviewCount = results.filter(needsReview).length;
     const bulkEligible = results.filter((r) => !r.grade_visible && r.overall_score != null && !needsReview(r));
 
+    // Optimistic: flip the state at once, roll back if the server says no.
     const setVisibility = async (id: number, visibleFlag: boolean) => {
-        setBusyId(id);
+        const flag = visibleFlag ? 1 : 0;
         setActionError("");
+        setResults((prev) => prev.map((r) => (r.id === id ? { ...r, grade_visible: flag } : r)));
+        toast(visibleFlag ? l("اتنشرت الدرجة للطالب", "Grade published to the student") : l("الدرجة اتخفت عن الطالب", "Grade hidden from the student"));
+        setBusyId(id);
         try {
             await api.patch(`/exams/submissions/${id}/visibility?visible=${visibleFlag}`);
-            setResults((prev) => prev.map((r) => (r.id === id ? { ...r, grade_visible: visibleFlag ? 1 : 0 } : r)));
-            toast(visibleFlag ? l("اتنشرت الدرجة للطالب", "Grade published to the student") : l("الدرجة اتخفت عن الطالب", "Grade hidden from the student"));
         } catch (err) {
-            setActionError(getApiErrorMessage(err, l("تعذّر تحديث حالة النشر.", "Couldn't update the grade.")));
+            setResults((prev) => prev.map((r) => (r.id === id ? { ...r, grade_visible: flag ? 0 : 1 } : r)));
+            toast(getApiErrorMessage(err, l("تعذّر تحديث حالة النشر، ورجعناها زي ما كانت.", "Couldn't update the grade; it was put back.")), "error");
         } finally {
             setBusyId(null);
         }
@@ -228,7 +243,7 @@ export default function LecturerResults() {
                             <span>{l("الحالة", "Status")}</span>
                         </div>
                         <RuledList>
-                            {visible.map((r) => {
+                            {visible.slice(0, Math.max(shown, openIndexOf(visible, openId) + 1)).map((r) => {
                                 const g = gradeOf(r.overall_score);
                                 const flagged = needsReview(r);
                                 return (
@@ -267,6 +282,13 @@ export default function LecturerResults() {
                                 );
                             })}
                         </RuledList>
+                        {visible.length > shown && (
+                            <div className="border-t border-rule p-4 text-center">
+                                <Button variant="secondary" onClick={() => setShown((n) => n + PAGE)}>
+                                    {l(`عرض المزيد (${visible.length - shown} متبقي)`, `Show more (${visible.length - shown} left)`)}
+                                </Button>
+                            </div>
+                        )}
                     </>
                 )}
             </Panel>
@@ -288,18 +310,26 @@ export default function LecturerResults() {
                             <span className="hidden text-sm text-ink-3 tabular sm:inline print:hidden">{l(`${openIndex + 1} من ${visible.length}`, `${openIndex + 1} of ${visible.length}`)}</span>
                         )}
                         <div className="flex items-center print:hidden">
-                            <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => window.print()} aria-label={l("طباعة ورقة الإجابة", "Print answer sheet")} title={l("طباعة / PDF", "Print / PDF")}>
-                                <Printer className="size-[18px]" aria-hidden />
-                            </button>
-                            <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => goTo(openIndex - 1)} disabled={openIndex <= 0} aria-label={l("الإجابة السابقة", "Previous answer")}>
-                                <Prev className="size-5" aria-hidden />
-                            </button>
-                            <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => goTo(openIndex + 1)} disabled={openIndex < 0 || openIndex >= visible.length - 1} aria-label={l("الإجابة التالية", "Next answer")}>
-                                <Next className="size-5" aria-hidden />
-                            </button>
-                            <button type="button" data-autofocus className={buttonClasses("ghost", "icon-sm")} onClick={() => setParam("open", null)} aria-label={l("إغلاق", "Close")}>
-                                <X className="size-5" aria-hidden />
-                            </button>
+                            <Tooltip label={l("طباعة / PDF", "Print / PDF")}>
+                                <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => window.print()} aria-label={l("طباعة ورقة الإجابة", "Print answer sheet")}>
+                                    <Printer className="size-[18px]" aria-hidden />
+                                </button>
+                            </Tooltip>
+                            <Tooltip label={l("السابقة", "Previous")}>
+                                <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => goTo(openIndex - 1)} disabled={openIndex <= 0} aria-label={l("الإجابة السابقة", "Previous answer")}>
+                                    <Prev className="size-5" aria-hidden />
+                                </button>
+                            </Tooltip>
+                            <Tooltip label={l("التالية", "Next")}>
+                                <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => goTo(openIndex + 1)} disabled={openIndex < 0 || openIndex >= visible.length - 1} aria-label={l("الإجابة التالية", "Next answer")}>
+                                    <Next className="size-5" aria-hidden />
+                                </button>
+                            </Tooltip>
+                            <Tooltip label={l("إغلاق (Esc)", "Close (Esc)")}>
+                                <button type="button" data-autofocus className={buttonClasses("ghost", "icon-sm")} onClick={() => setParam("open", null)} aria-label={l("إغلاق", "Close")}>
+                                    <X className="size-5" aria-hidden />
+                                </button>
+                            </Tooltip>
                         </div>
                     </div>
                 )}
@@ -350,4 +380,8 @@ export default function LecturerResults() {
             />
         </>
     );
+}
+
+function openIndexOf(list: { id: number }[], id: number | null) {
+    return id == null ? -1 : list.findIndex((r) => r.id === id);
 }
