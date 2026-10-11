@@ -1,4 +1,5 @@
 import * as React from "react";
+import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 
 /** Buttons styled for the banner's dark surface. */
@@ -22,7 +23,10 @@ interface WelcomeBannerProps {
  */
 export function WelcomeBanner({ title, description, actions, aside, className }: WelcomeBannerProps) {
     return (
-        <section
+        <motion.section
+            initial={{ opacity: 0, y: 18, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
                 "relative mb-8 overflow-hidden rounded-[24px] bg-navy px-6 py-8 text-white shadow-float sm:px-10 sm:py-10",
                 className,
@@ -43,8 +47,17 @@ export function WelcomeBanner({ title, description, actions, aside, className }:
                     {description && <p className="mt-3 text-[1.0625rem] leading-relaxed text-white/75">{description}</p>}
                     {actions && <div className="mt-6 flex flex-wrap gap-2">{actions}</div>}
                 </div>
-                {aside && <div className="relative hidden shrink-0 lg:block">{aside}</div>}
+                {aside && (
+                    <motion.div
+                        initial={{ opacity: 0, x: -24 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}
+                        className="relative hidden shrink-0 lg:block"
+                    >
+                        {aside}
+                    </motion.div>
+                )}
             </div>
-        </section>
+        </motion.section>
     );
 }

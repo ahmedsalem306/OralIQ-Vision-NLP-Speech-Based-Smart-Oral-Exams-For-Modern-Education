@@ -222,6 +222,12 @@
 @keyframes oiq-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes oiq-pop-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes oiq-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+/* Marquee travels with the reading direction */
+:root { --marquee-dir: -1; }
+[dir="rtl"] { --marquee-dir: 1; }
+@keyframes oiq-marquee { from { transform: translateX(0); } to { transform: translateX(calc(var(--marquee-dir) * 50%)); } }
+@keyframes oiq-drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(40px, 30px); } }
+@keyframes oiq-eq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 @keyframes oiq-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes oiq-pulse-ring { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.9); opacity: 0; } }
 

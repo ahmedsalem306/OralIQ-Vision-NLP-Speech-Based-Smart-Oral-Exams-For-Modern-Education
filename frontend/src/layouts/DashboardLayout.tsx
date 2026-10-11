@@ -11,6 +11,7 @@ import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import { Avatar } from "../components/ui/avatar";
 import { buttonClasses } from "../components/ui/button";
 import { useI18n } from "../i18n";
+import { MotionConfig, motion } from "motion/react";
 import { usePageTitle } from "../lib/usePageTitle";
 
 type Me = { full_name: string; email: string; role: string };
@@ -173,7 +174,16 @@ export function DashboardLayout() {
                 </header>
 
                 <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-8 sm:py-10">
-                    <Outlet />
+                    <MotionConfig reducedMotion="user">
+                        <motion.div
+                            key={location.pathname}
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                            <Outlet />
+                        </motion.div>
+                    </MotionConfig>
                 </main>
             </div>
         </div>
