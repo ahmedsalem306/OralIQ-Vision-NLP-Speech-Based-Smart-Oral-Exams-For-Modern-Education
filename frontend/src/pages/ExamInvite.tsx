@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../lib/api";
+import { PageLoader } from "../components/PageLoader";
 
 /**
  * ExamInvite — handles the shared exam link.
@@ -52,12 +53,5 @@ export default function ExamInvite() {
     }, [token, navigate]);
 
     // Brief loading state while redirecting
-    return (
-        <div style={{ minHeight: "100vh", background: "#0F0F1A", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ textAlign: "center" }}>
-                <div style={{ width: 40, height: 40, border: "3px solid rgba(108,99,255,0.3)", borderTopColor: "#6C63FF", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />
-                <p style={{ color: "#8888A8", fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.9rem" }}>Loading your exam...</p>
-            </div>
-        </div>
-    );
+    return <PageLoader fullscreen />;
 }

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import PrivateRoute from "./components/PrivateRoute";
 import { PageLoader } from "./components/PageLoader";
@@ -11,7 +11,6 @@ const ExamInvite = lazy(() => import("./pages/ExamInvite"));
 const ExamRoom = lazy(() => import("./pages/ExamRoom"));
 const Overview = lazy(() => import("./pages/Overview"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
 const LecturerResults = lazy(() => import("./pages/LecturerResults"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
@@ -41,7 +40,8 @@ function App() {
                     <Route element={<DashboardLayout />}>
                         <Route path="/dashboard" element={<Suspense fallback={<PageLoader />}><Overview /></Suspense>} />
                         <Route path="/dashboard/questions" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-                        <Route path="/dashboard/interview/:questionId" element={<Suspense fallback={<PageLoader />}><InterviewRoom /></Suspense>} />
+                        {/* Legacy interview room (never linked; called a missing endpoint) */}
+                        <Route path="/dashboard/interview/:questionId" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard/results" element={<Suspense fallback={<PageLoader />}><LecturerResults /></Suspense>} />
                         <Route path="/dashboard/students" element={<Suspense fallback={<PageLoader />}><StudentsPage /></Suspense>} />
                         <Route path="/dashboard/analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />

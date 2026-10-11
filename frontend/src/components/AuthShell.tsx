@@ -6,7 +6,7 @@ import { ScoreMark } from "./ui/score-mark";
 import { useI18n } from "../i18n";
 
 /** A graded answer sheet — what OralIQ produces, shown instead of a stock photo. */
-function SampleSheet() {
+export function SampleSheet() {
     const { l } = useI18n();
     const rows = [
         { label: l("المحتوى", "Content"), value: 94 },
