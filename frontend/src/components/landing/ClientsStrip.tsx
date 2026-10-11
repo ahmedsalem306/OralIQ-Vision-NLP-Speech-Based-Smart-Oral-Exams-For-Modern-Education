@@ -1,18 +1,11 @@
 import { useI18n } from "../../i18n";
-import { CLIENTS, type ClientKind } from "../../content/clients";
+import { CLIENTS, type Client } from "../../content/clients";
 
-const KIND: Record<ClientKind, { ar: string; en: string }> = {
-    university: { ar: "جامعة", en: "University" },
-    school: { ar: "مدرسة", en: "School" },
-    center: { ar: "مركز تدريب", en: "Training centre" },
-    teacher: { ar: "مدرس", en: "Teacher" },
-};
-
-/** Placeholder slots, development only: show the layout without inventing names. */
-const SLOTS: ClientKind[] = ["university", "school", "center", "university", "teacher", "school"];
+/** Placeholder count for the development preview: shows the layout without inventing names. */
+const SLOTS = 8;
 
 /**
- * "Who uses OralIQ": real institutions from content/clients.ts.
+ * "Our clients": real names and logos from content/clients.ts, moving in one band.
  * Renders nothing in production until the list has entries.
  */
 export function ClientsStrip() {
@@ -20,39 +13,44 @@ export function ClientsStrip() {
     const preview = CLIENTS.length === 0;
     if (preview && !import.meta.env.DEV) return null;
 
+    const item = (c: Client) => {
+        const label = l(c.name.ar, c.name.en);
+        const body = c.logo
+            ? <img src={c.logo} alt={label} loading="lazy" className="max-h-11 max-w-40 object-contain opacity-75 grayscale transition hover:opacity-100 hover:grayscale-0" />
+            : <span className="whitespace-nowrap font-display text-lg font-semibold text-ink-2">{label}</span>;
+        return c.href ? <a href={c.href} target="_blank" rel="noopener noreferrer">{body}</a> : body;
+    };
+
+    // The band repeats itself once so the loop is seamless; the copy is hidden from screen readers.
+    const row = (hidden: boolean) => (
+        <ul aria-hidden={hidden || undefined} className="flex shrink-0 items-center gap-14 pe-14">
+            {preview
+                ? Array.from({ length: SLOTS }).map((_, i) => (
+                    <li key={i} className="flex h-16 w-40 items-center justify-center rounded-xl border border-dashed border-rule-strong text-sm font-semibold text-ink-3">
+                        {l("شعار العميل", "Client logo")}
+                    </li>
+                ))
+                : CLIENTS.map((c) => <li key={c.name.en} className="flex h-16 items-center">{item(c)}</li>)}
+        </ul>
+    );
+
     return (
-        <section aria-labelledby="clients-title" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <h2 id="clients-title" className="text-center text-xl font-semibold text-ink-2">
-                {l("جامعات ومدارس ومراكز بتمتحن طلابها شفوي مع OralIQ", "Universities, schools and centres running oral exams with OralIQ")}
-            </h2>
+        <section aria-labelledby="clients-title" className="py-20">
+            <h2 id="clients-title" className="text-center text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("عملاؤنا", "Our clients")}</h2>
 
             {preview && (
-                <p className="mx-auto mt-3 max-w-md text-center text-sm text-warn">
-                    {l("معاينة على جهاز التطوير بس: ضيف أسامي العملاء في src/content/clients.ts والقسم هيظهر على الموقع.",
+                <p className="mx-auto mt-3 max-w-md px-4 text-center text-sm text-warn">
+                    {l("معاينة على جهاز التطوير بس: ضيف العملاء في src/content/clients.ts والقسم هيظهر على الموقع.",
                         "Development preview only: add clients to src/content/clients.ts and the section appears on the live site.")}
                 </p>
             )}
 
-            <ul className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-[20px] border border-rule bg-rule sm:grid-cols-3 lg:grid-cols-6">
-                {preview
-                    ? SLOTS.map((k, i) => (
-                        <li key={i} className="flex h-28 flex-col items-center justify-center gap-1 bg-sheet text-ink-3">
-                            <span className="font-display text-sm font-semibold">{l("شعار العميل", "Client logo")}</span>
-                            <span className="text-xs">{l(KIND[k].ar, KIND[k].en)}</span>
-                        </li>
-                    ))
-                    : CLIENTS.map((c) => {
-                        const label = l(c.name.ar, c.name.en);
-                        const body = c.logo
-                            ? <img src={c.logo} alt={label} loading="lazy" className="max-h-12 max-w-[70%] object-contain opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0" />
-                            : <span className="px-3 text-center font-display font-semibold text-ink-2">{label}</span>;
-                        return (
-                            <li key={c.name.en} className="flex h-28 items-center justify-center bg-sheet">
-                                {c.href ? <a href={c.href} target="_blank" rel="noopener noreferrer" className="flex size-full items-center justify-center">{body}</a> : body}
-                            </li>
-                        );
-                    })}
-            </ul>
+            <div className="group relative mt-10 flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
+                <div className="flex w-max motion-safe:animate-[oiq-marquee_40s_linear_infinite] group-hover:[animation-play-state:paused]">
+                    {row(false)}
+                    {row(true)}
+                </div>
+            </div>
         </section>
     );
 }

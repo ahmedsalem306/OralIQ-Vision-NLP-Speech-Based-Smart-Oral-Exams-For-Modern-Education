@@ -59,7 +59,8 @@ Dark mode redefines every token; components only reference tokens.
 
 ## Typography
 
-- **Alexandria** for headings and numbers (display), **IBM Plex Sans Arabic** for body. Both handle Arabic and Latin; no third face.
+- **Alexandria** for headings and numbers (display), **IBM Plex Sans Arabic** for body. Both handle Arabic and Latin.
+- **Kufam** (`font-hero`) only in the home hero: the giant words and the hero headline. Its long horizontal Kufi strokes give the one loud moment its own voice. Nowhere else.
 - Headings: 30px mobile, about 42px desktop for section titles. The home hero's giant words are the one loud moment.
 - Numbers that line up (scores, tables) use `.tabular`.
 - Latin strings inside Arabic (emails, IDs) use `.ltr`.
@@ -69,7 +70,7 @@ Dark mode redefines every token; components only reference tokens.
 - Arabic first: use logical properties (`ms-`, `pe-`, `start-`, `end-`) everywhere; mirror photos for LTR only when a composition depends on direction.
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
 - Home page order: hero, how it works, the answer sheet, the grading formula, features, the old way against OralIQ with who it is for, clients, the two ways to work with us (platform or inside the client's site), FAQ, contact, closing call to action, footer.
-- Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
+- The clients section is titled "عملاؤنا" only (no claims about what kind of institutions) and its logos move in one band. Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
 
 ## Elevation & Depth
 
@@ -106,5 +107,5 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - Do reuse the tokens, nav, footer and primitives above on every page, unchanged.
 - Do add a token to `index.css` and to this file before a page needs a new colour or size.
 - Do keep student-facing language encouraging and specific ("رجّع عينك للشاشة", not "نظرت لليسار").
-- Don't change: Alexandria + IBM Plex Sans Arabic, the pen-blue / red-pen pair, the home hero composition (the owner's reference).
+- Don't change: Alexandria + IBM Plex Sans Arabic, Kufam in the hero, the pen-blue / red-pen pair, the home hero composition (the owner's reference).
 - Don't use: purple-to-blue gradients or gradient headline text; one accented word in a headline (SD5); eyebrow labels with hairlines above every heading (SD4); middle-dot meta strings (SD4d); decorative 01 / 02 / 03 numbering outside real sequences (SD6); fake browser chrome around screenshots (SD7); icons in tinted rounded squares as the default feature treatment (K6); mouse-following spotlights and 3D tilt cards (K10); count-up animations outside live dashboard figures (M5); cream with terracotta or near-black with acid green as an "escape" palette (SD1, SD2).

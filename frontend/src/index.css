@@ -219,6 +219,8 @@
 
   --font-sans: "IBM Plex Sans Arabic", system-ui, sans-serif;
   --font-display: "Alexandria", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  /* Home hero only: geometric Kufi with long horizontal strokes, for the giant words and the headline */
+  --font-hero: "Kufam", "Alexandria", system-ui, sans-serif;
 
   --radius-control: 12px;
   --radius-panel: 20px;

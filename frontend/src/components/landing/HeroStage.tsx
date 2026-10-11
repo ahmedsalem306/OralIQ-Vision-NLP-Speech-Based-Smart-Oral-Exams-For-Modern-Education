@@ -13,8 +13,8 @@ type Line = { points: string; x: number; y: number };
  * Measured on the RTL (unmirrored) photo; mirrored for LTR.
  */
 const ANCHORS = {
-    voice: { x: 27.5, y: 41 },   // the headphone cup on the image's left
-    face: { x: 52, y: 44 },      // her cheek
+    voice: { x: 15.5, y: 45 },   // the headphone cup on the image's left
+    face: { x: 47, y: 41 },      // his face, between the eyes and the smile
 };
 
 /**
@@ -65,6 +65,8 @@ export function HeroStage({ startHref }: { startHref: string }) {
     const anchor = (a: { x: number; y: number }) => ({ left: `${rtl ? a.x : 100 - a.x}%`, top: `${a.y}%` });
 
     const devices = [Smartphone, Laptop, Tablet];
+    // Kufam's Latin is wide; English words run smaller so they clear the photo
+    const wordSize = rtl ? "text-[clamp(5rem,10.2vw,9.75rem)]" : "text-[clamp(4rem,7.6vw,7.25rem)]";
 
     return (
         <div className="px-3 pt-3 sm:px-5 sm:pt-4">
@@ -86,7 +88,7 @@ export function HeroStage({ startHref }: { startHref: string }) {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: EASE, delay: 0.15 }}
-                    className="pointer-events-none absolute start-[4%] top-[9%] z-0 hidden font-display text-[clamp(5rem,10.2vw,9.75rem)] font-extrabold leading-none tracking-tight drop-shadow-[0_12px_30px_rgba(30,60,130,0.18)] lg:block"
+                    className={cn("pointer-events-none absolute start-[4%] top-[9%] z-0 hidden font-hero font-extrabold leading-none tracking-tight drop-shadow-[0_12px_30px_rgba(30,60,130,0.18)] lg:block", wordSize)}
                     style={{ color: "var(--hero-word)" }}
                 >
                     {l("إجابتك", "Answer")}
@@ -96,14 +98,14 @@ export function HeroStage({ startHref }: { startHref: string }) {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: EASE, delay: 0.3 }}
-                    className="pointer-events-none absolute bottom-[calc(13rem+5%)] end-[3%] z-[12] hidden font-display text-[clamp(5rem,10.2vw,9.75rem)] font-extrabold leading-none tracking-tight drop-shadow-[0_12px_30px_rgba(30,60,130,0.18)] lg:block"
+                    className={cn("pointer-events-none absolute bottom-[calc(13rem+5%)] end-[3%] z-[12] hidden font-hero font-extrabold leading-none tracking-tight drop-shadow-[0_12px_30px_rgba(30,60,130,0.18)] lg:block", wordSize)}
                     style={{ color: "var(--hero-word)" }}
                 >
                     {l("بصوتك.", "aloud.")}
                 </motion.p>
 
                 {/* Giant words (phones) */}
-                <p aria-hidden className="relative z-0 px-5 pt-9 text-center font-display text-[clamp(3.4rem,17vw,5rem)] font-extrabold leading-[1.18] tracking-tight lg:hidden" style={{ color: "var(--hero-word)" }}>
+                <p aria-hidden className="relative z-0 px-5 pt-9 text-center font-hero text-[clamp(3.4rem,17vw,5rem)] font-extrabold leading-[1.18] tracking-tight lg:hidden" style={{ color: "var(--hero-word)" }}>
                     {l("إجابتك", "Answer")}<br />{l("بصوتك.", "aloud.")}
                 </p>
 
@@ -113,14 +115,14 @@ export function HeroStage({ startHref }: { startHref: string }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1.1, ease: EASE, delay: 0.2 }}
                     onAnimationComplete={measure}
-                    className="relative z-10 mx-auto -mt-2 w-[88%] max-w-[440px] lg:absolute lg:bottom-0 lg:left-1/2 lg:mt-0 lg:h-[88%] lg:w-auto lg:max-w-none lg:-translate-x-1/2"
+                    className="relative z-10 mx-auto -mt-2 w-[88%] max-w-[440px] lg:absolute lg:bottom-[9rem] lg:left-1/2 lg:mt-0 lg:h-[78%] lg:w-auto lg:max-w-none lg:-translate-x-1/2"
                 >
                     <img
-                        src="/photos/hero-cutout.webp"
-                        srcSet="/photos/hero-cutout-640.webp 640w, /photos/hero-cutout.webp 1100w"
+                        src="/photos/hero-cutout-m.webp"
+                        srcSet="/photos/hero-cutout-m-640.webp 640w, /photos/hero-cutout-m.webp 1100w"
                         sizes="(min-width: 1024px) 720px, 88vw"
-                        alt={l("طالبة مبتسمة لابسة سماعات بتجاوب على امتحان شفوي", "A smiling student wearing headphones, answering an oral exam")}
-                        width={1100} height={1121}
+                        alt={l("طالب مبتسم لابس سماعات بيجاوب على امتحان شفوي", "A smiling student wearing headphones, answering an oral exam")}
+                        width={1100} height={1341}
                         fetchPriority="high"
                         onLoad={measure}
                         className={cn("block h-auto w-full lg:h-full lg:w-auto", !rtl && "-scale-x-100")}
@@ -195,7 +197,7 @@ export function HeroStage({ startHref }: { startHref: string }) {
 
                     {/* Center: the promise */}
                     <div className="oiq-notch-c relative flex flex-col items-center justify-center rounded-[22px] bg-navy px-6 pb-7 pt-12 text-center text-white md:order-1 md:col-span-2 lg:order-none lg:col-span-1 lg:-mx-8 lg:rounded-none lg:px-20 lg:pb-6 lg:pt-10">
-                        <h1 className="font-display text-[1.65rem] font-bold leading-snug text-white sm:text-[1.9rem]">
+                        <h1 className="font-hero text-[1.65rem] font-bold leading-snug text-white sm:text-[1.9rem]">
                             {l("أول منصة عربية للامتحانات الشفوية أونلاين.", "The first Arabic platform for online oral exams.")}
                         </h1>
                         <p className="mt-2 max-w-md text-[0.9375rem] leading-relaxed text-white/65">
