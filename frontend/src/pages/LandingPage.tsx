@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MotionConfig, useMotionValueEvent } from "motion/react";
 import {
     BarChart3, BookOpen, Check, Clock, Eye, FileDown, Inbox, Languages, Mail, MapPin, Mic, PenLine, Phone, Plus, ScanFace, Send,
-    ShieldCheck, Smartphone, Sparkles, Users, X,
+    Smartphone, Sparkles, Users, X,
 } from "lucide-react";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
@@ -12,9 +12,10 @@ import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import { ButtonLink, buttonClasses } from "../components/ui/button";
 import { Avatar } from "../components/ui/avatar";
 import { LiveGradingDemo } from "../components/landing/LiveGradingDemo";
+import { HeroStage } from "../components/landing/HeroStage";
 import { usePageTitle } from "../lib/usePageTitle";
 import {
-    CountUp, EASE, Magnetic, Reveal, ScrollProgress, Spotlight, Stagger, TiltCard, motion, staggerChild, useEnterProgress, useScroll, useSpring, useTransform,
+    CountUp, EASE, Reveal, ScrollProgress, Spotlight, Stagger, TiltCard, motion, staggerChild, useEnterProgress, useScroll, useSpring, useTransform,
 } from "../components/motion";
 
 const TEAM = [
@@ -25,32 +26,6 @@ const TEAM = [
 ];
 
 /* ───────────────────────── small building blocks ───────────────────────── */
-
-const line = {
-    hidden: { opacity: 0, y: 44, filter: "blur(8px)" },
-    show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.9, ease: EASE } },
-};
-const pop = {
-    hidden: { opacity: 0, scale: 0.4, rotate: -12 },
-    show: { opacity: 1, scale: 1, rotate: 0, transition: { type: "spring" as const, stiffness: 260, damping: 18 } },
-};
-
-/** A small photo set inside the headline, sized to the line like a word. */
-function InlinePhoto({ src, alt, className }: { src: string; alt: string; className?: string }) {
-    return (
-        <motion.img
-            variants={pop}
-            src={src}
-            alt={alt}
-            width={170}
-            height={100}
-            className={cn(
-                "mx-[0.12em] inline-block h-[0.78em] w-[1.45em] rounded-full object-cover align-[-0.06em] shadow-[0_8px_20px_-8px_rgba(17,27,52,0.5)] ring-[3px] ring-sheet",
-                className,
-            )}
-        />
-    );
-}
 
 /** Thin static waveform used as an illustration. */
 function Wave({ bars = 28, className }: { bars?: number; className?: string }) {
@@ -135,15 +110,6 @@ export default function LandingPage() {
     const [scrolled, setScrolled] = useState(false);
     useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 12));
 
-    // Hero parallax: photo and cards drift at different speeds
-    const heroRef = useRef<HTMLElement>(null);
-    const { scrollYProgress: heroP } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-    const photoY = useTransform(heroP, [0, 1], [0, 90]);
-    const scoreY = useTransform(heroP, [0, 1], [0, -70]);
-    const idY = useTransform(heroP, [0, 1], [0, 140]);
-    const glowY = useTransform(heroP, [0, 1], [0, 160]);
-    const textY = useTransform(heroP, [0, 1], [0, 40]);
-
     // Product screenshot straightens from a 3D tilt as it scrolls in
     const { ref: productRef, progress: productP } = useEnterProgress<HTMLDivElement>();
     const tilt = useSpring(useTransform(productP, [0, 1], [22, 0]), { stiffness: 120, damping: 24 });
@@ -158,10 +124,6 @@ export default function LandingPage() {
     // Phone rises inside its tile
     const { ref: phoneRef, progress: phoneP } = useEnterProgress<HTMLDivElement>();
     const phoneY = useTransform(phoneP, [0, 1], [140, 0]);
-
-    // Animate the hero only after first paint (avoids a flash on fast loads)
-    const [ready, setReady] = useState(false);
-    useEffect(() => { const id = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(id); }, []);
 
     const steps = [
         { icon: PenLine, title: l("اكتب السؤال والإجابة النموذجية", "Write the question and model answer"), body: l("بالكتابة أو بصوتك. حدد الوقت والصعوبة والكلمات المفتاحية.", "Type or dictate it. Set the time, difficulty and key terms.") },
@@ -215,7 +177,7 @@ export default function LandingPage() {
                 )}>
                     <nav className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-6 px-4 sm:px-6" aria-label={l("الرئيسية", "Main")}>
                         <Link to="/" aria-label="OralIQ"><Logo size={32} /></Link>
-                        <div className="hidden items-center gap-1 text-[0.9375rem] md:flex">
+                        <div className="hidden items-center gap-1 text-[0.9375rem] lg:flex">
                             <a href="#how" className={buttonClasses("ghost", "sm")}>{l("إزاي بيشتغل", "How it works")}</a>
                             <a href="#features" className={buttonClasses("ghost", "sm")}>{l("المميزات", "Features")}</a>
                             <a href="#grading" className={buttonClasses("ghost", "sm")}>{l("التصحيح", "Grading")}</a>
@@ -239,130 +201,11 @@ export default function LandingPage() {
 
                 <main>
                     {/* ── Hero ── */}
-                    <section ref={heroRef} className="relative">
-                        <motion.div style={{ y: glowY }} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-                            <div className="absolute -top-48 start-[-12%] size-[680px] rounded-full bg-sun/[0.16] blur-[130px] motion-safe:animate-[oiq-drift_18s_ease-in-out_infinite]" />
-                            <div className="absolute -top-10 end-[-6%] size-[560px] rounded-full bg-pen/[0.16] blur-[130px] motion-safe:animate-[oiq-drift_22s_ease-in-out_-6s_infinite]" />
-                            <div className="absolute bottom-0 start-[30%] size-[420px] rounded-full bg-teal/[0.08] blur-[120px]" />
-                            <div
-                                className="absolute inset-0 opacity-70"
-                                style={{
-                                    backgroundImage: "radial-gradient(var(--rule-strong) 1.2px, transparent 1.3px)",
-                                    backgroundSize: "26px 26px",
-                                    maskImage: "radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%)",
-                                    WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%)",
-                                }}
-                            />
-                        </motion.div>
-
-                        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pb-20 lg:pt-20">
-                            <motion.div style={{ y: textY }} initial="hidden" animate={ready ? "show" : "hidden"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } } }}>
-                                <motion.p variants={staggerChild} className="mb-6 inline-flex items-center gap-2 rounded-full border border-rule bg-sheet/80 py-1 pe-3.5 ps-1 text-sm font-medium text-ink-2 shadow-card backdrop-blur">
-                                    <span className="rounded-full bg-pen px-2.5 py-0.5 text-xs font-semibold text-pen-ink">{l("جديد", "New")}</span>
-                                    {l("مصمّم للجامعات والمدارس العربية", "Built for Arabic-speaking universities and schools")}
-                                </motion.p>
-                                <motion.h1
-                                    variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
-                                    className={cn("font-display text-[2.05rem] font-extrabold leading-[1.25] tracking-tight min-[400px]:text-[2.3rem] sm:text-[3.5rem] sm:leading-[1.2]", lang === "ar" ? "lg:text-[4rem]" : "lg:text-[3.7rem]")}
-                                >
-                                    {lang === "ar" ? (
-                                        <>
-                                            <motion.span variants={line} className="inline-block sm:whitespace-nowrap">أول منصة عربية</motion.span>
-                                            <InlinePhoto src="/photos/chip-smile.webp" alt="طالبة مبتسمة" />
-                                            <br />
-                                            <motion.span variants={line} className="inline-block bg-gradient-to-l from-pen to-violet bg-clip-text pb-1 text-transparent sm:whitespace-nowrap">للامتحانات الشفوية</motion.span>
-                                            <br />
-                                            <InlinePhoto src="/photos/chip-lecturer-desk.webp" alt="محاضر" className="ms-0" />
-                                            <motion.span variants={line} className="inline-block">&nbsp;أونلاين.</motion.span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <motion.span variants={line} className="inline-block sm:whitespace-nowrap">The first Arabic</motion.span>
-                                            <br />
-                                            <InlinePhoto src="/photos/chip-smile.webp" alt="A smiling student" className="ms-0" />
-                                            <motion.span variants={line} className="inline-block">&nbsp;platform for</motion.span>
-                                            <br />
-                                            <motion.span variants={line} className="inline-block bg-gradient-to-r from-pen to-violet bg-clip-text pb-1 text-transparent sm:whitespace-nowrap">online oral exams</motion.span>
-                                            <InlinePhoto src="/photos/chip-lecturer-desk.webp" alt="A lecturer" className="hidden sm:inline-block" />
-                                        </>
-                                    )}
-                                </motion.h1>
-                                <motion.p variants={staggerChild} className="mt-7 max-w-xl text-lg leading-relaxed text-ink-2 sm:text-xl">
-                                    {l("الطالب يجاوب بصوته من أي مكان، والإجابة بتتصحح لوحدها: OralIQ يحوّلها لنص، ويقارنها بإجابتك النموذجية، ويتأكد إن الطالب نفسه هو اللي بيجاوب.",
-                                        "Students answer out loud from anywhere and every answer grades itself: OralIQ transcribes it, compares it with your model answer, and checks the right student is answering.")}
-                                </motion.p>
-                                <motion.div variants={staggerChild} className="mt-9 flex flex-wrap gap-3">
-                                    <Magnetic><ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] px-7 text-[1.0625rem]">{l("ابدأ الآن", "Get started")}</ButtonLink></Magnetic>
-                                    <a href="#how" className={buttonClasses("secondary", "lg", "h-[3.25rem] px-7 text-[1.0625rem]")}>{l("شوف إزاي بيشتغل", "See how it works")}</a>
-                                </motion.div>
-                                <motion.ul variants={staggerChild} className="mt-9 flex flex-wrap gap-x-6 gap-y-2 text-[0.9375rem] text-ink-2">
-                                    {[l("تصحيح بالمعنى مش بالحفظ", "Grades meaning, not memorising"), l("تحقق من الوش والصوت", "Face and voice checks"), l("عربي وإنجليزي", "Arabic and English")].map((t) => (
-                                        <li key={t} className="flex items-center gap-2">
-                                            <span className="flex size-5 items-center justify-center rounded-full bg-pass-wash text-pass"><Check className="size-3.5" aria-hidden /></span>{t}
-                                        </li>
-                                    ))}
-                                </motion.ul>
-                            </motion.div>
-
-                            {/* Photo + the product grading an answer live */}
-                            <div className="relative mx-auto w-full max-w-[460px] lg:mx-0 lg:justify-self-end">
-                                <div className="absolute -inset-6 rounded-[44px] bg-gradient-to-br from-sun/25 via-pen/15 to-transparent blur-2xl" aria-hidden />
-                                <TiltCard max={4}>
-                                <motion.div
-                                    style={{ y: photoY }}
-                                    initial={{ opacity: 0, scale: 0.92, rotate: -2 }}
-                                    animate={ready ? { opacity: 1, scale: 1, rotate: 0 } : {}}
-                                    transition={{ duration: 1.1, ease: EASE, delay: 0.2 }}
-                                    className="relative overflow-hidden rounded-[34px] shadow-float ring-1 ring-black/5"
-                                >
-                                    <motion.img
-                                        initial={{ scale: 1.15 }}
-                                        animate={ready ? { scale: 1 } : {}}
-                                        transition={{ duration: 1.6, ease: EASE, delay: 0.2 }}
-                                        src="/photos/hero-headphones.webp"
-                                        srcSet="/photos/hero-headphones-480.webp 480w, /photos/hero-headphones.webp 960w"
-                                        sizes="(min-width: 1024px) 460px, 92vw"
-                                        alt={l("طالبة مبتسمة لابسة سماعات بتجاوب على امتحان شفوي", "A smiling student wearing headphones, answering an oral exam")}
-                                        width={960} height={1200}
-                                        className="block aspect-[4/5] w-full object-cover"
-                                        fetchPriority="high"
-                                    />
-                                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-navy/45 to-transparent" aria-hidden />
-                                </motion.div>
-                                </TiltCard>
-
-                                {/* Identity check */}
-                                <motion.div
-                                    style={{ y: idY }}
-                                    initial={{ opacity: 0, y: -16, scale: 0.9 }}
-                                    animate={ready ? { opacity: 1, y: 0, scale: 1 } : {}}
-                                    transition={{ duration: 0.8, ease: EASE, delay: 0.9 }}
-                                    className="absolute end-3 top-5 sm:-end-8 sm:top-8"
-                                >
-                                    <div className="flex items-center gap-2.5 rounded-2xl border border-rule/70 bg-sheet/95 py-2 pe-3.5 ps-2 shadow-float backdrop-blur motion-safe:animate-[oiq-float_7s_ease-in-out_infinite]">
-                                        <span className="flex size-8 items-center justify-center rounded-full bg-pass-wash text-pass"><ShieldCheck className="size-[18px]" aria-hidden /></span>
-                                        <div className="leading-tight">
-                                            <p className="text-[0.8125rem] font-semibold">{l("الهوية متأكدة", "Identity confirmed")}</p>
-                                            <p className="mt-0.5 text-[0.6875rem] text-ink-3"><span className="inline-flex items-center gap-1"><ScanFace className="size-3" aria-hidden />96%</span><span className="mx-1.5">·</span><span className="inline-flex items-center gap-1"><Mic className="size-3" aria-hidden />91%</span></p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-
-                                {/* Live grading */}
-                                <motion.div
-                                    style={{ y: scoreY }}
-                                    initial={{ opacity: 0, x: 36, scale: 0.94 }}
-                                    animate={ready ? { opacity: 1, x: 0, scale: 1 } : {}}
-                                    transition={{ duration: 0.9, ease: EASE, delay: 0.6 }}
-                                    className="relative z-10 mx-auto -mt-28 w-[94%] sm:absolute sm:-start-20 sm:bottom-6 sm:mt-0 sm:w-[21.5rem] xl:-start-28"
-                                >
-                                    <LiveGradingDemo />
-                                </motion.div>
-                            </div>
-                        </div>
+                    <section className="relative">
+                        <HeroStage startHref={startHref} />
 
                         {/* Subjects band */}
-                        <Reveal delay={0.2} className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+                        <Reveal delay={0.2} className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6">
                             <p className="mb-4 text-center text-sm font-medium text-ink-3">{l("مناسب لأي مادة فيها إجابة بالكلام", "Works for any subject answered out loud")}</p>
                             <SubjectsMarquee items={subjects} label={l("أمثلة على المواد", "Example subjects")} />
                         </Reveal>
@@ -543,37 +386,7 @@ export default function LandingPage() {
                                     {l("كل درجة معاها تفاصيلها. ولو المحتوى أقل من 50%، الطالب مايقدرش ينجح مهما كانت طلاقته.",
                                         "Every grade shows its working. If content is under 50%, the student can't pass however fluent they sound.")}
                                 </p>
-                                <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.05] p-6">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-white/60">{l("درجة نهائية", "Final grade")}</span>
-                                        <span className="relative px-4 py-2 font-display text-5xl font-bold" dir="ltr">
-                                            <svg viewBox="-6 -4 132 88" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full -rotate-3 overflow-visible" aria-hidden>
-                                                <motion.path
-                                                    d="M92 10C113 17 121 44 102 62C82 80 33 80 14 63C-3 48 6 19 33 9C53 2 80 3 98 15"
-                                                    fill="none" stroke="#FF8A95" strokeWidth="2.6" strokeLinecap="round"
-                                                    initial={{ pathLength: 0 }}
-                                                    whileInView={{ pathLength: 1 }}
-                                                    viewport={{ once: true, amount: 0.8 }}
-                                                    transition={{ duration: 0.9, ease: EASE, delay: 1.6 }}
-                                                />
-                                            </svg>
-                                            <span className="relative"><CountUp to={91.5} decimals={1} duration={1.8} /><span className="text-2xl text-white/50">%</span></span>
-                                        </span>
-                                    </div>
-                                    <div className="mt-5 flex h-3 gap-1" aria-hidden>
-                                        {parts.map((p, i) => (
-                                            <motion.div
-                                                key={p.title}
-                                                className="rounded-full"
-                                                style={{ backgroundColor: p.color }}
-                                                initial={{ width: 0 }}
-                                                whileInView={{ width: `${p.pct}%` }}
-                                                viewport={{ once: true }}
-                                                transition={{ duration: 1.1, ease: EASE, delay: 0.3 + i * 0.35 }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
+                                <LiveGradingDemo className="mt-10 max-w-md text-ink" />
                             </Reveal>
                             <Stagger as="dl" gap={0.15} className="space-y-4">
                                 {parts.map((p) => (

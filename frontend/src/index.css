@@ -48,6 +48,15 @@
   --rail-active-ink: #2742B2;
   --rail-line: #EDEAE3;
   --rail-indicator: #3252D0;
+  /* Home hero: a calm sky, frosted glass, white annotation lines */
+  --hero-sky: linear-gradient(180deg, #D3E0F5 0%, #BCD0EF 48%, #A2BCE6 100%);
+  --hero-sky-end: #A6BFE7;
+  --hero-word: #FFFFFF;
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-ink: #0E1834;
+  --glass-muted: rgba(14, 24, 52, 0.66);
+  --hero-line: rgba(255, 255, 255, 0.9);
   --overlay: rgba(20, 24, 38, 0.45);
   --shadow-card: 0 1px 2px rgba(40, 36, 28, 0.04), 0 8px 24px -12px rgba(40, 36, 28, 0.12);
   --shadow-float: 0 30px 60px -20px rgba(30, 32, 50, 0.26), 0 8px 20px -10px rgba(30, 32, 50, 0.12);
@@ -95,6 +104,22 @@
     --rail-active-ink: #FFFFFF;
     --rail-line: rgba(255, 255, 255, 0.08);
     --rail-indicator: #8EA6FF;
+  --hero-sky: linear-gradient(180deg, #1B2A50 0%, #14203F 55%, #0E1731 100%);
+  --hero-sky-end: #26365F;
+  --hero-word: rgba(233, 238, 255, 0.92);
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-ink: #F2F5FF;
+  --glass-muted: rgba(242, 245, 255, 0.66);
+  --hero-line: rgba(200, 214, 255, 0.55);
+    --hero-sky: linear-gradient(180deg, #1B2A50 0%, #14203F 55%, #0E1731 100%);
+    --hero-sky-end: #26365F;
+    --hero-word: rgba(233, 238, 255, 0.92);
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-ink: #F2F5FF;
+    --glass-muted: rgba(242, 245, 255, 0.66);
+    --hero-line: rgba(200, 214, 255, 0.55);
     --overlay: rgba(4, 7, 14, 0.7);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
     --shadow-float: 0 30px 60px -18px rgba(0, 0, 0, 0.7), 0 8px 20px -10px rgba(0, 0, 0, 0.4);
@@ -262,6 +287,13 @@
 /* ── Smooth in-page scrolling (anchor links), only when motion is welcome ── */
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
+}
+
+/* ── Home hero: bottom cards notched like tabs hanging from the frame (desktop) ── */
+@media (min-width: 1024px) {
+  .oiq-notch-c { clip-path: polygon(0 0, 100% 0, calc(100% - 46px) 100%, 46px 100%); }
+  .oiq-notch-l { clip-path: polygon(0 0, calc(100% - 46px) 0, 100% 100%, 0 100%); }
+  .oiq-notch-r { clip-path: polygon(46px 0, 100% 0, 100% 100%, 0 100%); }
 }
 
 /* ── Fine grain on dark surfaces: keeps big navy areas from looking flat ── */
