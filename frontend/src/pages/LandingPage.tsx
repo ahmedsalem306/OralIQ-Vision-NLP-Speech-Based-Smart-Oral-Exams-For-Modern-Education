@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MotionConfig, useMotionValueEvent } from "motion/react";
 import {
-    BarChart3, BookOpen, Check, Clock, Eye, FileDown, Languages, Mail, MapPin, Mic, PenLine, Phone, ScanFace, Send,
-    ShieldCheck, Smartphone, Sparkles, Users,
+    BarChart3, BookOpen, Check, Clock, Eye, FileDown, Inbox, Languages, Mail, MapPin, Mic, PenLine, Phone, Plus, ScanFace, Send,
+    ShieldCheck, Smartphone, Sparkles, Users, X,
 } from "lucide-react";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
@@ -11,7 +11,7 @@ import Logo from "../components/Logo";
 import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import { ButtonLink, buttonClasses } from "../components/ui/button";
 import { Avatar } from "../components/ui/avatar";
-import { ScoreMark } from "../components/ui/score-mark";
+import { LiveGradingDemo } from "../components/landing/LiveGradingDemo";
 import { usePageTitle } from "../lib/usePageTitle";
 import {
     CountUp, EASE, Magnetic, Reveal, ScrollProgress, Spotlight, Stagger, TiltCard, motion, staggerChild, useEnterProgress, useScroll, useSpring, useTransform,
@@ -64,14 +64,28 @@ function Wave({ bars = 28, className }: { bars?: number; className?: string }) {
     );
 }
 
-function BrowserFrame({ src, alt }: { src: string; alt: string }) {
+/** Short label above a section heading. */
+function Eyebrow({ children, onDark = false, center = false }: { children: React.ReactNode; onDark?: boolean; center?: boolean }) {
+    return (
+        <p className={cn("mb-4 flex items-center gap-2.5 text-sm font-semibold", onDark ? "text-[#A9BBFF]" : "text-pen", center && "justify-center")}>
+            <span className="h-px w-7 bg-current opacity-50" aria-hidden />
+            {children}
+            {center && <span className="h-px w-7 bg-current opacity-50" aria-hidden />}
+        </p>
+    );
+}
+
+function BrowserFrame({ src, alt, narrowSrc }: { src: string; alt: string; /** A readable crop for phones. */ narrowSrc?: string }) {
     return (
         <div className="overflow-hidden rounded-[18px] border border-rule bg-sheet shadow-float" dir="ltr">
             <div className="flex h-9 items-center gap-1.5 border-b border-rule bg-sheet-2 px-4" aria-hidden>
                 <span className="size-2.5 rounded-full bg-[#FF5F57]" /><span className="size-2.5 rounded-full bg-[#FEBC2E]" /><span className="size-2.5 rounded-full bg-[#28C840]" />
                 <span className="mx-auto h-5 w-60 max-w-[50%] rounded-md bg-rule/70" />
             </div>
-            <img src={src} alt={alt} width={1920} height={1200} loading="lazy" className="block w-full" />
+            <picture>
+                {narrowSrc && <source media="(max-width: 639px)" srcSet={narrowSrc} width={746} height={1000} />}
+                <img src={src} alt={alt} width={1920} height={1200} loading="lazy" className="block w-full" />
+            </picture>
         </div>
     );
 }
@@ -162,6 +176,29 @@ export default function LandingPage() {
         { pct: 10, color: "#7FE0D2", title: l("النزاهة", "Integrity"), body: l("النظر بعيد لفترة، أو موبايل أو كتاب أو شخص تاني في الكادر.", "Looking away for long, or a phone, book or another person in view.") },
     ];
 
+    const before = [
+        l("طالب ورا طالب قدام اللجنة، والباقيين مستنيين برّه.", "One student at a time before the panel, the rest waiting outside."),
+        l("الدرجة ممكن تختلف من لجنة للتانية.", "Grades can vary from one panel to the next."),
+        l("مفيش تسجيل يرجعله حد لو في تظلّم.", "No record to go back to if a grade is challenged."),
+        l("رهبة اللجنة بتأثر على أداء الطالب.", "Panel nerves get in the way of the answer."),
+        l("الحضور والهوية بالورقة والكشف.", "Attendance and identity checked on paper."),
+    ];
+    const after = [
+        l("كل الطلبة يجاوبوا في نفس الوقت، كل واحد من مكانه.", "Every student answers at once, each from their own place."),
+        l("نفس المعايير لكل الطلبة، وكل درجة معاها السبب.", "The same criteria for everyone, and every grade shows its reasons."),
+        l("نص الإجابة وتفاصيل الدرجة محفوظين للمراجعة.", "The transcript and the grade breakdown are kept for review."),
+        l("الطالب بيجاوب وهو مرتاح، من غير ضغط اللجنة.", "Students answer at ease, without the panel's pressure."),
+        l("الهوية بتتأكد بالوش والصوت تلقائياً.", "Identity is checked by face and voice automatically."),
+    ];
+    const faqs = [
+        { q: l("الطالب محتاج يسطّب برنامج؟", "Do students need to install anything?"), a: l("لأ. بيفتح رابط الامتحان من المتصفح على الموبايل أو اللابتوب، ويسمح بالكاميرا والميكروفون، وخلاص.", "No. They open the exam link in a browser on a phone or laptop, allow the camera and microphone, and that's it.") },
+        { q: l("الدرجة بتتحسب إزاي؟", "How is the grade calculated?"), a: l("80% للمحتوى (معنى الإجابة مقارنةً بإجابتك النموذجية)، و10% للطلاقة، و10% للنزاهة. ولو المحتوى أقل من 50%، الطالب مايقدرش ينجح مهما كانت طلاقته.", "80% content (the answer's meaning against your model answer), 10% fluency and 10% integrity. If content is under 50%, the student can't pass however fluent they are.") },
+        { q: l("لو الطالب جاوب صح بأسلوبه هو؟", "What if a student answers correctly in their own words?"), a: l("بياخد حقه. التصحيح بيقارن المعنى، مش الكلمات بالحرف، فمش لازم يحفظ نص الكتاب.", "They get the credit. Grading compares meaning, not exact wording, so there's no need to recite the book.") },
+        { q: l("إزاي بتتأكدوا إن الطالب هو اللي بيجاوب؟", "How do you know the right student is answering?"), a: l("الطالب بيسجّل وشه وصوته مرة واحدة، وفي كل امتحان بيتقارنوا. لو في اختلاف، الإجابة بتتعلّم «مراجعة» عشان المحاضر يشوفها.", "Each student registers their face and voice once, and both are checked on every exam. If something doesn't match, the answer is flagged for the lecturer to review.") },
+        { q: l("الطالب بيشوف درجته إمتى؟", "When does a student see their grade?"), a: l("بعد ما المحاضر يراجعها وينشرها. لحد كده الدرجة بتفضل مخفية عن الطالب.", "Once the lecturer has reviewed and published it. Until then it stays hidden from the student.") },
+        { q: l("بيشتغل بالعربي بس؟", "Is it Arabic only?"), a: l("لأ، عربي وإنجليزي، في الواجهة وفي الإجابات.", "No — Arabic and English, in the interface and in the answers.") },
+    ];
+
     const subjects = lang === "ar"
         ? ["الطب", "الهندسة", "اللغة العربية", "البرمجة", "الفيزياء", "الصيدلة", "إدارة الأعمال", "القانون", "اللغة الإنجليزية", "التاريخ", "التمريض", "المحاسبة"]
         : ["Medicine", "Engineering", "Arabic", "Programming", "Physics", "Pharmacy", "Business", "Law", "English", "History", "Nursing", "Accounting"];
@@ -182,6 +219,7 @@ export default function LandingPage() {
                             <a href="#how" className={buttonClasses("ghost", "sm")}>{l("إزاي بيشتغل", "How it works")}</a>
                             <a href="#features" className={buttonClasses("ghost", "sm")}>{l("المميزات", "Features")}</a>
                             <a href="#grading" className={buttonClasses("ghost", "sm")}>{l("التصحيح", "Grading")}</a>
+                            <a href="#faq" className={buttonClasses("ghost", "sm")}>{l("أسئلة شائعة", "FAQ")}</a>
                             <a href="#contact" className={buttonClasses("ghost", "sm")}>{l("تواصل معنا", "Contact")}</a>
                         </div>
                         <div className="ms-auto flex items-center gap-1">
@@ -203,13 +241,14 @@ export default function LandingPage() {
                     {/* ── Hero ── */}
                     <section ref={heroRef} className="relative">
                         <motion.div style={{ y: glowY }} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-                            <div className="absolute -top-40 start-[-10%] size-[640px] rounded-full bg-pen/20 blur-[120px] motion-safe:animate-[oiq-drift_18s_ease-in-out_infinite]" />
-                            <div className="absolute top-20 end-[-8%] size-[520px] rounded-full bg-violet/15 blur-[120px] motion-safe:animate-[oiq-drift_22s_ease-in-out_-6s_infinite]" />
+                            <div className="absolute -top-48 start-[-12%] size-[680px] rounded-full bg-sun/[0.16] blur-[130px] motion-safe:animate-[oiq-drift_18s_ease-in-out_infinite]" />
+                            <div className="absolute -top-10 end-[-6%] size-[560px] rounded-full bg-pen/[0.16] blur-[130px] motion-safe:animate-[oiq-drift_22s_ease-in-out_-6s_infinite]" />
+                            <div className="absolute bottom-0 start-[30%] size-[420px] rounded-full bg-teal/[0.08] blur-[120px]" />
                             <div
-                                className="absolute inset-0 opacity-60"
+                                className="absolute inset-0 opacity-70"
                                 style={{
-                                    backgroundImage: "linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px)",
-                                    backgroundSize: "56px 56px",
+                                    backgroundImage: "radial-gradient(var(--rule-strong) 1.2px, transparent 1.3px)",
+                                    backgroundSize: "26px 26px",
                                     maskImage: "radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%)",
                                     WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%)",
                                 }}
@@ -218,9 +257,13 @@ export default function LandingPage() {
 
                         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pb-20 lg:pt-20">
                             <motion.div style={{ y: textY }} initial="hidden" animate={ready ? "show" : "hidden"} variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } } }}>
+                                <motion.p variants={staggerChild} className="mb-6 inline-flex items-center gap-2 rounded-full border border-rule bg-sheet/80 py-1 pe-3.5 ps-1 text-sm font-medium text-ink-2 shadow-card backdrop-blur">
+                                    <span className="rounded-full bg-pen px-2.5 py-0.5 text-xs font-semibold text-pen-ink">{l("جديد", "New")}</span>
+                                    {l("مصمّم للجامعات والمدارس العربية", "Built for Arabic-speaking universities and schools")}
+                                </motion.p>
                                 <motion.h1
                                     variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
-                                    className="font-display text-[2.05rem] font-extrabold leading-[1.25] tracking-tight min-[400px]:text-[2.3rem] sm:text-[3.5rem] sm:leading-[1.2] lg:text-[4rem]"
+                                    className={cn("font-display text-[2.05rem] font-extrabold leading-[1.25] tracking-tight min-[400px]:text-[2.3rem] sm:text-[3.5rem] sm:leading-[1.2]", lang === "ar" ? "lg:text-[4rem]" : "lg:text-[3.7rem]")}
                                 >
                                     {lang === "ar" ? (
                                         <>
@@ -229,16 +272,18 @@ export default function LandingPage() {
                                             <br />
                                             <motion.span variants={line} className="inline-block bg-gradient-to-l from-pen to-violet bg-clip-text pb-1 text-transparent sm:whitespace-nowrap">للامتحانات الشفوية</motion.span>
                                             <br />
-                                            <InlinePhoto src="/photos/chip-lecturer.webp" alt="محاضرة" className="ms-0" />
+                                            <InlinePhoto src="/photos/chip-lecturer-desk.webp" alt="محاضر" className="ms-0" />
                                             <motion.span variants={line} className="inline-block">&nbsp;أونلاين.</motion.span>
                                         </>
                                     ) : (
                                         <>
-                                            <motion.span variants={line} className="inline-block">The first Arabic</motion.span>{" "}
-                                            <InlinePhoto src="/photos/chip-smile.webp" alt="A smiling student" />{" "}
-                                            <motion.span variants={line} className="inline-block">platform for</motion.span>{" "}
-                                            <motion.span variants={line} className="inline-block bg-gradient-to-r from-pen to-violet bg-clip-text text-transparent">online oral exams</motion.span>{" "}
-                                            <InlinePhoto src="/photos/chip-lecturer.webp" alt="A lecturer" />
+                                            <motion.span variants={line} className="inline-block sm:whitespace-nowrap">The first Arabic</motion.span>
+                                            <br />
+                                            <InlinePhoto src="/photos/chip-smile.webp" alt="A smiling student" className="ms-0" />
+                                            <motion.span variants={line} className="inline-block">&nbsp;platform for</motion.span>
+                                            <br />
+                                            <motion.span variants={line} className="inline-block bg-gradient-to-r from-pen to-violet bg-clip-text pb-1 text-transparent sm:whitespace-nowrap">online oral exams</motion.span>
+                                            <InlinePhoto src="/photos/chip-lecturer-desk.webp" alt="A lecturer" className="hidden sm:inline-block" />
                                         </>
                                     )}
                                 </motion.h1>
@@ -259,91 +304,59 @@ export default function LandingPage() {
                                 </motion.ul>
                             </motion.div>
 
-                            {/* Photo with floating product cards */}
-                            <div className="relative mx-auto w-full max-w-[480px] lg:mx-0 lg:justify-self-end">
-                                <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-br from-pen/25 via-violet/15 to-transparent blur-2xl" aria-hidden />
-                                <TiltCard max={5}>
+                            {/* Photo + the product grading an answer live */}
+                            <div className="relative mx-auto w-full max-w-[460px] lg:mx-0 lg:justify-self-end">
+                                <div className="absolute -inset-6 rounded-[44px] bg-gradient-to-br from-sun/25 via-pen/15 to-transparent blur-2xl" aria-hidden />
+                                <TiltCard max={4}>
                                 <motion.div
                                     style={{ y: photoY }}
-                                    initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
+                                    initial={{ opacity: 0, scale: 0.92, rotate: -2 }}
                                     animate={ready ? { opacity: 1, scale: 1, rotate: 0 } : {}}
-                                    transition={{ duration: 1.1, ease: EASE, delay: 0.25 }}
-                                    className="relative overflow-hidden rounded-[32px] shadow-float ring-1 ring-black/5"
+                                    transition={{ duration: 1.1, ease: EASE, delay: 0.2 }}
+                                    className="relative overflow-hidden rounded-[34px] shadow-float ring-1 ring-black/5"
                                 >
                                     <motion.img
-                                        initial={{ scale: 1.18 }}
+                                        initial={{ scale: 1.15 }}
                                         animate={ready ? { scale: 1 } : {}}
-                                        transition={{ duration: 1.6, ease: EASE, delay: 0.25 }}
-                                        src="/photos/hero-student.webp"
-                                        srcSet="/photos/hero-student-480.webp 480w, /photos/hero-student.webp 960w"
-                                        sizes="(min-width: 1024px) 480px, 92vw"
-                                        alt={l("طالبة بتجاوب على امتحان شفوي من اللابتوب", "A student answering an oral exam on her laptop")}
+                                        transition={{ duration: 1.6, ease: EASE, delay: 0.2 }}
+                                        src="/photos/hero-headphones.webp"
+                                        srcSet="/photos/hero-headphones-480.webp 480w, /photos/hero-headphones.webp 960w"
+                                        sizes="(min-width: 1024px) 460px, 92vw"
+                                        alt={l("طالبة مبتسمة لابسة سماعات بتجاوب على امتحان شفوي", "A smiling student wearing headphones, answering an oral exam")}
                                         width={960} height={1200}
                                         className="block aspect-[4/5] w-full object-cover"
                                         fetchPriority="high"
                                     />
-                                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-navy/50 to-transparent" aria-hidden />
-                                    <div className="absolute bottom-5 flex items-center gap-2 rounded-full bg-white/90 py-1.5 pe-3 ps-2 text-sm font-semibold text-navy shadow-lg backdrop-blur" dir="ltr" style={lang === "ar" ? { right: 20 } : { left: 20 }}>
-                                        <span className="relative flex size-2.5"><span className="absolute inset-0 rounded-full bg-mark motion-safe:animate-[oiq-pulse-ring_1.4s_ease-out_infinite]" /><span className="relative size-2.5 rounded-full bg-mark" /></span>
-                                        <span className="flex h-4 items-center gap-[3px]" aria-hidden>
-                                            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                                                <span key={i} className="h-full w-[3px] origin-center rounded-full bg-[#2348C8] motion-safe:animate-[oiq-eq_1s_ease-in-out_infinite]" style={{ animationDelay: `${i * -0.13}s` }} />
-                                            ))}
-                                        </span>
-                                        <span className="tabular">01:12</span>
-                                    </div>
+                                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-navy/45 to-transparent" aria-hidden />
                                 </motion.div>
                                 </TiltCard>
 
-                                {/* Score card */}
+                                {/* Identity check */}
                                 <motion.div
-                                    style={{ y: scoreY }}
-                                    initial={{ opacity: 0, x: 40, scale: 0.9 }}
-                                    animate={ready ? { opacity: 1, x: 0, scale: 1 } : {}}
-                                    transition={{ duration: 0.9, ease: EASE, delay: 0.75 }}
-                                    className="absolute start-2 top-6 w-48 sm:-start-14 sm:top-10 sm:w-52"
+                                    style={{ y: idY }}
+                                    initial={{ opacity: 0, y: -16, scale: 0.9 }}
+                                    animate={ready ? { opacity: 1, y: 0, scale: 1 } : {}}
+                                    transition={{ duration: 0.8, ease: EASE, delay: 0.9 }}
+                                    className="absolute end-3 top-5 sm:-end-8 sm:top-8"
                                 >
-                                    <div className="rounded-2xl border border-rule/70 bg-sheet/95 p-4 shadow-float backdrop-blur motion-safe:animate-[oiq-float_6s_ease-in-out_infinite]">
-                                        <p className="text-xs text-ink-3">{l("سؤال 2 من 3", "Question 2 of 3")}</p>
-                                        <div className="mt-1 flex items-center justify-between">
-                                            {ready && <ScoreMark score={92} size="md" animate />}
-                                            <span className="rounded-md bg-pass-wash px-2 py-0.5 text-xs font-semibold text-pass">{l("ممتاز", "Excellent")}</span>
-                                        </div>
-                                        <div className="mt-2 grid grid-cols-3 border-t border-rule pt-2 text-center">
-                                            {([[l("المحتوى", "Content"), 94], [l("الطلاقة", "Fluency"), 86], [l("النزاهة", "Integrity"), 100]] as const).map(([k, v]) => (
-                                                <div key={k}><p className="text-[0.6875rem] text-ink-3">{k}</p><p className="font-display text-sm font-bold tabular"><CountUp to={v} duration={1.6} /></p></div>
-                                            ))}
+                                    <div className="flex items-center gap-2.5 rounded-2xl border border-rule/70 bg-sheet/95 py-2 pe-3.5 ps-2 shadow-float backdrop-blur motion-safe:animate-[oiq-float_7s_ease-in-out_infinite]">
+                                        <span className="flex size-8 items-center justify-center rounded-full bg-pass-wash text-pass"><ShieldCheck className="size-[18px]" aria-hidden /></span>
+                                        <div className="leading-tight">
+                                            <p className="text-[0.8125rem] font-semibold">{l("الهوية متأكدة", "Identity confirmed")}</p>
+                                            <p className="mt-0.5 text-[0.6875rem] text-ink-3"><span className="inline-flex items-center gap-1"><ScanFace className="size-3" aria-hidden />96%</span><span className="mx-1.5">·</span><span className="inline-flex items-center gap-1"><Mic className="size-3" aria-hidden />91%</span></p>
                                         </div>
                                     </div>
                                 </motion.div>
 
-                                {/* Identity card */}
+                                {/* Live grading */}
                                 <motion.div
-                                    style={{ y: idY }}
-                                    initial={{ opacity: 0, x: -40, scale: 0.9 }}
+                                    style={{ y: scoreY }}
+                                    initial={{ opacity: 0, x: 36, scale: 0.94 }}
                                     animate={ready ? { opacity: 1, x: 0, scale: 1 } : {}}
-                                    transition={{ duration: 0.9, ease: EASE, delay: 1 }}
-                                    className="absolute bottom-16 end-2 w-56 sm:-end-10 sm:bottom-10 sm:w-60"
+                                    transition={{ duration: 0.9, ease: EASE, delay: 0.6 }}
+                                    className="relative z-10 mx-auto -mt-28 w-[94%] sm:absolute sm:-start-20 sm:bottom-6 sm:mt-0 sm:w-[21.5rem] xl:-start-28"
                                 >
-                                    <div className="rounded-2xl border border-rule/70 bg-sheet/95 p-4 shadow-float backdrop-blur motion-safe:animate-[oiq-float_7s_ease-in-out_1s_infinite]">
-                                        <div className="flex items-center gap-2">
-                                            <span className="flex size-8 items-center justify-center rounded-full bg-pass-wash text-pass"><ShieldCheck className="size-[18px]" aria-hidden /></span>
-                                            <p className="text-sm font-semibold">{l("الهوية متأكدة", "Identity confirmed")}</p>
-                                        </div>
-                                        <ul className="mt-3 space-y-2 text-sm text-ink-2">
-                                            {([[ScanFace, l("الوجه", "Face"), 96], [Mic, l("الصوت", "Voice"), 91]] as const).map(([Icon, k, v], i) => (
-                                                <li key={k}>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="flex items-center gap-1.5"><Icon className="size-4 text-ink-3" aria-hidden />{k}</span>
-                                                        <span className="font-semibold text-pass tabular"><CountUp to={v} suffix="%" /></span>
-                                                    </div>
-                                                    <div className="mt-1 h-1 overflow-hidden rounded-full bg-rule">
-                                                        <motion.div className="h-full rounded-full bg-pass" initial={{ width: 0 }} animate={ready ? { width: `${v}%` } : {}} transition={{ duration: 1.2, ease: EASE, delay: 1.2 + i * 0.15 }} />
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                    <LiveGradingDemo />
                                 </motion.div>
                             </div>
                         </div>
@@ -358,13 +371,14 @@ export default function LandingPage() {
                     {/* ── Product: the answer sheet ── */}
                     <section className="relative mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6">
                         <Reveal className="mx-auto max-w-3xl text-center">
+                            <Eyebrow center>{l("ورقة الإجابة", "The answer sheet")}</Eyebrow>
                             <h2 className="text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("كل إجابة بتوصلك مصححة، ومعاها السبب", "Every answer arrives graded — with the reasons")}</h2>
                             <p className="mt-4 text-lg text-ink-2">{l("نص كلام الطالب، ونصيب كل جزء من الدرجة، والتحقق من الهوية. تراجع، وتنشر الدرجة بضغطة، أو تطبعها PDF.", "The student's words, what each part contributed, and the identity check. Review, publish in one click, or print to PDF.")}</p>
                         </Reveal>
                         <div ref={productRef} className="relative mt-14 [perspective:1600px]">
                             <div className="absolute inset-x-10 -bottom-6 top-10 rounded-[40px] bg-gradient-to-b from-pen/20 to-violet/10 blur-3xl" aria-hidden />
                             <motion.div style={{ rotateX: tilt, scale: tiltScale, y: tiltY, transformOrigin: "50% 0%" }} className="relative">
-                                <TiltCard max={3}><BrowserFrame src="/screens/results.webp" alt={l("صفحة النتائج وورقة إجابة طالب", "The results page with a student's answer sheet open")} /></TiltCard>
+                                <TiltCard max={3}><BrowserFrame src="/screens/results.webp" narrowSrc="/screens/results-sheet.webp" alt={l("صفحة النتائج وورقة إجابة طالب", "The results page with a student's answer sheet open")} /></TiltCard>
                             </motion.div>
                         </div>
                     </section>
@@ -373,6 +387,7 @@ export default function LandingPage() {
                     <section id="how" className="scroll-mt-20 border-y border-rule/70 bg-sheet">
                         <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
                             <Reveal>
+                                <Eyebrow>{l("إزاي بيشتغل", "How it works")}</Eyebrow>
                                 <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("من السؤال للدرجة في أربع خطوات", "From question to grade in four steps")}</h2>
                             </Reveal>
                             <div className="relative mt-14">
@@ -389,8 +404,9 @@ export default function LandingPage() {
                                                 variants={staggerChild}
                                                 whileHover={{ y: -6 }}
                                                 transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                                                className="relative rounded-[22px] border border-rule/80 bg-paper/60 p-6 transition-shadow hover:shadow-card"
+                                                className="relative overflow-hidden rounded-[22px] border border-rule/80 bg-paper/60 p-6 transition-shadow hover:shadow-card"
                                             >
+                                                <span className="pointer-events-none absolute -bottom-4 end-3 font-display text-[5.5rem] font-extrabold leading-none text-ink/[0.045] tabular" aria-hidden>0{i + 1}</span>
                                                 <span className="relative flex size-14 items-center justify-center rounded-2xl bg-pen text-pen-ink shadow-[0_10px_24px_-10px_var(--pen)]">
                                                     <Icon className="size-6" aria-hidden />
                                                     <span className="absolute -end-2 -top-2 flex size-6 items-center justify-center rounded-full bg-sheet font-display text-xs font-bold text-pen ring-2 ring-pen/20">{i + 1}</span>
@@ -408,6 +424,7 @@ export default function LandingPage() {
                     {/* ── Features bento ── */}
                     <section id="features" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-24 sm:px-6">
                         <Reveal>
+                            <Eyebrow>{l("المميزات", "Features")}</Eyebrow>
                             <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("كل اللي امتحان شفوي محتاجه، في مكان واحد", "Everything an oral exam needs, in one place")}</h2>
                         </Reveal>
                         <Stagger gap={0.1} amount={0.1} className="mt-12 grid gap-5 lg:grid-cols-3">
@@ -434,7 +451,7 @@ export default function LandingPage() {
                                 <h3 className="mt-5 text-xl font-semibold">{l("الوش والصوت لازم يطابقوا", "Face and voice must match")}</h3>
                                 <p className="mt-2 text-ink-2">{l("بصمة بتتسجل مرة واحدة، وتتقارن في كل امتحان. لو واحدة بس طابقت، الإجابة بتتعلّم «مراجعة».", "Registered once, checked every exam. If only one matches, the answer is flagged for review.")}</p>
                                 <div className="mt-5 flex -space-x-3 rtl:space-x-reverse">
-                                    {["/photos/chip-smile.webp", "/photos/chip-student.webp", "/photos/chip-lecturer.webp"].map((src, i) => (
+                                    {["/photos/chip-smile.webp", "/photos/chip-student.webp", "/photos/chip-lecturer-desk.webp"].map((src, i) => (
                                         <motion.img
                                             key={src}
                                             src={src}
@@ -520,6 +537,7 @@ export default function LandingPage() {
                     >
                         <div className="mx-auto grid max-w-7xl gap-14 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.25fr]">
                             <Reveal>
+                                <Eyebrow onDark>{l("التصحيح", "Grading")}</Eyebrow>
                                 <h2 className="text-3xl font-bold tracking-tight text-white sm:text-[2.6rem] sm:leading-tight">{l("الدرجة مش صندوق أسود", "The grade isn't a black box")}</h2>
                                 <p className="mt-5 text-lg leading-relaxed text-white/70">
                                     {l("كل درجة معاها تفاصيلها. ولو المحتوى أقل من 50%، الطالب مايقدرش ينجح مهما كانت طلاقته.",
@@ -571,16 +589,77 @@ export default function LandingPage() {
                         </div>
                     </section>
 
+                    {/* ── Before / after ── */}
+                    <section id="why" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-28 sm:px-6">
+                        <Reveal className="mx-auto max-w-3xl text-center">
+                            <Eyebrow center>{l("ليه OralIQ", "Why OralIQ")}</Eyebrow>
+                            <h2 className="text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("نفس الامتحان الشفوي، من غير اللجنة والطابور", "The same oral exam, without the panel and the queue")}</h2>
+                        </Reveal>
+                        <div className="mt-14 grid items-stretch gap-5 lg:grid-cols-2">
+                            <Reveal className="h-full">
+                                <div className="h-full rounded-[26px] border border-rule bg-sheet-2/70 p-7 sm:p-9">
+                                    <p className="flex items-center gap-3 font-display text-lg font-semibold text-ink-2">
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-rule/60 text-ink-3"><Users className="size-5" aria-hidden /></span>
+                                        {l("الشفوي التقليدي", "The traditional oral exam")}
+                                    </p>
+                                    <ul className="mt-7 space-y-4">
+                                        {before.map((t) => (
+                                            <li key={t} className="flex items-start gap-3 text-ink-2">
+                                                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-rule/70 text-ink-3"><X className="size-3.5" aria-hidden /></span>{t}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </Reveal>
+                            <Reveal delay={0.12} className="h-full">
+                                <div className="relative h-full">
+                                    <div className="absolute -inset-2 rounded-[32px] bg-gradient-to-br from-pen/25 via-violet/15 to-sun/20 blur-xl" aria-hidden />
+                                    <div className="relative h-full rounded-[26px] border border-pen/25 bg-sheet p-7 shadow-float sm:p-9">
+                                        <p className="flex items-center gap-3 font-display text-lg font-semibold">
+                                            <span className="flex size-10 items-center justify-center rounded-xl bg-pen text-pen-ink"><Mic className="size-5" aria-hidden /></span>
+                                            {l("مع OralIQ", "With OralIQ")}
+                                        </p>
+                                        <Stagger as="ul" gap={0.1} className="mt-7 space-y-4">
+                                            {after.map((t) => (
+                                                <motion.li variants={staggerChild} key={t} className="flex items-start gap-3 font-medium text-ink">
+                                                    <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-pass-wash text-pass"><Check className="size-3.5" aria-hidden /></span>{t}
+                                                </motion.li>
+                                            ))}
+                                        </Stagger>
+                                    </div>
+                                </div>
+                            </Reveal>
+                        </div>
+                    </section>
+
                     {/* ── For lecturers / for students ── */}
                     <section className="mx-auto max-w-7xl space-y-28 px-4 py-28 sm:px-6">
                         {[
                             {
-                                img: "/photos/lecturer.webp", alt: l("محاضرة قدام السبورة", "A lecturer at the board"),
+                                img: "/photos/lecturer-desk.webp", alt: l("محاضر على مكتبه قدام اللابتوب", "A lecturer at his desk with a laptop"),
+                                chip: (
+                                    <div className="flex items-center gap-3 rounded-2xl border border-rule/70 bg-sheet/95 py-3 pe-4 ps-3 shadow-float backdrop-blur">
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-pen-wash text-pen"><Inbox className="size-5" aria-hidden /></span>
+                                        <div className="leading-tight">
+                                            <p className="text-sm font-semibold">{l("7 إجابات جديدة اتصححت", "7 new answers graded")}</p>
+                                            <p className="mt-1 text-xs text-ink-3">{l("واحدة بس محتاجة نظرة منك", "Only one needs a look")}</p>
+                                        </div>
+                                    </div>
+                                ),
                                 title: l("للمحاضر: وقتك للتدريس، مش للتصحيح", "For lecturers: teach, don't grade all night"),
                                 points: [l("امتحان شفوي لـ 200 طالب من غير ما تسمع 200 تسجيل", "Oral exams for 200 students without listening to 200 recordings"), l("ملاحظات النزاهة والهوية قدامك قبل ما تنشر", "Integrity and identity notes before you publish"), l("صدّر Excel أو اطبع ورقة كل طالب", "Export to Excel or print each answer sheet")],
                             },
                             {
                                 img: "/photos/student-library.webp", alt: l("طالبة مبتسمة في مكتبة الجامعة", "A smiling student in the university library"),
+                                chip: (
+                                    <div className="flex items-center gap-3 rounded-2xl border border-rule/70 bg-sheet/95 py-3 pe-4 ps-3 shadow-float backdrop-blur">
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-pass-wash text-pass"><Check className="size-5" aria-hidden /></span>
+                                        <div className="leading-tight">
+                                            <p className="text-sm font-semibold">{l("درجتك اتنشرت", "Your grade is out")}</p>
+                                            <p className="mt-1 text-xs text-ink-3">{l("تعريف الذكاء الاصطناعي", "Defining AI")} · <span className="font-semibold text-pass tabular" dir="ltr">91.5%</span></p>
+                                        </div>
+                                    </div>
+                                ),
                                 title: l("للطالب: امتحان شفوي من غير رهبة اللجنة", "For students: oral exams without the panel nerves"),
                                 points: [l("يجاوب من بيته على الموبايل أو اللابتوب", "Answer from home on a phone or laptop"), l("يشوف درجته وتفاصيلها أول ما المحاضر ينشرها", "See the grade and its breakdown once published"), l("يعرف هو كان متردد فين وإزاي يتحسن", "Learn where they hesitated and how to improve")],
                             },
@@ -606,6 +685,15 @@ export default function LandingPage() {
                                             className="block aspect-[16/11] w-full object-cover"
                                         />
                                     </motion.div>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 24, scale: 0.95 }}
+                                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                                        viewport={{ once: true, amount: 0.6 }}
+                                        transition={{ duration: 0.8, ease: EASE, delay: 0.5 }}
+                                        className={cn("absolute -bottom-7 motion-safe:[&>div]:animate-[oiq-float_7s_ease-in-out_infinite]", i === 0 ? "start-4 sm:-start-6" : "end-4 sm:-end-6")}
+                                    >
+                                        {b.chip}
+                                    </motion.div>
                                 </div>
                                 <div>
                                     <Reveal>
@@ -621,6 +709,25 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         ))}
+                    </section>
+
+                    {/* ── FAQ ── */}
+                    <section id="faq" className="mx-auto max-w-4xl scroll-mt-20 px-4 pb-28 sm:px-6">
+                        <Reveal className="text-center">
+                            <Eyebrow center>{l("أسئلة شائعة", "FAQ")}</Eyebrow>
+                            <h2 className="text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("أسئلة بتتسأل كتير", "Questions we hear a lot")}</h2>
+                        </Reveal>
+                        <Stagger gap={0.07} amount={0.1} className="mt-12 space-y-3">
+                            {faqs.map((f) => (
+                                <motion.details variants={staggerChild} key={f.q} className="group rounded-2xl border border-rule bg-sheet px-5 shadow-card transition-shadow open:shadow-float sm:px-7">
+                                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-display text-[1.0625rem] font-semibold [&::-webkit-details-marker]:hidden">
+                                        {f.q}
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-pen-wash text-pen transition-transform duration-300 group-open:rotate-45" aria-hidden><Plus className="size-4" /></span>
+                                    </summary>
+                                    <p className="pb-6 leading-relaxed text-ink-2">{f.a}</p>
+                                </motion.details>
+                            ))}
+                        </Stagger>
                     </section>
 
                     {/* ── Contact + team ── */}
@@ -665,22 +772,73 @@ export default function LandingPage() {
                             style={{ backgroundImage: "radial-gradient(70% 120% at 100% 0%, color-mix(in oklab, var(--pen) 70%, transparent), transparent 60%)" }}
                         >
                             <Wave bars={90} className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full text-white/[0.07]" />
-                            <div className="relative flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
+                            <div className="relative grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
                                 <div className="max-w-xl">
                                     <h2 className="text-3xl font-bold tracking-tight text-white sm:text-[2.6rem] sm:leading-tight">{l("جرّبه في امتحانك الشفوي الجاي.", "Try it on your next oral exam.")}</h2>
-                                    <p className="mt-3 text-lg text-white/70">{l("أنشئ حساب محاضر، واكتب أول سؤال في أقل من دقيقتين.", "Create a lecturer account and write your first question in under two minutes.")}</p>
+                                    <p className="mt-3 text-lg text-white/70">{l("أنشئ حساب محاضر، واكتب أول سؤال في أقل من دقيقتين. وطلابك يجاوبوا من أي مكان.", "Create a lecturer account and write your first question in under two minutes. Your students answer from anywhere.")}</p>
+                                    <div className="mt-8 flex flex-wrap gap-3">
+                                        <ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] bg-white px-7 text-[1.0625rem] text-navy shadow-none hover:bg-white/90">{l("أنشئ حساب محاضر", "Create a lecturer account")}</ButtonLink>
+                                        <a href="#contact" className={buttonClasses("secondary", "lg", "h-[3.25rem] border-white/25 bg-white/10 px-7 text-[1.0625rem] text-white hover:border-white/40 hover:bg-white/15")}>{l("كلّمنا", "Talk to us")}</a>
+                                    </div>
                                 </div>
-                                <ButtonLink to={startHref} viewTransition size="lg" className="h-[3.25rem] bg-white px-7 text-[1.0625rem] text-navy shadow-none hover:bg-white/90">{l("أنشئ حساب محاضر", "Create a lecturer account")}</ButtonLink>
+                                <div className="relative mx-auto hidden w-full max-w-sm lg:block">
+                                    <motion.img
+                                        src="/photos/student-waving-640.webp"
+                                        srcSet="/photos/student-waving-640.webp 640w, /photos/student-waving.webp 1200w"
+                                        sizes="384px"
+                                        alt={l("طالبة بتسلّم على الكاميرا قبل امتحانها", "A student waving to the camera before her exam")}
+                                        loading="lazy"
+                                        initial={{ rotate: 0, opacity: 0, y: 30 }}
+                                        whileInView={{ rotate: -3, opacity: 1, y: 0 }}
+                                        viewport={{ once: true, amount: 0.5 }}
+                                        transition={{ duration: 1, ease: EASE, delay: 0.2 }}
+                                        className="aspect-[4/3] w-full rounded-[24px] object-cover shadow-float ring-4 ring-white/10"
+                                    />
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.85 }}
+                                        whileInView={{ opacity: 1, scale: 1 }}
+                                        viewport={{ once: true, amount: 0.5 }}
+                                        transition={{ type: "spring", stiffness: 240, damping: 18, delay: 0.7 }}
+                                        className="absolute -bottom-5 start-[-1.5rem] flex items-center gap-2.5 rounded-2xl bg-white py-2.5 pe-4 ps-2.5 text-navy shadow-float"
+                                    >
+                                        <span className="flex size-9 items-center justify-center rounded-xl bg-pass-wash text-pass"><Check className="size-5" aria-hidden /></span>
+                                        <span className="text-sm font-semibold">{l("جاهزة للامتحان", "Ready for the exam")}</span>
+                                    </motion.div>
+                                </div>
                             </div>
                         </motion.div>
                     </section>
                 </main>
 
-                <footer className="border-t border-rule/70">
-                    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-ink-3 sm:px-6">
-                        <Logo size={26} />
-                        <p>{l("مبني بـ Whisper وSentence-BERT وInsightFace وMediaPipe", "Built with Whisper, Sentence-BERT, InsightFace and MediaPipe")}</p>
-                        <p>© 2026 OralIQ</p>
+                <footer className="border-t border-rule/70 bg-sheet">
+                    <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.6fr_1fr_1fr]">
+                        <div className="col-span-2 md:col-span-1">
+                            <Logo size={30} />
+                            <p className="mt-4 max-w-sm leading-relaxed text-ink-2">{l("أول منصة عربية للامتحانات الشفوية أونلاين: الطالب يجاوب بصوته، والتصحيح يوصل جاهز.", "The first Arabic platform for online oral exams: students answer out loud, and the grading arrives done.")}</p>
+                        </div>
+                        <nav aria-label={l("المنتج", "Product")}>
+                            <p className="font-semibold">{l("المنتج", "Product")}</p>
+                            <ul className="mt-4 space-y-2.5 text-ink-2">
+                                <li><a href="#how" className="hover:text-pen">{l("إزاي بيشتغل", "How it works")}</a></li>
+                                <li><a href="#features" className="hover:text-pen">{l("المميزات", "Features")}</a></li>
+                                <li><a href="#grading" className="hover:text-pen">{l("التصحيح", "Grading")}</a></li>
+                                <li><a href="#faq" className="hover:text-pen">{l("أسئلة شائعة", "FAQ")}</a></li>
+                            </ul>
+                        </nav>
+                        <nav aria-label={l("ابدأ", "Get started")}>
+                            <p className="font-semibold">{l("ابدأ", "Get started")}</p>
+                            <ul className="mt-4 space-y-2.5 text-ink-2">
+                                <li><Link to="/register" className="hover:text-pen">{l("أنشئ حساب", "Create account")}</Link></li>
+                                <li><Link to="/login" className="hover:text-pen">{l("تسجيل الدخول", "Sign in")}</Link></li>
+                                <li><a href="#contact" className="hover:text-pen">{l("تواصل معنا", "Contact")}</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                    <div className="border-t border-rule/70">
+                        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-3 sm:px-6">
+                            <p>© 2026 OralIQ</p>
+                            <p>{l("مبني بـ Whisper وSentence-BERT وInsightFace وMediaPipe", "Built with Whisper, Sentence-BERT, InsightFace and MediaPipe")}</p>
+                        </div>
                     </div>
                 </footer>
             </div>
