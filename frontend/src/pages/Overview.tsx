@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Plus, Mic, ShieldCheck, ScanFace, Inbox, ClipboardList, Lock } from "lucide-react";
+import { Check, Plus, Mic, ShieldCheck, ScanFace, Inbox, ClipboardList, Lock, RefreshCw, WifiOff } from "lucide-react";
 import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import api from "../lib/api";
@@ -12,6 +12,7 @@ import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
 import { gradeOf } from "../lib/grades";
+import { getApiErrorMessage } from "../lib/apiErrors";
 import { countOf, difficultyInfo, NOUNS, parseServerDate, timeAgo } from "../lib/format";
 import {
     isLecturerRole, needsReview,
@@ -36,20 +37,22 @@ export default function Overview() {
         api.get("/voice/status").then((r) => setBio(r.data)).catch(() => setBio(null));
     };
 
-    useEffect(() => {
+    const [loadError, setLoadError] = useState("");
+
+    // Never turn a failed request into an empty list: "no exams" must mean no exams.
+    const load = useCallback(() => {
+        setLoading(true);
+        setLoadError("");
         loadBiometrics();
         api.get("/users/me")
             .then(async (res) => {
                 setUser(res.data);
                 if (isLecturerRole(res.data.role)) {
-                    const [q, r] = await Promise.all([
-                        api.get("/questions/").catch(() => ({ data: [] })),
-                        api.get("/exams/all-results").catch(() => ({ data: [] })),
-                    ]);
+                    const [q, r] = await Promise.all([api.get("/questions/"), api.get("/exams/all-results")]);
                     setQuestions(q.data);
                     setResults(r.data);
                 } else {
-                    const a = await api.get("/exams/my-assignments").catch(() => ({ data: [] }));
+                    const a = await api.get("/exams/my-assignments");
                     setAssignments(a.data);
                 }
             })
@@ -58,10 +61,28 @@ export default function Overview() {
                 if (status === 401 || status === 403) {
                     localStorage.removeItem("token");
                     navigate("/login", { replace: true });
+                    return;
                 }
+                setLoadError(getApiErrorMessage(err, l("تعذّر تحميل بياناتك.", "Couldn't load your data.")));
             })
             .finally(() => setLoading(false));
-    }, [navigate]);
+    }, [navigate, l]);
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { load(); }, [load]);
+
+    if (loadError && !loading) {
+        return (
+            <Panel>
+                <EmptyState
+                    icon={<WifiOff />}
+                    title={l("مقدرناش نجيب بياناتك", "We couldn't load your data")}
+                    body={l("غالباً مشكلة في الاتصال أو السيرفر بيجهز. بياناتك محفوظة — جرّب تاني.", "Probably a connection issue or the server is starting. Your data is safe — try again.")}
+                    action={<Button onClick={load}><RefreshCw className="size-4" aria-hidden />{l("حاول تاني", "Try again")}</Button>}
+                />
+            </Panel>
+        );
+    }
 
     const firstName = (user?.full_name || "").split(/\s+/).filter((w) => !w.endsWith(".")).slice(0, 1).join(" ");
     const lecturer = isLecturerRole(user?.role);

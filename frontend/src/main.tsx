@@ -6,17 +6,22 @@ import './index.css'
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './lib/theme'
 import { ToastProvider } from './components/ui/toast'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { ServerStatus } from './components/ServerStatus'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        <ThemeProvider>
-            <I18nProvider>
-                <ToastProvider>
-                    <BrowserRouter>
-                        <App />
-                    </BrowserRouter>
-                </ToastProvider>
-            </I18nProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+            <ThemeProvider>
+                <I18nProvider>
+                    <ToastProvider>
+                        <ServerStatus />
+                        <BrowserRouter>
+                            <App />
+                        </BrowserRouter>
+                    </ToastProvider>
+                </I18nProvider>
+            </ThemeProvider>
+        </ErrorBoundary>
     </React.StrictMode>,
 )

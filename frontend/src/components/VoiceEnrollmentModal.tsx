@@ -26,8 +26,15 @@ const PHRASES = [
     "العلم نور والجهل ظلام ومن طلب العلا سهر الليالي واجتهد في طلب المعرفة.",
 ];
 
-export default function VoiceEnrollmentModal({
-    isOpen,
+/**
+ * Mount the flow only while open: every opening starts from a clean slate,
+ * and closing unmounts it — which stops the camera/mic via the unmount cleanup.
+ */
+export default function VoiceEnrollmentModal(props: VoiceEnrollmentModalProps) {
+    return props.isOpen ? <EnrollmentFlow {...props} /> : null;
+}
+
+function EnrollmentFlow({
     onClose,
     onSuccess,
     isRequired = false,
@@ -40,9 +47,10 @@ export default function VoiceEnrollmentModal({
     const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([]);
     const [faceScanProgress, setFaceScanProgress] = useState(0);
     const [faceScanning, setFaceScanning] = useState(false);
-    const [faceModelsLoading, setFaceModelsLoading] = useState(false);
+    const [faceModelsLoading, setFaceModelsLoading] = useState(true);
     const [faceModelsReady, setFaceModelsReady] = useState(false);
     const [camAttempt, setCamAttempt] = useState(0);
+    const [consent, setConsent] = useState(false);
     const { l } = useI18n();
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -61,24 +69,14 @@ export default function VoiceEnrollmentModal({
         stoppingRef.current = false;
     };
 
-    useEffect(() => {
-        if (!isOpen) {
-            cleanup();
-            setEnrollPhase("face");
-            setStep("idle"); setErrorMsg(""); setRecordingTime(0);
-            setPhraseIndex(0); setRecordedBlobs([]);
-            setFaceScanProgress(0); setFaceScanning(false);
-            setFaceModelsLoading(false); setFaceModelsReady(false);
-        }
-        return () => cleanup();
-    }, [isOpen]);
+    // Stop camera/mic and timers when the flow closes (unmounts).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => () => cleanup(), []);
 
     // Face ID runs on the server (InsightFace) — no heavy browser models to preload
     useEffect(() => {
-        if (!isOpen || enrollPhase !== "face") return;
+        if (enrollPhase !== "face") return;
         let cancelled = false;
-        setFaceModelsLoading(true);
-        setFaceModelsReady(false);
         api.get("/face/status")
             .then(() => {
                 if (!cancelled) {
@@ -94,11 +92,11 @@ export default function VoiceEnrollmentModal({
                 }
             });
         return () => { cancelled = true; };
-    }, [isOpen, enrollPhase]);
+    }, [enrollPhase]);
 
     // Face ID camera
     useEffect(() => {
-        if (!isOpen || enrollPhase !== "face") return;
+        if (enrollPhase !== "face") return;
 
         let cancelled = false;
         (async () => {
@@ -118,16 +116,14 @@ export default function VoiceEnrollmentModal({
                 }
             } catch {
                 if (!cancelled) {
-                    setErrorMsg("تعذّر الوصول للكاميرا — اسمح بالكاميرا لمسح Face ID");
+                    setErrorMsg(l("اسمح للمتصفح باستخدام الكاميرا عشان نقدر نمسح وشك.", "Allow the browser to use your camera so we can scan your face."));
                     setStep("error");
                 }
             }
         })();
 
         return () => { cancelled = true; };
-    }, [isOpen, enrollPhase, camAttempt]);
-
-    if (!isOpen) return null;
+    }, [enrollPhase, camAttempt]);
 
     const totalPhrases = PHRASES.length;
 
@@ -309,7 +305,7 @@ export default function VoiceEnrollmentModal({
 
     return (
         <Modal
-            open={isOpen}
+            open
             onClose={() => { if (closable) onClose?.(); }}
             size="md"
             title={step === "success" ? l("هويتك اتسجلت", "Your identity is registered") : l("تسجيل الوجه والصوت", "Register your face and voice")}
@@ -401,7 +397,22 @@ export default function VoiceEnrollmentModal({
                 )}
 
                 {enrollPhase === "face" && !faceScanning && !faceModelsLoading && faceModelsReady && step !== "error" && (
-                    <Button size="lg" className="w-full sm:w-auto" onClick={startFaceScan}>
+                    <label className="flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-3.5 text-start text-sm text-ink-2">
+                        <input
+                            type="checkbox"
+                            checked={consent}
+                            onChange={(e) => setConsent(e.target.checked)}
+                            className="mt-0.5 size-[18px] shrink-0 accent-[var(--pen)]"
+                        />
+                        <span>
+                            {l("أوافق إن OralIQ يحفظ بصمة وشّي وصوتي ويستخدمها للتأكد من هويتي في الامتحانات بس. البصمة بتتحفظ كأرقام مش كصور أو تسجيلات، ومحدش يقدر يغيّرها غير بإذن المحاضر.",
+                                "I agree that OralIQ stores my face and voice prints and uses them only to confirm my identity in exams. Prints are stored as numbers, not photos or recordings, and can only be changed with lecturer approval.")}
+                        </span>
+                    </label>
+                )}
+
+                {enrollPhase === "face" && !faceScanning && !faceModelsLoading && faceModelsReady && step !== "error" && (
+                    <Button size="lg" className="w-full sm:w-auto" onClick={startFaceScan} disabled={!consent}>
                         <ScanFace className="size-5" aria-hidden />{l("امسح وشي", "Scan my face")}
                     </Button>
                 )}

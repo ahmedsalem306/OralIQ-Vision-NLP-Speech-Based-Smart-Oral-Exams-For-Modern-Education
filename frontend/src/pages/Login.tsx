@@ -53,6 +53,9 @@ export default function LoginPage() {
                     : l("أهلاً بعودتك إلى OralIQ.", "Welcome back to OralIQ.")}
             </p>
 
+            {searchParams.get("expired") && !error && (
+                <Alert tone="info" className="mt-6">{l("انتهت جلستك. سجّل دخولك تاني وهترجع للصفحة اللي كنت فيها.", "Your session ended. Sign in again to return to where you were.")}</Alert>
+            )}
             {error && <Alert tone="error" className="mt-6">{error}</Alert>}
 
             <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-5" noValidate={false}>

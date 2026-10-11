@@ -35,7 +35,7 @@ export default function AnalyticsPage() {
     const struggling = scores.filter((s) => s < 50).length;
     const flagged = subs.filter(needsReview).length;
 
-    const bands = useMemo(() => {
+    const bands = (() => {
         const defs = [
             { key: "weak", label: l("ضعيف", "Weak"), range: l("أقل من 45%", "under 45%"), test: (s: number) => s < 45 },
             { key: "fair", label: l("مقبول", "Fair"), range: "45–64%", test: (s: number) => s >= 45 && s < 65 },
@@ -46,9 +46,9 @@ export default function AnalyticsPage() {
             const n = scores.filter(d.test).length;
             return { key: d.key, label: d.label, value: n, detail: [d.range, ...(scores.length ? [l(`${Math.round((n / scores.length) * 100)}% من الطلاب`, `${Math.round((n / scores.length) * 100)}% of students`)] : [])] };
         });
-    }, [scores, l]);
+    })();
 
-    const days = useMemo(() => {
+    const days = (() => {
         const loc = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
         const fmt = new Intl.DateTimeFormat(loc, { day: "numeric" });
         const full = new Intl.DateTimeFormat(loc, { weekday: "long", day: "numeric", month: "long" });
@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
             });
         }
         return out;
-    }, [subs, lang, l]);
+    })();
 
     const components = [
         { label: l("المحتوى", "Content"), value: avgOf(scored.map((s) => s.nlp_score).filter((v): v is number => v != null)) },

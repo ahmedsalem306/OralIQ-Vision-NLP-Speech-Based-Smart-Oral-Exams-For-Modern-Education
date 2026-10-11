@@ -43,7 +43,7 @@ export default function LandingPage() {
                     <div className="hidden items-center gap-1 text-[0.9375rem] md:flex">
                         <a href="#how" className={buttonClasses("ghost", "sm")}>{l("إزاي بيشتغل", "How it works")}</a>
                         <a href="#grading" className={buttonClasses("ghost", "sm")}>{l("التصحيح", "Grading")}</a>
-                        <a href="#team" className={buttonClasses("ghost", "sm")}>{l("الفريق", "Team")}</a>
+                        <a href="#contact" className={buttonClasses("ghost", "sm")}>{l("تواصل معنا", "Contact")}</a>
                     </div>
                     <div className="ms-auto flex items-center gap-1">
                         <LanguageToggle compact />
@@ -75,7 +75,7 @@ export default function LandingPage() {
                                     "Students answer out loud from anywhere, and every answer grades itself: OralIQ transcribes it, compares it with your model answer, and checks the right student is the one answering.")}
                             </p>
                             <div className="mt-9 flex flex-wrap gap-3">
-                                <ButtonLink to={loggedIn ? "/dashboard" : "/register"} size="lg">{l("ابدأ مجاناً", "Get started free")}</ButtonLink>
+                                <ButtonLink to={loggedIn ? "/dashboard" : "/register"} size="lg">{l("ابدأ الآن", "Get started")}</ButtonLink>
                                 <a href="#how" className={buttonClasses("secondary", "lg")}>{l("شوف إزاي بيشتغل", "See how it works")}</a>
                             </div>
                             <p className="mt-5 text-sm text-ink-3">
@@ -150,13 +150,13 @@ export default function LandingPage() {
                     </div>
                 </section>
 
-                {/* ── Team ── */}
-                <section id="team" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
+                {/* ── Contact + team ── */}
+                <section id="contact" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
                     <div className="grid gap-12 lg:grid-cols-[1fr_1.3fr]">
                         <div>
-                            <h2 className="text-3xl font-bold sm:text-4xl">{l("الفريق", "The team")}</h2>
+                            <h2 className="text-3xl font-bold sm:text-4xl">{l("عايز تجرّبه في مؤسستك؟", "Want it for your institution?")}</h2>
                             <p className="mt-4 text-lg leading-relaxed text-ink-2">
-                                {l("مشروع تخرج — كلية علوم الحاسب، المنصورة.", "A graduation project — Faculty of Computer Science, Mansoura.")}
+                                {l("بنجهّز OralIQ للجامعات والمدارس ومراكز التدريب. كلّمنا ونرتب معاك تجربة على امتحان حقيقي.", "We set OralIQ up for universities, schools and training centres. Get in touch and we'll arrange a trial on a real exam.")}
                             </p>
                             <ul className="mt-8 space-y-3 text-ink-2">
                                 <li className="flex items-center gap-3"><Mail className="size-5 text-ink-3" aria-hidden /><a className="ltr hover:text-pen" href="mailto:ahmedsalem250500@gmail.com">ahmedsalem250500@gmail.com</a></li>
@@ -164,6 +164,8 @@ export default function LandingPage() {
                                 <li className="flex items-center gap-3"><MapPin className="size-5 text-ink-3" aria-hidden />{l("المنصورة، مصر", "Mansoura, Egypt")}</li>
                             </ul>
                         </div>
+                        <div>
+                        <h3 className="mb-3 text-lg font-semibold">{l("فريق OralIQ", "The OralIQ team")}</h3>
                         <ul className="divide-y divide-rule border-y border-rule">
                             {TEAM.map((m) => (
                                 <li key={m.name} className="flex items-center gap-4 py-4">
@@ -175,6 +177,7 @@ export default function LandingPage() {
                                 </li>
                             ))}
                         </ul>
+                        </div>
                     </div>
                 </section>
 

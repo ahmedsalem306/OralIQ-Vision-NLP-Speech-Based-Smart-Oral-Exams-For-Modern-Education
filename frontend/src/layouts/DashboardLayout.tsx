@@ -41,8 +41,7 @@ export function DashboardLayout() {
             });
     }, [navigate]);
 
-    // Close the mobile drawer on navigation and on Esc
-    useEffect(() => { setIsOpen(false); }, [location.pathname]);
+    // Close the mobile drawer on Esc (links close it on click)
     useEffect(() => {
         if (!isOpen) return;
         const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
@@ -74,25 +73,6 @@ export function DashboardLayout() {
             ? t("nav.settings")
             : navItems.find((n) => n.href === location.pathname)?.label;
     usePageTitle(user ? currentTitle : null);
-
-    const NavLink = ({ icon: Icon, label, href }: { icon: typeof Users; label: string; href: string }) => {
-        const active = location.pathname === href;
-        return (
-            <Link
-                to={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                    "relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-[0.9375rem] transition-colors",
-                    active
-                        ? "bg-pen-wash font-semibold text-pen before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-pen"
-                        : "text-ink-2 hover:bg-sheet-2 hover:text-ink",
-                )}
-            >
-                <Icon className="size-[18px] shrink-0" aria-hidden />
-                <span className="truncate">{label}</span>
-            </Link>
-        );
-    };
 
     return (
         <div className="min-h-dvh bg-paper text-ink md:flex">
@@ -136,12 +116,16 @@ export function DashboardLayout() {
 
                 <nav className="flex-1 overflow-y-auto px-3 py-3">
                     <ul role="list" className="space-y-0.5">
-                        {(user ? navItems : []).map((item) => <li key={item.href}><NavLink {...item} /></li>)}
+                        {(user ? navItems : []).map((item) => (
+                            <li key={item.href}>
+                                <NavItem {...item} active={location.pathname === item.href} onNavigate={() => setIsOpen(false)} />
+                            </li>
+                        ))}
                     </ul>
                 </nav>
 
                 <div className="shrink-0 space-y-1 border-t border-rule px-3 py-3">
-                    <NavLink icon={Settings} label={t("nav.settings")} href="/dashboard/settings" />
+                    <NavItem icon={Settings} label={t("nav.settings")} href="/dashboard/settings" active={location.pathname === "/dashboard/settings"} onNavigate={() => setIsOpen(false)} />
                     <div className="flex items-center gap-1 px-1 pt-1">
                         <LanguageToggle compact />
                         <ThemeToggle />
@@ -193,5 +177,32 @@ export function DashboardLayout() {
                 </main>
             </div>
         </div>
+    );
+}
+
+interface NavItemProps {
+    icon: typeof Users;
+    label: string;
+    href: string;
+    active: boolean;
+    onNavigate: () => void;
+}
+
+function NavItem({ icon: Icon, label, href, active, onNavigate }: NavItemProps) {
+    return (
+        <Link
+            to={href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+                "relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-[0.9375rem] transition-colors",
+                active
+                    ? "bg-pen-wash font-semibold text-pen before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-pen"
+                    : "text-ink-2 hover:bg-sheet-2 hover:text-ink",
+            )}
+        >
+            <Icon className="size-[18px] shrink-0" aria-hidden />
+            <span className="truncate">{label}</span>
+        </Link>
     );
 }

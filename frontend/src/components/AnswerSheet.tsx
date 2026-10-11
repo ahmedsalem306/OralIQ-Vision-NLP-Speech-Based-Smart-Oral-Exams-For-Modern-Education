@@ -38,7 +38,7 @@ function parseReport(text: string | null): { heading: string[]; bullets: string[
         .filter((s) => !/identity/i.test(s))
         .forEach((line) => {
             if (line.startsWith("•")) bullets.push(line.replace(/^•\s*/, ""));
-            else if (!/:$/.test(line)) heading.push(line.replace(/^[✅⚠️🚨\s]+/u, ""));
+            else if (!/:$/.test(line)) heading.push(line.replace(/^(?:✅|⚠️|🚨|\s)+/u, ""));
         });
     return { heading, bullets };
 }
