@@ -58,7 +58,7 @@ export default function RegisterPage() {
     ];
 
     return (
-        <AuthShell>
+        <AuthShell scene="signup">
             <h1 className="text-[1.75rem] font-bold">{l("إنشاء حساب", "Create your account")}</h1>
             <p className="mt-1.5 text-ink-2">
                 {forcedRole === "student"

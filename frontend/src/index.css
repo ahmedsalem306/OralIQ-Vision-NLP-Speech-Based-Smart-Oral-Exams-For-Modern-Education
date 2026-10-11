@@ -2,44 +2,56 @@
 
 /* ══════════════════════════════════════════════════════════════════
    OralIQ design system
-   Confident ink-blue, warm paper, the grader's red pen for marks only,
+   Calm by default: warm paper that's easy on the eyes, a soft ink-blue,
+   a sunny accent for encouragement, the grader's red pen for marks only,
    navy for depth. Layered cards with soft shadows.
    ══════════════════════════════════════════════════════════════════ */
 
 :root {
   color-scheme: light;
-  --paper: #F4F6FB;
+  --paper: #F6F5F1;
   --sheet: #FFFFFF;
-  --sheet-2: #F8FAFD;
-  --rule: #E1E6EF;
-  --rule-strong: #C9D2E0;
-  --ink: #111B34;
-  --ink-2: #47536E;
-  --ink-3: #5F6A84;
-  --field: #868FA5;
-  --pen: #2348C8;
-  --pen-hover: #1A39A6;
-  --pen-wash: #EAF0FF;
+  --sheet-2: #FAF9F6;
+  --rule: #E9E6DF;
+  --rule-strong: #D4CFC4;
+  --ink: #1A2134;
+  --ink-2: #4A5064;
+  --ink-3: #5D6272;
+  --field: #8A8E99;
+  --pen: #3252D0;
+  --pen-hover: #2742B2;
+  --pen-wash: #ECF0FF;
   --pen-ink: #FFFFFF;
-  --chart: #2348C8;
+  --chart: #3252D0;
   --mark: #C62A39;
   --mark-wash: #FDECEE;
-  --pass: #0F7A4C;
-  --pass-wash: #E3F5EC;
-  --warn: #9A5B0C;
-  --warn-wash: #FFF3DC;
-  --violet: #6B4BE0;
-  --violet-wash: #F0ECFF;
-  --teal: #0A7166;
-  --teal-wash: #DFF5F2;
-  --navy: #0C1633;
-  --navy-2: #16234A;
+  --pass: #11784C;
+  --pass-wash: #E2F4EA;
+  --warn: #93580D;
+  --warn-wash: #FFF2DC;
+  --sun: #A44F0C;
+  --sun-wash: #FFEEDD;
+  --violet: #6A4CD9;
+  --violet-wash: #F0EDFF;
+  --teal: #0B6F64;
+  --teal-wash: #DFF4F0;
+  --navy: #0E1834;
+  --navy-2: #18244B;
   --navy-ink: #F2F5FF;
   --navy-muted: #A3AFCC;
-  --overlay: rgba(12, 22, 51, 0.5);
-  --shadow-card: 0 1px 2px rgba(17, 27, 52, 0.04), 0 6px 20px -8px rgba(17, 27, 52, 0.10);
-  --shadow-float: 0 30px 60px -18px rgba(17, 27, 52, 0.30), 0 8px 20px -10px rgba(17, 27, 52, 0.14);
-  --shadow-pop: 0 18px 50px -12px rgba(17, 27, 52, 0.28), 0 2px 6px rgba(17, 27, 52, 0.06);
+  /* Sidebar: light and quiet in day mode */
+  --rail: #FFFFFF;
+  --rail-ink: #1A2134;
+  --rail-muted: #535869;
+  --rail-hover: #F4F2EE;
+  --rail-active: #ECF0FF;
+  --rail-active-ink: #2742B2;
+  --rail-line: #EDEAE3;
+  --rail-indicator: #3252D0;
+  --overlay: rgba(20, 24, 38, 0.45);
+  --shadow-card: 0 1px 2px rgba(40, 36, 28, 0.04), 0 8px 24px -12px rgba(40, 36, 28, 0.12);
+  --shadow-float: 0 30px 60px -20px rgba(30, 32, 50, 0.26), 0 8px 20px -10px rgba(30, 32, 50, 0.12);
+  --shadow-pop: 0 18px 50px -12px rgba(30, 32, 50, 0.24), 0 2px 6px rgba(30, 32, 50, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,10 +81,20 @@
     --violet-wash: #261F4D;
     --teal: #4FD1C1;
     --teal-wash: #0F3330;
+    --sun: #F5A962;
+    --sun-wash: #3A2716;
     --navy: #070C19;
     --navy-2: #111A33;
     --navy-ink: #F2F5FF;
     --navy-muted: #8E9AB8;
+    --rail: #090E1B;
+    --rail-ink: #F2F5FF;
+    --rail-muted: #8E9AB8;
+    --rail-hover: rgba(255, 255, 255, 0.06);
+    --rail-active: rgba(255, 255, 255, 0.11);
+    --rail-active-ink: #FFFFFF;
+    --rail-line: rgba(255, 255, 255, 0.08);
+    --rail-indicator: #8EA6FF;
     --overlay: rgba(4, 7, 14, 0.7);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
     --shadow-float: 0 30px 60px -18px rgba(0, 0, 0, 0.7), 0 8px 20px -10px rgba(0, 0, 0, 0.4);
@@ -106,10 +128,20 @@
   --violet-wash: #261F4D;
   --teal: #4FD1C1;
   --teal-wash: #0F3330;
+  --sun: #F5A962;
+  --sun-wash: #3A2716;
   --navy: #070C19;
   --navy-2: #111A33;
   --navy-ink: #F2F5FF;
   --navy-muted: #8E9AB8;
+  --rail: #090E1B;
+  --rail-ink: #F2F5FF;
+  --rail-muted: #8E9AB8;
+  --rail-hover: rgba(255, 255, 255, 0.06);
+  --rail-active: rgba(255, 255, 255, 0.11);
+  --rail-active-ink: #FFFFFF;
+  --rail-line: rgba(255, 255, 255, 0.08);
+  --rail-indicator: #8EA6FF;
   --overlay: rgba(4, 7, 14, 0.7);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
   --shadow-float: 0 30px 60px -18px rgba(0, 0, 0, 0.7), 0 8px 20px -10px rgba(0, 0, 0, 0.4);
@@ -137,6 +169,16 @@
   --color-pass-wash: var(--pass-wash);
   --color-warn: var(--warn);
   --color-warn-wash: var(--warn-wash);
+  --color-sun: var(--sun);
+  --color-sun-wash: var(--sun-wash);
+  --color-rail: var(--rail);
+  --color-rail-ink: var(--rail-ink);
+  --color-rail-muted: var(--rail-muted);
+  --color-rail-hover: var(--rail-hover);
+  --color-rail-active: var(--rail-active);
+  --color-rail-active-ink: var(--rail-active-ink);
+  --color-rail-line: var(--rail-line);
+  --color-rail-indicator: var(--rail-indicator);
   --color-violet: var(--violet);
   --color-violet-wash: var(--violet-wash);
   --color-teal: var(--teal);
@@ -248,6 +290,9 @@
 @keyframes oiq-eq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 @keyframes oiq-glow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes oiq-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+/* Breathing coach: expand on the in-breath, settle on the longer out-breath */
+@keyframes oiq-breathe-in { from { transform: scale(0.55); } to { transform: scale(1); } }
+@keyframes oiq-breathe-out { from { transform: scale(1); } to { transform: scale(0.55); } }
 @keyframes oiq-pulse-ring { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.9); opacity: 0; } }
 
 .oiq-skeleton {

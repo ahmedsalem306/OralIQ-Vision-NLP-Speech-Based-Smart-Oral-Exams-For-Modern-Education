@@ -1,5 +1,5 @@
 import { cn } from "../../lib/utils";
-import { formatScore } from "../../lib/grades";
+import { formatScore, gradeOf } from "../../lib/grades";
 
 type Size = "sm" | "md" | "lg" | "xl";
 
@@ -19,16 +19,25 @@ interface ScoreMarkProps {
     plain?: boolean;
     className?: string;
     label?: string;
+    /**
+     * "mark": the grader's red pen (lecturer views, marketing).
+     * "kind": the pen takes the grade's colour — what a student sees about their own work.
+     */
+    ink?: "mark" | "kind";
 }
+
+const kindInk = { pass: "text-pass", pen: "text-pen", warn: "text-sun", mark: "text-sun", neutral: "text-ink-3" } as const;
 
 /**
  * The grade as a teacher marks it: the number, circled by hand in red pen.
  * The loop overshoots its start — the way a real pen circle does.
  */
-export function ScoreMark({ score, size = "md", animate = false, plain = false, className, label }: ScoreMarkProps) {
+export function ScoreMark({ score, size = "md", animate = false, plain = false, className, label, ink = "mark" }: ScoreMarkProps) {
     const s = sizes[size];
     const pending = score == null || Number.isNaN(score);
     const text = formatScore(score);
+    const g = gradeOf(score);
+    const penColor = ink === "kind" && g ? kindInk[g.tone] : "text-mark";
 
     return (
         <span
@@ -40,7 +49,7 @@ export function ScoreMark({ score, size = "md", animate = false, plain = false, 
                 <svg
                     viewBox="-6 -4 132 88"
                     preserveAspectRatio="none"
-                    className="absolute inset-0 h-full w-full -rotate-3 overflow-visible text-mark"
+                    className={cn("absolute inset-0 h-full w-full -rotate-3 overflow-visible", penColor)}
                     aria-hidden
                 >
                     <path

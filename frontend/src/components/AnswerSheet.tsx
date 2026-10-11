@@ -3,7 +3,7 @@ import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 import { ScoreMark } from "./ui/score-mark";
 import { Badge } from "./ui/badge";
-import { gradeOf, formatScore, type Tone } from "../lib/grades";
+import { gradeOf, studentGradeOf, formatScore, type Tone } from "../lib/grades";
 import { formatDate, formatDuration, parseServerDate } from "../lib/format";
 import type { Submission } from "../lib/types";
 
@@ -87,7 +87,7 @@ function Breakdown({ s }: { s: Submission }) {
 
 export function AnswerSheet({ s, viewer }: { s: Submission; viewer: "lecturer" | "student" }) {
     const { l, lang } = useI18n();
-    const g = gradeOf(s.overall_score);
+    const g = viewer === "student" ? studentGradeOf(s.overall_score) : gradeOf(s.overall_score);
     const fluency = parseReport(s.fluency_report);
     const integrity = parseReport(s.cheat_report);
     const start = parseServerDate(s.started_at);
@@ -116,7 +116,7 @@ export function AnswerSheet({ s, viewer }: { s: Submission; viewer: "lecturer" |
                     </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-center gap-1">
-                    <ScoreMark score={s.overall_score} size="xl" animate />
+                    <ScoreMark score={s.overall_score} size="xl" animate ink={viewer === "student" ? "kind" : "mark"} />
                     {g ? <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge> : <Badge>{l("قيد التصحيح", "Being graded")}</Badge>}
                 </div>
             </header>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardList, Lock, RefreshCw, TrendingUp, WifiOff } from "lucide-react";
+import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardList, Lock, RefreshCw, TrendingUp, WifiOff, Lamp, MessagesSquare, HeartHandshake, PartyPopper } from "lucide-react";
 import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import api from "../lib/api";
@@ -267,6 +267,7 @@ export default function Overview() {
     return (
         <>
             <WelcomeBanner
+                variant="bright"
                 mood={bio && !ready ? "attention" : pending.length > 0 ? "calm" : "done"}
                 title={l(`أهلاً، ${firstName}`, `Hi, ${firstName}`)}
                 description={
@@ -278,19 +279,35 @@ export default function Overview() {
                         : l("مفيش امتحانات مطلوبة منك دلوقتي. هنبلّغك أول ما يوصل جديد.", "No exams are waiting right now. New ones will show up here.")
                 }
                 actions={pending.length > 0 && ready ? (
-                    <button type="button" onClick={() => startExam(pending[0].exam_token)} className={buttonClasses("primary", "lg", onDark.primary)}>
+                    <button type="button" onClick={() => startExam(pending[0].exam_token)} className={buttonClasses("primary", "lg")}>
                         <Mic className="size-5" aria-hidden />{l("ابدأ أول امتحان", "Start the first exam")}
                     </button>
                 ) : pending.length === 0 ? (
-                    <ButtonLink to="/dashboard/grades" className={onDark.secondary} variant="secondary">{l("درجاتي", "My grades")}</ButtonLink>
+                    <ButtonLink to="/dashboard/grades" variant="secondary">{l("درجاتي", "My grades")}</ButtonLink>
                 ) : undefined}
-                aside={pending[0] && (
-                    <div className="w-72 rounded-2xl border border-white/15 bg-white/[0.08] p-5 backdrop-blur-sm">
-                        <p className="text-sm text-white/70">{l("الامتحان الجاي", "Up next")}</p>
-                        <p className="mt-2 line-clamp-3 font-display text-lg font-semibold leading-snug">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
-                        <p className="mt-3 text-sm text-white/60">{pending[0].assigned_by_name}</p>
+                aside={
+                    <div className="relative h-60 w-[23rem]">
+                        <img
+                            src="/photos/friends-reading-480.webp"
+                            srcSet="/photos/friends-reading-480.webp 480w, /photos/friends-reading.webp 800w"
+                            sizes="224px"
+                            alt=""
+                            className="absolute end-2 top-0 h-60 w-56 rotate-2 rounded-[22px] object-cover shadow-float"
+                        />
+                        {pending[0] ? (
+                            <div className="absolute bottom-[-0.5rem] start-0 w-64 -rotate-1 rounded-2xl border border-rule bg-sheet/95 p-4 shadow-pop backdrop-blur">
+                                <p className="text-xs font-medium text-pen">{l("الامتحان الجاي", "Up next")}</p>
+                                <p className="mt-1.5 line-clamp-2 font-display font-semibold leading-snug">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
+                                <p className="mt-2 text-xs text-ink-3">{pending[0].assigned_by_name}</p>
+                            </div>
+                        ) : (
+                            <div className="absolute bottom-2 start-6 flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet/95 px-4 py-3 shadow-pop backdrop-blur">
+                                <span className="flex size-9 items-center justify-center rounded-full bg-pass-wash text-pass"><PartyPopper className="size-[18px]" aria-hidden /></span>
+                                <p className="text-sm font-semibold">{l("خلّصت كل امتحاناتك", "All exams done")}</p>
+                            </div>
+                        )}
                     </div>
-                )}
+                }
             />
 
             {/* Identity setup */}
@@ -326,6 +343,8 @@ export default function Overview() {
                 />
             )}
 
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <div>
             <Panel>
                 <PanelHeader title={l("امتحاناتك المطلوبة", "Your exams")} />
                 {pending.length === 0 ? (
@@ -371,6 +390,10 @@ export default function Overview() {
                     {l("الامتحان بيتسجّل بالصوت، والكاميرا بتتأكد من هويتك أثناء الإجابة.", "Your answer is recorded as audio; the camera confirms your identity while you answer.")}
                 </p>
             )}
+            </div>
+
+            <CalmTips />
+            </div>
 
             <VoiceEnrollmentModal
                 isOpen={showEnroll}
@@ -378,5 +401,31 @@ export default function Overview() {
                 onSuccess={() => { setShowEnroll(false); loadBiometrics(); }}
             />
         </>
+    );
+}
+
+/** Three small reassurances before an oral exam — the things students actually worry about. */
+function CalmTips() {
+    const { l } = useI18n();
+    const tips = [
+        { icon: Lamp, tone: "bg-sun-wash text-sun", title: l("مكان هادي ونوره كويس", "A quiet, well-lit spot"), body: l("قعدة مريحة ووشك باين في الكاميرا، وده كل المطلوب.", "Sit comfortably with your face in view — that's all it takes.") },
+        { icon: MessagesSquare, tone: "bg-pen-wash text-pen", title: l("اتكلم زي ما بتشرح لصاحبك", "Explain it like you would to a friend"), body: l("التصحيح بيفهم المعنى، مش لازم تحفظ كلام الكتاب بالحرف.", "Grading follows the meaning — no need to recite the book word for word.") },
+        { icon: HeartHandshake, tone: "bg-teal-wash text-teal", title: l("لو اتلخبطت، عادي", "Lost your thread? That's fine"), body: l("خد نفس وكمّل من حيث وقفت. الإجابة بتتقيّم كلها مع بعض.", "Take a breath and carry on. Your answer is judged as a whole.") },
+    ];
+    return (
+        <Panel className="p-5">
+            <h2 className="font-display text-[1.0625rem] font-semibold">{l("عشان امتحانك يعدّي بهدوء", "For a calm exam")}</h2>
+            <ul className="mt-4 space-y-4">
+                {tips.map(({ icon: Icon, tone, title, body }) => (
+                    <li key={title} className="flex gap-3">
+                        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", tone)}><Icon className="size-[18px]" aria-hidden /></span>
+                        <div>
+                            <p className="font-semibold leading-snug">{title}</p>
+                            <p className="mt-0.5 text-sm leading-relaxed text-ink-2">{body}</p>
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </Panel>
     );
 }

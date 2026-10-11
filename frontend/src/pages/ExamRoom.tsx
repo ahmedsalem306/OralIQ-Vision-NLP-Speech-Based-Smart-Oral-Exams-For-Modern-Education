@@ -6,13 +6,14 @@ import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import { PageLoader } from "../components/PageLoader";
 import { LiveWaveform } from "../components/exam/LiveWaveform";
+import { BreathingCoach } from "../components/exam/BreathingCoach";
 import { Button } from "../components/ui/button";
 import { Field, Input } from "../components/ui/input";
 import { Panel } from "../components/ui/panel";
 import { Alert } from "../components/ui/feedback";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
-import { gradeOf } from "../lib/grades";
+import { encouragementOf, studentGradeOf } from "../lib/grades";
 import { countOf, NOUNS } from "../lib/format";
 import { usePageTitle } from "../lib/usePageTitle";
 import { DrawnCheck } from "../components/motion";
@@ -864,8 +865,26 @@ export default function ExamRoom() {
     );
 
     if (phase === "info") return (
-        <Sheet>
-            <Panel className="p-6 sm:p-8">
+        <Sheet size="xl">
+            <div className="grid overflow-hidden rounded-[24px] border border-rule bg-sheet shadow-float md:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
+            <figure className="relative hidden md:block">
+                <img src="/photos/student-relaxed.webp" srcSet="/photos/student-relaxed-480.webp 480w, /photos/student-relaxed.webp 960w" sizes="420px" alt="" className="absolute inset-0 size-full object-cover object-[30%_center]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy/85 via-navy/10 to-transparent" aria-hidden />
+                <figcaption className="absolute inset-x-0 bottom-0 p-7 text-white">
+                    <p className="font-display text-xl font-semibold leading-snug">{l("اتكلم براحتك.", "Speak at your own pace.")}</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-white/80">{l("إحنا بنقيّم فهمك للموضوع، مش حفظك لكلام الكتاب.", "We assess your understanding, not whether you memorised the book.")}</p>
+                </figcaption>
+            </figure>
+            <div className="p-6 sm:p-8">
+                <ol className="mb-6 flex items-center gap-2 text-xs font-medium text-ink-3" aria-label={l("خطوات الامتحان", "Exam steps")}>
+                    {[l("بياناتك", "Your details"), l("الكاميرا", "Camera"), l("الإجابة", "Answer")].map((label, i) => (
+                        <li key={label} aria-current={i === 0 ? "step" : undefined} className="flex items-center gap-2">
+                            {i > 0 && <span className="h-px w-5 bg-rule-strong" aria-hidden />}
+                            <span className={cn("flex size-5 items-center justify-center rounded-full font-display text-[0.6875rem]", i === 0 ? "bg-pen text-pen-ink" : "bg-sheet-2 text-ink-3 ring-1 ring-rule")}>{i + 1}</span>
+                            <span className={i === 0 ? "text-ink" : undefined}>{label}</span>
+                        </li>
+                    ))}
+                </ol>
                 <h1 className="text-2xl font-bold">{l("قبل ما تبدأ", "Before you start")}</h1>
                 {question ? (
                     <p className="mt-2 text-ink-2">
@@ -901,7 +920,13 @@ export default function ExamRoom() {
                 <Button size="lg" className="mt-6 w-full" onClick={startExam} disabled={!question}>
                     <Camera className="size-5" aria-hidden />{l("تشغيل الكاميرا", "Turn on camera")}
                 </Button>
-            </Panel>
+                <p className="mt-3 text-center text-xs text-ink-3">{l("السؤال مش هيظهر لسه. هتشوف الكاميرا الأول وتجهّز براحتك.", "The question won't show yet. You'll see your camera first and get settled.")}</p>
+
+                <div className="mt-6 flex justify-center border-t border-rule pt-5">
+                    <BreathingCoach className="w-full max-w-sm" />
+                </div>
+            </div>
+            </div>
         </Sheet>
     );
 
@@ -930,7 +955,7 @@ export default function ExamRoom() {
     if (phase === "failed") return (
         <Sheet>
             <Panel className="p-6 sm:p-8">
-                <div className="mb-5 flex size-12 items-center justify-center rounded-full bg-mark-wash text-mark"><AlertCircle className="size-6" aria-hidden /></div>
+                <div className="mb-5 flex size-12 items-center justify-center rounded-full bg-warn-wash text-warn"><AlertCircle className="size-6" aria-hidden /></div>
                 <h1 className="text-2xl font-bold">{l("الإجابة ماتسلّمتش", "Your answer wasn't submitted")}</h1>
                 <p className="mt-2 text-ink-2">
                     {l("حصلت مشكلة في الاتصال بالسيرفر. ارجع للوحة التحكم وابدأ الامتحان تاني، أو كلّم المحاضر لو المشكلة اتكررت.",
@@ -944,7 +969,8 @@ export default function ExamRoom() {
 
     if (phase === "done") {
         const hasNext = currentQIndex + 1 < allQuestions.length;
-        const g = gradeOf(result?.overall_score);
+        const g = studentGradeOf(result?.overall_score);
+        const cheer = encouragementOf(result?.overall_score);
         const otherExams = remainingExams.filter((e) => e.exam_token !== examToken);
         return (
             <Sheet wide>
@@ -958,9 +984,10 @@ export default function ExamRoom() {
                     {result && (
                         <>
                             <div className="mt-6 flex flex-col items-center gap-2">
-                                <ScoreMark score={result.overall_score} size="xl" animate />
+                                <ScoreMark score={result.overall_score} size="xl" animate ink="kind" />
                                 {g && <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge>}
                             </div>
+                            {cheer && <p className="mx-auto mt-4 max-w-sm text-[1.0625rem] leading-relaxed text-ink-2">{l(cheer.ar, cheer.en)}</p>}
                             <dl className="mt-8 grid grid-cols-3 border-y border-rule py-4">
                                 {[
                                     { label: l("المحتوى", "Content"), value: result.nlp_score },
@@ -1014,8 +1041,9 @@ export default function ExamRoom() {
         : [];
 
     return (
-        <div className="flex min-h-dvh flex-col bg-paper">
-            <header className="sticky top-0 z-20 border-b border-rule bg-sheet/95 backdrop-blur">
+        <div className="relative isolate flex min-h-dvh flex-col bg-paper">
+            <CalmBackdrop />
+            <header className="sticky top-0 z-20 border-b border-rule bg-sheet/90 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
                     <Logo size={26} showText={false} className="sm:hidden" />
                     <Logo size={26} className="hidden sm:inline-flex" />
@@ -1029,7 +1057,7 @@ export default function ExamRoom() {
                     )}
                     <div className="ms-auto flex items-center gap-4">
                         {recording ? (
-                            <span role="timer" aria-live="off" className={cn("flex items-center gap-2 font-display text-xl font-semibold tabular ltr", lowTime ? "text-mark" : "text-ink")}>
+                            <span role="timer" aria-live="off" className={cn("flex items-center gap-2 font-display text-xl font-semibold tabular ltr", lowTime ? "text-sun" : "text-ink")}>
                                 <span className="relative flex size-2.5">
                                     <span className="absolute inset-0 rounded-full bg-mark motion-safe:animate-[oiq-pulse-ring_1.4s_ease-out_infinite]" />
                                     <span className="relative size-2.5 rounded-full bg-mark" />
@@ -1044,7 +1072,7 @@ export default function ExamRoom() {
                 </div>
                 {recording && (
                     <div className="h-1 bg-rule" aria-hidden>
-                        <div className={cn("h-full transition-[width] duration-1000 ease-linear", lowTime ? "bg-mark" : "bg-pen")} style={{ width: `${Math.min(100, progress * 100)}%` }} />
+                        <div className={cn("h-full transition-[width] duration-1000 ease-linear", lowTime ? "bg-sun" : "bg-pen")} style={{ width: `${Math.min(100, progress * 100)}%` }} />
                     </div>
                 )}
             </header>
@@ -1114,10 +1142,13 @@ export default function ExamRoom() {
                                 <h1 className="text-[1.375rem] font-semibold leading-[3rem] sm:text-[1.75rem]" dir="auto">{question.text}</h1>
                             ) : (
                                 <div>
-                                    <h1 className="text-xl font-semibold">{l("السؤال هيظهر أول ما تبدأ", "The question appears when you start")}</h1>
+                                    <h1 className="text-xl font-semibold">{l("خد راحتك، السؤال لسه مظهرش", "Take your time, the question isn't showing yet")}</h1>
                                     <p className="mt-2 text-ink-2">
-                                        {l("اتأكد إن الإضاءة كويسة والمكان هادي. لما تضغط «ابدأ الإجابة» السؤال هيظهر والوقت هيبدأ، واتكلم على طول.",
-                                            "Make sure you're well lit and somewhere quiet. When you press Start answering, the question appears and the timer starts — begin speaking right away.")}
+                                        {l("ظبّط قعدتك والإضاءة. لما تحس إنك جاهز اضغط «ابدأ الإجابة»، وساعتها السؤال هيظهر والوقت هيبدأ.",
+                                            "Get comfortable and check your lighting. When you feel ready, press Start answering: the question appears and the timer starts then.")}
+                                    </p>
+                                    <p className="mt-3 text-sm text-ink-3">
+                                        {l("نصيحة: فكّر ثانيتين قبل ما تتكلم، ده طبيعي وماحدش بيحسبه عليك.", "Tip: pausing a moment to think before you speak is normal. Nobody holds it against you.")}
                                     </p>
                                 </div>
                             )}
@@ -1157,16 +1188,31 @@ export default function ExamRoom() {
 }
 
 /** Centered single-sheet layout for the non-camera phases (module-level so inputs keep focus). */
-function Sheet({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+function Sheet({ children, wide = false, size }: { children: React.ReactNode; wide?: boolean; size?: "xl" }) {
     return (
-        <div className="flex min-h-dvh flex-col bg-paper">
+        <div className="relative isolate flex min-h-dvh flex-col bg-paper">
+            <CalmBackdrop />
             <header className="flex h-16 items-center justify-between px-5 sm:px-8">
                 <Logo size={28} />
                 <div className="flex items-center gap-1"><LanguageToggle compact /><ThemeToggle /></div>
             </header>
-            <main className={cn("mx-auto flex w-full flex-1 flex-col justify-center px-4 pb-16", wide ? "max-w-xl" : "max-w-md")}>
+            <main className={cn("mx-auto flex w-full flex-1 flex-col justify-center px-4 pb-16", size === "xl" ? "max-w-4xl" : wide ? "max-w-xl" : "max-w-md")}>
                 {children}
             </main>
         </div>
+    );
+}
+
+/** Soft, still light behind the exam screens: warmer than a blank page, never moving. */
+function CalmBackdrop() {
+    return (
+        <div
+            className="pointer-events-none fixed inset-0 -z-10"
+            style={{
+                backgroundImage:
+                    "radial-gradient(40% 45% at 85% 5%, color-mix(in oklab, var(--pen) 9%, transparent), transparent 70%), radial-gradient(35% 40% at 5% 95%, color-mix(in oklab, var(--sun) 9%, transparent), transparent 70%), radial-gradient(30% 35% at 10% 10%, color-mix(in oklab, var(--teal) 6%, transparent), transparent 70%)",
+            }}
+            aria-hidden
+        />
     );
 }

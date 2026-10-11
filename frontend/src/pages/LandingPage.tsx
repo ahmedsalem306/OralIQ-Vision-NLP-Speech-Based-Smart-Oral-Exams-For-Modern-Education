@@ -225,7 +225,7 @@ export default function LandingPage() {
                                     {lang === "ar" ? (
                                         <>
                                             <motion.span variants={line} className="inline-block sm:whitespace-nowrap">أول منصة عربية</motion.span>
-                                            <InlinePhoto src="/photos/chip-student.webp" alt="طالبة بتجاوب بصوتها" />
+                                            <InlinePhoto src="/photos/chip-smile.webp" alt="طالبة مبتسمة" />
                                             <br />
                                             <motion.span variants={line} className="inline-block bg-gradient-to-l from-pen to-violet bg-clip-text pb-1 text-transparent sm:whitespace-nowrap">للامتحانات الشفوية</motion.span>
                                             <br />
@@ -235,7 +235,7 @@ export default function LandingPage() {
                                     ) : (
                                         <>
                                             <motion.span variants={line} className="inline-block">The first Arabic</motion.span>{" "}
-                                            <InlinePhoto src="/photos/chip-student.webp" alt="A student answering out loud" />{" "}
+                                            <InlinePhoto src="/photos/chip-smile.webp" alt="A smiling student" />{" "}
                                             <motion.span variants={line} className="inline-block">platform for</motion.span>{" "}
                                             <motion.span variants={line} className="inline-block bg-gradient-to-r from-pen to-violet bg-clip-text text-transparent">online oral exams</motion.span>{" "}
                                             <InlinePhoto src="/photos/chip-lecturer.webp" alt="A lecturer" />
@@ -434,7 +434,7 @@ export default function LandingPage() {
                                 <h3 className="mt-5 text-xl font-semibold">{l("الوش والصوت لازم يطابقوا", "Face and voice must match")}</h3>
                                 <p className="mt-2 text-ink-2">{l("بصمة بتتسجل مرة واحدة، وتتقارن في كل امتحان. لو واحدة بس طابقت، الإجابة بتتعلّم «مراجعة».", "Registered once, checked every exam. If only one matches, the answer is flagged for review.")}</p>
                                 <div className="mt-5 flex -space-x-3 rtl:space-x-reverse">
-                                    {["/photos/chip-portrait.webp", "/photos/chip-student.webp", "/photos/chip-lecturer.webp"].map((src, i) => (
+                                    {["/photos/chip-smile.webp", "/photos/chip-student.webp", "/photos/chip-lecturer.webp"].map((src, i) => (
                                         <motion.img
                                             key={src}
                                             src={src}
@@ -580,7 +580,7 @@ export default function LandingPage() {
                                 points: [l("امتحان شفوي لـ 200 طالب من غير ما تسمع 200 تسجيل", "Oral exams for 200 students without listening to 200 recordings"), l("ملاحظات النزاهة والهوية قدامك قبل ما تنشر", "Integrity and identity notes before you publish"), l("صدّر Excel أو اطبع ورقة كل طالب", "Export to Excel or print each answer sheet")],
                             },
                             {
-                                img: "/photos/study-headphones.webp", alt: l("طالبة بتذاكر بسماعات ولابتوب", "A student with headphones and a laptop"),
+                                img: "/photos/student-library.webp", alt: l("طالبة مبتسمة في مكتبة الجامعة", "A smiling student in the university library"),
                                 title: l("للطالب: امتحان شفوي من غير رهبة اللجنة", "For students: oral exams without the panel nerves"),
                                 points: [l("يجاوب من بيته على الموبايل أو اللابتوب", "Answer from home on a phone or laptop"), l("يشوف درجته وتفاصيلها أول ما المحاضر ينشرها", "See the grade and its breakdown once published"), l("يعرف هو كان متردد فين وإزاي يتحسن", "Learn where they hesitated and how to improve")],
                             },

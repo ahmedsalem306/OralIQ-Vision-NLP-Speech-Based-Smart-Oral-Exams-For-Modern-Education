@@ -115,17 +115,17 @@ export function DashboardLayout() {
             <aside
                 id="sidebar"
                 className={cn(
-                    "fixed inset-y-0 start-0 z-50 flex w-[17rem] shrink-0 flex-col bg-navy text-navy-ink",
+                    "fixed inset-y-0 start-0 z-50 flex w-[17rem] shrink-0 flex-col border-e border-rail-line bg-rail text-rail-ink",
                     "transition-transform duration-200 ease-out md:sticky md:top-0 md:h-dvh",
                     !isOpen && "max-md:ltr:-translate-x-full max-md:rtl:translate-x-full",
                 )}
                 aria-label={l("القائمة الرئيسية", "Main menu")}
             >
                 <div className="flex h-[4.5rem] shrink-0 items-center justify-between px-5">
-                    <Link to="/dashboard" aria-label="OralIQ"><Logo size={32} light /></Link>
+                    <Link to="/dashboard" aria-label="OralIQ"><Logo size={32} /></Link>
                     <button
                         type="button"
-                        className={cn(buttonClasses("ghost", "icon-sm", "text-navy-muted hover:bg-white/10 hover:text-white"), "md:hidden")}
+                        className={cn(buttonClasses("ghost", "icon-sm", "text-rail-muted hover:bg-rail-hover hover:text-rail-ink"), "md:hidden")}
                         onClick={() => setIsOpen(false)}
                         aria-label={l("إغلاق القائمة", "Close menu")}
                     >
@@ -137,11 +137,11 @@ export function DashboardLayout() {
                     <button
                         type="button"
                         onClick={() => setPaletteOpen(true)}
-                        className="flex w-full items-center gap-2.5 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-navy-muted transition-colors hover:bg-white/[0.08] hover:text-white"
+                        className="flex w-full items-center gap-2.5 rounded-[var(--radius-control)] border border-rail-line bg-rail-hover/60 px-3 py-2 text-sm text-rail-muted transition-colors hover:bg-rail-hover hover:text-rail-ink"
                     >
                         <Search className="size-4" aria-hidden />
                         <span className="flex-1 text-start">{l("بحث سريع", "Quick search")}</span>
-                        <kbd className="rounded border border-white/15 px-1.5 text-[0.6875rem] ltr" dir="ltr">Ctrl K</kbd>
+                        <kbd className="rounded border border-rail-line bg-rail px-1.5 text-[0.6875rem] ltr" dir="ltr">Ctrl K</kbd>
                     </button>
                 </div>
 
@@ -155,27 +155,27 @@ export function DashboardLayout() {
                     </ul>
                 </nav>
 
-                <div className="shrink-0 space-y-1 border-t border-white/10 px-3 py-3">
+                <div className="shrink-0 space-y-1 border-t border-rail-line px-3 py-3">
                     <NavItem icon={Settings} label={t("nav.settings")} href="/dashboard/settings" active={location.pathname === "/dashboard/settings"} onNavigate={() => setIsOpen(false)} />
                     <div className="flex items-center gap-1 px-1 pt-1">
-                        <LanguageToggle compact className="text-navy-muted hover:bg-white/10 hover:text-white" />
-                        <ThemeToggle className="text-navy-muted hover:bg-white/10 hover:text-white" />
+                        <LanguageToggle compact className="text-rail-muted hover:bg-rail-hover hover:text-rail-ink" />
+                        <ThemeToggle className="text-rail-muted hover:bg-rail-hover hover:text-rail-ink" />
                     </div>
                 </div>
 
                 {user && (
-                    <div className="m-3 mt-0 flex shrink-0 items-center gap-3 rounded-2xl bg-white/[0.06] px-3 py-3">
+                    <div className="m-3 mt-0 flex shrink-0 items-center gap-3 rounded-2xl bg-rail-hover px-3 py-3">
                         <Avatar name={user.full_name} src={profilePic} />
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold">{user.full_name}</p>
-                            <p className="truncate text-xs text-navy-muted">
+                            <p className="truncate text-xs text-rail-muted">
                                 {isLecturer ? t("auth.role.lecturer") : t("auth.role.student")}
                             </p>
                         </div>
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className={buttonClasses("ghost", "icon-sm", "text-navy-muted hover:bg-white/10 hover:text-[#FF9AA4]")}
+                            className={buttonClasses("ghost", "icon-sm", "text-rail-muted hover:bg-mark-wash hover:text-mark")}
                             aria-label={t("nav.signOut")}
                             title={t("nav.signOut")}
                         >
@@ -238,7 +238,7 @@ function NavItem({ icon: Icon, label, href, active, onNavigate }: NavItemProps) 
             aria-current={active ? "page" : undefined}
             className={cn(
                 "relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-[0.9375rem] transition-colors",
-                active ? "font-semibold text-white" : "text-navy-muted hover:bg-white/[0.06] hover:text-white",
+                active ? "font-semibold text-rail-active-ink" : "text-rail-muted hover:bg-rail-hover hover:text-rail-ink",
             )}
         >
             {/* Active highlight glides to the selected page */}
@@ -246,7 +246,7 @@ function NavItem({ icon: Icon, label, href, active, onNavigate }: NavItemProps) 
                 <motion.span
                     layoutId="nav-active"
                     transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                    className="absolute inset-0 rounded-[var(--radius-control)] bg-white/[0.12] before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-[#8EA6FF]"
+                    className="absolute inset-0 rounded-[var(--radius-control)] bg-rail-active before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-rail-indicator"
                     aria-hidden
                 />
             )}
