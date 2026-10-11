@@ -61,7 +61,8 @@ export function ScoreMark({ score, size = "md", animate = false, plain = false, 
                 </svg>
             )}
             <span
-                className={cn("relative flex items-baseline font-display font-semibold leading-none tabular ltr", pending ? "text-ink-3" : "text-ink", s.num)}
+                dir="ltr"
+                className={cn("relative flex items-baseline font-display font-semibold leading-none", (size === "sm" || size === "md") && "tabular", pending ? "text-ink-3" : "text-ink", s.num)}
                 aria-hidden
             >
                 {text}

@@ -1,166 +1,200 @@
-import { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Award, Target } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BarChart3 } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
+import { cn } from "../lib/utils";
+import { Panel, PanelHeader, PageHeader, StatStrip } from "../components/ui/panel";
+import { Alert, EmptyState, Skeleton } from "../components/ui/feedback";
+import { ButtonLink } from "../components/ui/button";
+import { ColumnChart } from "../components/charts/ColumnChart";
+import { formatScore } from "../lib/grades";
+import { parseServerDate } from "../lib/format";
+import { getApiErrorMessage } from "../lib/apiErrors";
+import { needsReview, type Submission } from "../lib/types";
 
-interface Submission {
-    id: number;
-    overall_score: number | null;
-    submitted_at: string;
-    question_category: string | null;
-}
+const avgOf = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 export default function AnalyticsPage() {
-    const { t, dir } = useI18n();
-    const [submissions, setSubmissions] = useState<Submission[]>([]);
+    const { l, lang } = useI18n();
+    const [subs, setSubs] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         api.get("/exams/all-results")
-            .then(res => setSubmissions(res.data))
-            .catch(err => console.error(err))
+            .then((res) => setSubs(res.data))
+            .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحميل التحليلات.", "Couldn't load analytics."))))
             .finally(() => setLoading(false));
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (loading) return <div style={{ color: "#808080", padding: "2rem" }}>{dir === "rtl" ? "جاري تحميل التحليلات..." : "Loading analytics..."}</div>;
+    const scored = useMemo(() => subs.filter((s) => s.overall_score != null), [subs]);
+    const scores = scored.map((s) => s.overall_score as number);
+    const avg = avgOf(scores);
+    // Backend caps anything under 50 content / 50 overall as a fail (exams.py)
+    const passRate = scores.length ? Math.round((scores.filter((s) => s >= 50).length / scores.length) * 100) : null;
+    const struggling = scores.filter((s) => s < 50).length;
+    const flagged = subs.filter(needsReview).length;
 
-    // ── Compute KPIs ─────────────────────────────────────────────────────────
-    const scores = submissions.map(s => s.overall_score || 0);
-    const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-    const topPerformerScore = scores.length ? Math.max(...scores) : 0;
-    const passCount = scores.filter(s => s >= 60).length;
-    const passRate = scores.length ? Math.round((passCount / scores.length) * 100) : 0;
-    const belowThreshold = scores.filter(s => s < 60).length;
+    const bands = useMemo(() => {
+        const defs = [
+            { key: "weak", label: l("ضعيف (أقل من 45)", "Weak (<45)"), test: (s: number) => s < 45 },
+            { key: "fair", label: l("مقبول (45–64)", "Fair (45–64)"), test: (s: number) => s >= 45 && s < 65 },
+            { key: "good", label: l("جيد (65–84)", "Good (65–84)"), test: (s: number) => s >= 65 && s < 85 },
+            { key: "exc", label: l("ممتاز (85+)", "Excellent (85+)"), test: (s: number) => s >= 85 },
+        ];
+        return defs.map((d) => {
+            const n = scores.filter(d.test).length;
+            return { key: d.key, label: d.label, value: n, detail: scores.length ? [l(`${Math.round((n / scores.length) * 100)}% من الطلاب`, `${Math.round((n / scores.length) * 100)}% of students`)] : undefined };
+        });
+    }, [scores, l]);
 
-    // ── Compute Weekly Data (Last 7 Days) ────────────────────────────────────
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const today = new Date();
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(today.getDate() - (6 - i));
-        return {
-            date: d.toISOString().split('T')[0],
-            day: days[d.getDay()],
-            scores: [] as number[],
-        };
-    });
-
-    submissions.forEach(s => {
-        const dateStr = s.submitted_at.split('T')[0];
-        const dayObj = last7Days.find(d => d.date === dateStr);
-        if (dayObj && s.overall_score !== null) {
-            dayObj.scores.push(s.overall_score);
+    const days = useMemo(() => {
+        const loc = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
+        const fmt = new Intl.DateTimeFormat(loc, { day: "numeric", month: "numeric" });
+        const full = new Intl.DateTimeFormat(loc, { weekday: "long", day: "numeric", month: "long" });
+        const out: { key: string; label: string; value: number; detail?: string[] }[] = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = 13; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const next = new Date(d);
+            next.setDate(d.getDate() + 1);
+            const inDay = subs.filter((s) => {
+                const t = parseServerDate(s.submitted_at);
+                return t && t >= d && t < next;
+            });
+            const dayAvg = avgOf(inDay.filter((s) => s.overall_score != null).map((s) => s.overall_score as number));
+            out.push({
+                key: d.toISOString().slice(0, 10),
+                label: fmt.format(d),
+                value: inDay.length,
+                detail: [full.format(d), ...(dayAvg != null ? [l(`متوسط ${formatScore(dayAvg)}%`, `avg ${formatScore(dayAvg)}%`)] : [])],
+            });
         }
-    });
+        return out;
+    }, [subs, lang, l]);
 
-    const weeklyData = last7Days.map(d => ({
-        day: d.day,
-        score: d.scores.length ? Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length) : 0
-    }));
+    const components = [
+        { label: l("المحتوى", "Content"), value: avgOf(scored.map((s) => s.nlp_score).filter((v): v is number => v != null)) },
+        { label: l("الطلاقة", "Fluency"), value: avgOf(scored.map((s) => s.speech_score).filter((v): v is number => v != null)) },
+        { label: l("النزاهة", "Integrity"), value: avgOf(scored.map((s) => s.facial_score).filter((v): v is number => v != null)) },
+    ];
 
-    const maxWeeklyScore = Math.max(...weeklyData.map(d => d.score), 100);
+    const byQuestion = useMemo(() => {
+        const m = new Map<number, Submission[]>();
+        for (const s of scored) m.set(s.question_id, [...(m.get(s.question_id) || []), s]);
+        return [...m.entries()]
+            .map(([id, list]) => ({
+                id,
+                text: list[0].question_text || l("سؤال محذوف", "Deleted question"),
+                count: list.length,
+                avg: avgOf(list.map((s) => s.overall_score as number)) ?? 0,
+                content: avgOf(list.map((s) => s.nlp_score).filter((v): v is number => v != null)),
+            }))
+            .sort((a, b) => a.avg - b.avg);
+    }, [scored, l]);
 
-    // ── Compute Subject Breakdown ────────────────────────────────────────────
-    const subjects: Record<string, number[]> = {};
-    submissions.forEach(s => {
-        const cat = s.question_category || "General";
-        if (!subjects[cat]) subjects[cat] = [];
-        if (s.overall_score !== null) subjects[cat].push(s.overall_score);
-    });
+    if (loading) {
+        return (
+            <>
+                <Skeleton className="mb-8 h-9 w-48" />
+                <Skeleton className="mb-6 h-24 w-full rounded-[var(--radius-panel)]" />
+                <Skeleton className="h-72 w-full rounded-[var(--radius-panel)]" />
+            </>
+        );
+    }
 
-    const subjectData = Object.keys(subjects).map(cat => ({
-        subject: cat,
-        avg: Math.round(subjects[cat].reduce((a, b) => a + b, 0) / subjects[cat].length),
-        students: subjects[cat].length
-    })).sort((a, b) => b.avg - a.avg);
-
-    // ── Render ───────────────────────────────────────────────────────────────
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem", fontFamily: "'Inter', sans-serif" }}>
-            <div>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f0f0f0", marginBottom: "0.25rem" }}>{t("nav.analytics")}</h1>
-                <p style={{ color: "#808080", fontSize: "0.9rem" }}>{dir === "rtl" ? "رؤى الأداء عبر كل الامتحانات" : "Performance insights across all your exams"}</p>
-            </div>
+        <>
+            <PageHeader title={l("التحليلات", "Analytics")} description={l("أداء طلابك عبر كل الامتحانات، وأين يحتاجون مساعدة.", "How your students perform across exams, and where they need help.")} />
 
-            {/* KPI Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-                {[
-                    { icon: TrendingUp, label: t("overview.avgScore"), value: `${avgScore}%`, sub: dir === "rtl" ? "كل الامتحانات" : "Across all exams", color: "#e0e0e0" },
-                    { icon: Award, label: dir === "rtl" ? "أعلى درجة" : "Top Score", value: `${topPerformerScore}%`, sub: dir === "rtl" ? "أعلى إنجاز" : "Highest achieved", color: "#ffffff" },
-                    { icon: Target, label: dir === "rtl" ? "نسبة النجاح" : "Pass Rate", value: `${passRate}%`, sub: "60%+", color: "#e0e0e0" },
-                    { icon: TrendingDown, label: dir === "rtl" ? "يحتاجون دعم" : "Needs Help", value: belowThreshold, sub: "< 60%", color: "#ff4d4d" },
-                ].map((kpi, idx) => {
-                    const Icon = kpi.icon;
-                    return (
-                        <div key={idx} style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "1rem", padding: "1.5rem" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-                                <div style={{ width: 40, height: 40, borderRadius: "0.75rem", background: `${kpi.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <Icon size={18} color={kpi.color} />
-                                </div>
-                            </div>
-                            <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f0f0f0", marginBottom: "0.25rem" }}>{kpi.value}</p>
-                            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#f0f0f0", marginBottom: "0.15rem" }}>{kpi.label}</p>
-                            <p style={{ fontSize: "0.75rem", color: "#808080" }}>{kpi.sub}</p>
-                        </div>
-                    );
-                })}
-            </div>
+            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
-            {/* Weekly Bar Chart */}
-            <div style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "1.25rem", padding: "1.75rem" }}>
-                <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#f0f0f0", marginBottom: "1.75rem" }}>Weekly Average Scores</h2>
-                {weeklyData.every(d => d.score === 0) ? (
-                    <div style={{ textAlign: "center", color: "#808080", padding: "2rem" }}>No data for this week</div>
-                ) : (
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: "0.75rem", height: 160 }}>
-                        {weeklyData.map((d, idx) => (
-                            <div key={idx} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
-                                <span style={{ fontSize: "0.75rem", color: "#808080", fontWeight: 600 }}>{d.score > 0 ? d.score + "%" : ""}</span>
-                                <div style={{
-                                    width: "100%",
-                                    height: `${d.score > 0 ? (d.score / maxWeeklyScore) * 120 : 4}px`,
-                                    background: d.score === maxWeeklyScore && d.score > 0
-                                        ? "linear-gradient(180deg, #e0e0e0, #ffffff)"
-                                        : "linear-gradient(180deg, #ffffff80, #ffffff20)",
-                                    borderRadius: "0.5rem 0.5rem 0 0",
-                                    transition: "height 0.3s",
-                                }} />
-                                <span style={{ fontSize: "0.75rem", color: "#808080" }}>{d.day}</span>
+            {scored.length === 0 ? (
+                <Panel>
+                    <EmptyState
+                        icon={<BarChart3 />}
+                        title={l("مفيش بيانات كفاية لسه", "Not enough data yet")}
+                        body={l("التحليلات بتظهر بعد ما الطلاب يسلّموا إجابات مصححة.", "Analytics appear once students submit graded answers.")}
+                        action={<ButtonLink to="/dashboard/questions" variant="secondary">{l("أسئلة الامتحانات", "Exam questions")}</ButtonLink>}
+                    />
+                </Panel>
+            ) : (
+                <div className="space-y-6">
+                    <StatStrip
+                        items={[
+                            { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${Math.round(avg)}%` : "—", hint: l(`من ${scored.length} إجابة`, `from ${scored.length} answers`) },
+                            { label: l("نسبة النجاح", "Pass rate"), value: passRate != null ? `${passRate}%` : "—", hint: l("50% فأكثر", "50% or more") },
+                            { label: l("يحتاجون دعم", "Need support"), value: struggling, hint: l("أقل من 50%", "below 50%") },
+                            { label: l("ملاحظات نزاهة", "Integrity notes"), value: flagged },
+                        ]}
+                    />
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        <Panel>
+                            <PanelHeader title={l("توزيع الدرجات", "Score distribution")} description={l("عدد الطلاب في كل تقدير", "Students per grade band")} />
+                            <div className="p-5">
+                                <ColumnChart data={bands} title={l("توزيع الدرجات", "Score distribution")} valueLabel={l("طالب", "students")} labelKeys={bands.map((b) => b.key)} />
                             </div>
-                        ))}
+                        </Panel>
+                        <Panel>
+                            <PanelHeader title={l("الإجابات آخر 14 يوم", "Answers, last 14 days")} description={l("عدد الإجابات المسلّمة يومياً", "Answers submitted per day")} />
+                            <div className="p-5">
+                                <ColumnChart data={days} title={l("الإجابات آخر 14 يوم", "Answers, last 14 days")} valueLabel={l("إجابة", "answers")} />
+                            </div>
+                        </Panel>
                     </div>
-                )}
-            </div>
 
-            {/* Subject Breakdown */}
-            <div style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "1.25rem", padding: "1.75rem" }}>
-                <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#f0f0f0", marginBottom: "1.5rem" }}>Performance by Subject</h2>
-                {subjectData.length === 0 ? (
-                    <div style={{ textAlign: "center", color: "#808080", padding: "2rem" }}>No subject data available</div>
-                ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                        {subjectData.map((s, idx) => (
-                            <div key={idx}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                                    <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#f0f0f0" }}>{s.subject}</span>
-                                    <span style={{ fontSize: "0.875rem", color: s.avg >= 80 ? "#e0e0e0" : s.avg >= 60 ? "#ffffff" : "#ff4d4d", fontWeight: 700 }}>{s.avg}%</span>
+                    <Panel>
+                        <PanelHeader title={l("متوسط كل عنصر", "Average by component")} description={l("أي جزء من الدرجة بيشد المتوسط لتحت", "Which part of the grade pulls the average down")} />
+                        <dl className="grid gap-5 p-5 sm:grid-cols-3">
+                            {components.map((c) => (
+                                <div key={c.label}>
+                                    <div className="flex items-baseline justify-between">
+                                        <dt className="font-semibold">{c.label}</dt>
+                                        <dd className="font-display text-lg font-semibold">{c.value != null ? `${Math.round(c.value)}%` : "—"}</dd>
+                                    </div>
+                                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-pen-wash" aria-hidden>
+                                        <div className={cn("h-full rounded-full", c.value != null && c.value < 50 ? "bg-mark" : "bg-chart")} style={{ width: `${Math.min(100, c.value ?? 0)}%` }} />
+                                    </div>
                                 </div>
-                                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
-                                    <div style={{
-                                        height: "100%",
-                                        width: `${s.avg}%`,
-                                        background: s.avg >= 80 ? "linear-gradient(90deg, #ffffff, #e0e0e0)" : s.avg >= 60 ? "#ffffff" : "#ff4d4d",
-                                        borderRadius: 4,
-                                        transition: "width 0.5s",
-                                    }} />
-                                </div>
-                                <p style={{ fontSize: "0.75rem", color: "#808080", marginTop: "0.25rem" }}>{s.students} submission{s.students !== 1 ? "s" : ""}</p>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
+                            ))}
+                        </dl>
+                    </Panel>
+
+                    <Panel className="overflow-hidden">
+                        <PanelHeader title={l("الأسئلة الأصعب على الطلاب", "Hardest questions")} description={l("مرتبة من الأقل متوسطاً. سؤال متوسطه واطي غالباً محتاج يتشرح تاني أو تتراجع إجابته النموذجية.", "Lowest average first. A low average often means the topic needs re-teaching, or the model answer needs a look.")} />
+                        <table className="w-full text-sm">
+                            <thead className="bg-sheet-2 text-ink-2">
+                                <tr>
+                                    <th scope="col" className="px-5 py-2.5 text-start font-medium">{l("السؤال", "Question")}</th>
+                                    <th scope="col" className="hidden px-3 py-2.5 text-end font-medium sm:table-cell">{l("إجابات", "Answers")}</th>
+                                    <th scope="col" className="hidden px-3 py-2.5 text-end font-medium md:table-cell">{l("المحتوى", "Content")}</th>
+                                    <th scope="col" className="w-48 px-5 py-2.5 text-start font-medium">{l("المتوسط", "Average")}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-rule">
+                                {byQuestion.map((q) => (
+                                    <tr key={q.id}>
+                                        <td className="px-5 py-3 leading-snug">{q.text}</td>
+                                        <td className="hidden px-3 py-3 text-end tabular text-ink-2 sm:table-cell">{q.count}</td>
+                                        <td className="hidden px-3 py-3 text-end tabular text-ink-2 md:table-cell">{q.content != null ? `${Math.round(q.content)}%` : "—"}</td>
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-11 shrink-0 font-semibold tabular">{Math.round(q.avg)}%</span>
+                                                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-pen-wash" aria-hidden>
+                                                    <div className={cn("h-full rounded-full", q.avg < 50 ? "bg-mark" : "bg-chart")} style={{ width: `${Math.min(100, q.avg)}%` }} />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </Panel>
+                </div>
+            )}
+        </>
     );
 }
-

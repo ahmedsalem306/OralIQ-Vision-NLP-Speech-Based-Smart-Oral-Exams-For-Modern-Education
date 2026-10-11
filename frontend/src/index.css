@@ -20,6 +20,7 @@
   --pen-hover: #1B3890;
   --pen-wash: #E9EEFB;
   --pen-ink: #FFFFFF;
+  --chart: #2345B0;
   --mark: #CC2936;
   --mark-wash: #FBEAEB;
   --pass: #127A4B;
@@ -45,6 +46,8 @@
     --pen-hover: #AABDFF;
     --pen-wash: #1C2750;
     --pen-ink: #0E1422;
+  --chart: #6E8BFA;
+    --chart: #6E8BFA;
     --mark: #FF6E7B;
     --mark-wash: #3A1A24;
     --pass: #52CC8F;
@@ -70,6 +73,7 @@
   --pen-hover: #AABDFF;
   --pen-wash: #1C2750;
   --pen-ink: #0E1422;
+  --chart: #6E8BFA;
   --mark: #FF6E7B;
   --mark-wash: #3A1A24;
   --pass: #52CC8F;
@@ -93,6 +97,7 @@
   --color-pen-hover: var(--pen-hover);
   --color-pen-wash: var(--pen-wash);
   --color-pen-ink: var(--pen-ink);
+  --color-chart: var(--chart);
   --color-mark: var(--mark);
   --color-mark-wash: var(--mark-wash);
   --color-pass: var(--pass);
@@ -159,8 +164,11 @@
   /* Numbers line up in tables and score lists */
   .tabular { font-variant-numeric: tabular-nums; }
 
-  /* Latin strings (emails, IDs) stay LTR inside RTL text */
-  .ltr { direction: ltr; unicode-bidi: isolate; text-align: match-parent; }
+  /* Latin strings (emails, IDs, numbers) read LTR but keep the surrounding alignment */
+  .ltr { unicode-bidi: plaintext; }
+  /* plaintext aligns by the content's direction; pin wide blocks to the page side instead */
+  [dir="rtl"] .ltr { text-align: right; }
+  [dir="ltr"] .ltr { text-align: left; }
 }
 
 /* Scrollbars — quiet, themed */

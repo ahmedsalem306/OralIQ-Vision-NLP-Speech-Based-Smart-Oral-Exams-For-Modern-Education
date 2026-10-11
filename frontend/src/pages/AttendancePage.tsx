@@ -1,211 +1,149 @@
-import { useState, useEffect } from "react";
-import { Users, Clock, CheckCircle2, Search } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarCheck, Search } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
+import { Panel, PageHeader, StatStrip } from "../components/ui/panel";
+import { Alert, EmptyState, ListSkeleton, Segmented } from "../components/ui/feedback";
+import { Avatar } from "../components/ui/avatar";
+import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { formatScore } from "../lib/grades";
+import { formatDate, formatDuration, parseServerDate, timeAgo } from "../lib/format";
+import { getApiErrorMessage } from "../lib/apiErrors";
 
 interface AttendanceRecord {
     id: number;
     student_name: string;
     email: string;
-    assigned_at: string;
-    status: string; // pending, completed
+    assigned_at: string | null;
+    started_at: string | null;
+    finished_at: string | null;
+    status: string;
     score: number | null;
     question_title: string;
 }
 
-const statusConfig: Record<string, any> = {
-    "completed": { label: "Completed", color: "#e0e0e0", bg: "rgba(0,212,170,0.1)", border: "rgba(0,212,170,0.25)", icon: CheckCircle2 },
-    "pending": { label: "Pending", color: "#e0e0e0", bg: "rgba(255,179,71,0.1)", border: "rgba(255,179,71,0.25)", icon: Clock },
-    "in-progress": { label: "In Progress", color: "#ffffff", bg: "rgba(255,255,255,0.1)", border: "rgba(255,255,255,0.25)", icon: Clock },
-};
-
-const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, staggerChildren: 0.1 } }
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { opacity: 1, scale: 1, transition: { duration: 0.4 } }
-};
+type Filter = "all" | "completed" | "pending";
+const REFRESH_MS = 30_000;
 
 export default function AttendancePage() {
-    const { t, dir } = useI18n();
-    const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const { l, lang } = useI18n();
+    const [rows, setRows] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [now, setNow] = useState(new Date());
+    const [error, setError] = useState("");
+    const [query, setQuery] = useState("");
+    const [filter, setFilter] = useState<Filter>("all");
+    const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchAttendance = () => {
+        const load = () =>
             api.get("/exams/attendance")
-                .then(res => setAttendance(res.data))
-                .catch(err => console.error(err))
+                .then((res) => { setRows(res.data); setUpdatedAt(new Date().toISOString()); setError(""); })
+                .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحديث الحضور.", "Couldn't refresh attendance."))))
                 .finally(() => setLoading(false));
-        };
-
-        fetchAttendance();
-
-        const t = setInterval(() => {
-            setNow(new Date());
-            fetchAttendance();
-        }, 30000);
+        load();
+        const t = setInterval(load, REFRESH_MS);
         return () => clearInterval(t);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const filtered = attendance.filter(s =>
-        (s.student_name || "").toLowerCase().includes(search.toLowerCase()) ||
-        (s.email || "").toLowerCase().includes(search.toLowerCase())
-    );
+    const completed = rows.filter((r) => r.status === "completed").length;
+    const pending = rows.length - completed;
 
-    const completed = attendance.filter(s => s.status === "completed").length;
-    const pending = attendance.filter(s => s.status === "pending").length;
-    const total = attendance.length;
+    const visible = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        return rows
+            .filter((r) => filter === "all" || (filter === "completed" ? r.status === "completed" : r.status !== "completed"))
+            .filter((r) => !q || (r.student_name || "").toLowerCase().includes(q) || (r.email || "").toLowerCase().includes(q))
+            .sort((a, b) => (parseServerDate(b.finished_at || b.assigned_at)?.getTime() ?? 0) - (parseServerDate(a.finished_at || a.assigned_at)?.getTime() ?? 0));
+    }, [rows, filter, query]);
 
-    if (loading && attendance.length === 0) return (
-        <div style={{ color: "#808080", padding: "2rem", display: "flex", alignItems: "center", gap: "1rem" }}>
-            <div style={{ width: 24, height: 24, border: "2px solid rgba(255,255,255,0.2)", borderTopColor: "#ffffff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            {dir === "rtl" ? "جاري تحميل الحضور..." : "Loading attendance..."}
-        </div>
-    );
+    const duration = (r: AttendanceRecord) => {
+        const s = parseServerDate(r.started_at);
+        const e = parseServerDate(r.finished_at);
+        return s && e && e > s ? formatDuration((e.getTime() - s.getTime()) / 1000) : "—";
+    };
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-            style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
-        >
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
-                <motion.div variants={itemVariants}>
-                    <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f0f0f0", marginBottom: "0.25rem" }}>{t("nav.attendance")}</h1>
-                    <p style={{ color: "#808080", fontSize: "0.9rem" }}>
-                        {dir === "rtl" ? "متابعة مباشرة" : "Live tracking"} — {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                </motion.div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 1rem", background: "rgba(0,212,170,0.1)", border: "1px solid rgba(0,212,170,0.25)", borderRadius: "999px" }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e0e0e0", animation: "pulse 2s infinite" }} />
-                    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#e0e0e0" }}>Live</span>
-                </div>
+        <>
+            <PageHeader
+                title={l("الحضور", "Attendance")}
+                description={l("مين دخل امتحاناتك ومين لسه. الصفحة بتتحدث لوحدها كل 30 ثانية.", "Who has taken your exams and who hasn't. Refreshes every 30 seconds.")}
+                actions={updatedAt && <span className="text-sm text-ink-3" aria-live="polite">{l(`آخر تحديث ${timeAgo(updatedAt, lang)}`, `Updated ${timeAgo(updatedAt, lang)}`)}</span>}
+            />
+
+            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
+
+            <StatStrip
+                className="mb-6 sm:grid-cols-3"
+                items={[
+                    { label: l("المطلوب", "Expected"), value: rows.length },
+                    { label: l("خلّصوا", "Completed"), value: completed, hint: rows.length ? l(`${Math.round((completed / rows.length) * 100)}% من المطلوب`, `${Math.round((completed / rows.length) * 100)}% of expected`) : undefined },
+                    { label: l("لسه", "Not yet"), value: pending },
+                ]}
+            />
+
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <Segmented
+                    label={l("تصفية الحضور", "Filter attendance")}
+                    value={filter}
+                    onChange={setFilter}
+                    className="self-start"
+                    options={[
+                        { value: "all", label: l("الكل", "All") },
+                        { value: "completed", label: l("خلّصوا", "Completed") },
+                        { value: "pending", label: l("لسه", "Not yet") },
+                    ]}
+                />
+                <Input icon={<Search />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={l("ابحث باسم الطالب", "Search by student")} aria-label={l("بحث", "Search")} className="lg:w-72" />
             </div>
 
-            {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
-                {[
-                    { icon: Users, label: "Total Invited", value: total, color: "#ffffff" },
-                    { icon: CheckCircle2, label: "Completed", value: completed, color: "#e0e0e0" },
-                    { icon: Clock, label: "Pending", value: pending, color: "#e0e0e0" },
-                ].map((stat, idx) => {
-                    const Icon = stat.icon;
-                    return (
-                        <motion.div
-                            key={idx}
-                            variants={itemVariants}
-                            whileHover={{ y: -5, scale: 1.02 }}
-                            style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "1rem", padding: "1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", boxShadow: "0 10px 30px rgba(0,0,0,0.2)" }}
-                        >
-                            <div style={{ width: 40, height: 40, borderRadius: "0.75rem", background: `${stat.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <Icon size={18} color={stat.color} />
-                            </div>
-                            <div>
-                                <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f0f0f0" }}>{stat.value}</p>
-                                <p style={{ fontSize: "0.7rem", color: "#808080" }}>{stat.label}</p>
-                            </div>
-                        </motion.div>
-                    );
-                })}
-            </div>
-
-            {/* Progress bar */}
-            <motion.div variants={itemVariants} style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "1rem", padding: "1.25rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#f0f0f0" }}>Completion Progress</span>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "#e0e0e0" }}>
-                        {total > 0 ? Math.round((completed / total) * 100) : 0}%
-                    </span>
-                </div>
-                <div style={{ height: 10, background: "rgba(255,255,255,0.06)", borderRadius: 5, overflow: "hidden" }}>
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${total > 0 ? (completed / total) * 100 : 0}%` }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                        style={{ height: "100%", background: "linear-gradient(90deg, #ffffff, #e0e0e0)", borderRadius: 5 }}
+            <Panel className="overflow-x-auto">
+                {loading ? (
+                    <ListSkeleton rows={5} />
+                ) : visible.length === 0 ? (
+                    <EmptyState
+                        icon={<CalendarCheck />}
+                        title={rows.length ? l("مفيش نتائج مطابقة", "No matching rows") : l("لسه محدش اتبعتله امتحان", "No exams sent yet")}
+                        body={rows.length ? l("جرّب فلتر أو بحث تاني.", "Try a different filter or search.") : l("ابعت امتحان لطالب من صفحة الأسئلة، وحضوره هيظهر هنا.", "Send an exam to a student from the Questions page and attendance shows up here.")}
                     />
-                </div>
-            </motion.div>
-
-            {/* Search + Table */}
-            <motion.div variants={itemVariants} style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "1.25rem", overflow: "hidden" }}>
-                <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-                    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#f0f0f0" }}>Students</h2>
-                    <div style={{ position: "relative" }}>
-                        <Search size={14} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#808080" }} />
-                        <input
-                            type="text"
-                            placeholder="Search students..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "0.75rem", padding: "0.6rem 0.75rem 0.6rem 2.25rem", color: "#f0f0f0", fontSize: "0.85rem", fontFamily: "'Inter', sans-serif", outline: "none", width: 220 }}
-                        />
-                    </div>
-                </div>
-
-                <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                                {["Student", "Email", "Assigned Exam", "Assigned At", "Status", "Score"].map(h => (
-                                    <th key={h} style={{ padding: "0.75rem 1.5rem", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, color: "#808080", textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</th>
-                                ))}
+                ) : (
+                    <table className="w-full min-w-[720px] text-sm">
+                        <thead className="bg-sheet-2 text-ink-2">
+                            <tr>
+                                <th scope="col" className="px-5 py-2.5 text-start font-medium">{l("الطالب", "Student")}</th>
+                                <th scope="col" className="px-3 py-2.5 text-start font-medium">{l("الامتحان", "Exam")}</th>
+                                <th scope="col" className="px-3 py-2.5 text-start font-medium">{l("الحالة", "Status")}</th>
+                                <th scope="col" className="px-3 py-2.5 text-start font-medium">{l("وقت الدخول", "Started")}</th>
+                                <th scope="col" className="px-3 py-2.5 text-end font-medium">{l("المدة", "Duration")}</th>
+                                <th scope="col" className="px-5 py-2.5 text-end font-medium">{l("الدرجة", "Score")}</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <AnimatePresence>
-                                {filtered.map((s, idx) => {
-                                    const sc = statusConfig[s.status] || statusConfig["pending"];
-                                    const StatusIcon = sc.icon;
-                                    return (
-                                        <motion.tr
-                                            key={s.id}
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            style={{ borderBottom: idx < filtered.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}
-                                            className="hover:bg-[rgba(255,255,255,0.04)]"
-                                        >
-                                            <td style={{ padding: "1rem 1.5rem" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                                                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: "0.85rem", flexShrink: 0 }}>
-                                                        {s.student_name ? s.student_name[0] : "?"}
-                                                    </div>
-                                                    <span style={{ fontWeight: 600, color: "#f0f0f0", fontSize: "0.9rem" }}>{s.student_name || "Unknown"}</span>
+                        <tbody className="divide-y divide-rule">
+                            {visible.map((r) => {
+                                const done = r.status === "completed";
+                                return (
+                                    <tr key={`${r.id}-${r.question_title}`} className="hover:bg-sheet-2">
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar name={r.student_name} size="sm" />
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-semibold">{r.student_name}</p>
+                                                    {r.email && <p className="truncate text-xs text-ink-3 ltr">{r.email}</p>}
                                                 </div>
-                                            </td>
-                                            <td style={{ padding: "1rem 1.5rem", color: "#808080", fontSize: "0.85rem" }}>{s.email || "—"}</td>
-                                            <td style={{ padding: "1rem 1.5rem", color: "#f0f0f0", fontSize: "0.85rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.question_title}</td>
-                                            <td style={{ padding: "1rem 1.5rem", color: "#808080", fontSize: "0.85rem" }}>{s.assigned_at ? new Date(s.assigned_at).toLocaleDateString() : "—"}</td>
-                                            <td style={{ padding: "1rem 1.5rem" }}>
-                                                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.75rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                                                    <StatusIcon size={12} /> {sc.label}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: "1rem 1.5rem" }}>
-                                                {s.score !== null
-                                                    ? <span style={{ fontWeight: 700, color: s.score >= 80 ? "#e0e0e0" : s.score >= 60 ? "#ffffff" : "#ff4d4d" }}>{s.score}%</span>
-                                                    : <span style={{ color: "#404040", fontSize: "0.85rem" }}>—</span>
-                                                }
-                                            </td>
-                                        </motion.tr>
-                                    );
-                                })}
-                            </AnimatePresence>
+                                            </div>
+                                        </td>
+                                        <td className="max-w-56 truncate px-3 py-3 text-ink-2">{r.question_title}</td>
+                                        <td className="px-3 py-3">{done ? <Badge tone="pass">{l("خلّص", "Completed")}</Badge> : <Badge tone="warn">{l("لسه", "Not yet")}</Badge>}</td>
+                                        <td className="px-3 py-3 text-ink-2">{r.started_at ? formatDate(r.started_at, lang, true) : <span className="text-ink-3">{l(`اتبعت ${timeAgo(r.assigned_at, lang)}`, `Sent ${timeAgo(r.assigned_at, lang)}`)}</span>}</td>
+                                        <td className="px-3 py-3 text-end tabular text-ink-2">{duration(r)}</td>
+                                        <td className="px-5 py-3 text-end font-semibold tabular">{r.score != null ? `${formatScore(r.score)}%` : "—"}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
-                </div>
-            </motion.div>
-        </motion.div>
+                )}
+            </Panel>
+        </>
     );
 }
-
