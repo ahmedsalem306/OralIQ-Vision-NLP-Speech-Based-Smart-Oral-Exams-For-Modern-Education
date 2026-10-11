@@ -86,6 +86,17 @@ export default function ExamRoom() {
 
     // live alert popup (single string, 4s throttle — same as original)
     const [liveAlert, setLiveAlert] = useState<string | null>(null);
+    /** A calm nudge, not an accusation: say what to do, not what went wrong. */
+    const alertText = (type: string) => {
+        switch (type) {
+            case "no_face": return l("خلّي وشك ظاهر في الكاميرا", "Keep your face in the camera");
+            case "multiple_people": return l("لازم تكون لوحدك في الكادر", "Only you should be in view");
+            case "phone_detected": return l("بعّد الموبايل عن الكاميرا", "Put the phone out of view");
+            case "book_detected": return l("بعّد الورق والكتب", "Put notes and books away");
+            case "face_mismatch": return l("الوش مش مطابق للي متسجّل", "Face doesn't match your registration");
+            default: return l("رجّع عينك للشاشة", "Eyes back on the screen");
+        }
+    };
     const [showEnroll, setShowEnroll] = useState(false);
     usePageTitle(l("الامتحان", "Exam"));
 
@@ -250,20 +261,8 @@ export default function ExamRoom() {
         const now = Date.now();
         // Show a new direction immediately; throttle only repeats of the same alert.
         if (type !== lastAlertTypeRef.current || now - lastAlertTimeRef.current > 1500) {
-            // A calm nudge, not an accusation: say what to do, not what went wrong.
-            const eyesBack = l("رجّع عينك للشاشة", "Eyes back on the screen");
-            const labels: Record<string, string> = {
-                "gaze_left": eyesBack,
-                "gaze_right": eyesBack,
-                "gaze_down": eyesBack,
-                "gaze_up": eyesBack,
-                "no_face": l("خلّي وشك ظاهر في الكاميرا", "Keep your face in the camera"),
-                "multiple_people": l("لازم تكون لوحدك في الكادر", "Only you should be in view"),
-                "phone_detected": l("بعّد الموبايل عن الكاميرا", "Put the phone out of view"),
-                "book_detected": l("بعّد الورق والكتب", "Put notes and books away"),
-                "face_mismatch": l("الوش مش مطابق للي متسجّل", "Face doesn't match your registration"),
-            };
-            setLiveAlert(labels[type] || eyesBack);
+            // Store the kind of alert; the wording is chosen at render time (see alertText).
+            setLiveAlert(type);
             lastAlertTimeRef.current = now;
             lastAlertTypeRef.current = type;
             const sequence = ++alertSequenceRef.current;
@@ -1112,7 +1111,7 @@ export default function ExamRoom() {
                             {liveAlert && (
                                 <span className="flex items-center gap-2 rounded-full bg-sheet px-4 py-2 text-sm font-semibold text-warn shadow-pop animate-[oiq-pop-in_160ms_ease-out]">
                                     <span className="size-2 rounded-full bg-warn" aria-hidden />
-                                    {liveAlert}
+                                    {alertText(liveAlert)}
                                 </span>
                             )}
                         </div>
