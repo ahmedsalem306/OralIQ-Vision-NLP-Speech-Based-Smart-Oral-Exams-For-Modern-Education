@@ -13,8 +13,8 @@ type Line = { points: string; x: number; y: number };
  * Measured on the RTL (unmirrored) photo; mirrored for LTR.
  */
 const ANCHORS = {
-    voice: { x: 15.5, y: 45 },   // the headphone cup on the image's left
-    face: { x: 47, y: 41 },      // his face, between the eyes and the smile
+    voice: { x: 44, y: 35 },     // his mouth: the spoken answer
+    face: { x: 78, y: 74 },      // the laptop: where the camera check happens
 };
 
 /**
@@ -115,14 +115,14 @@ export function HeroStage({ startHref }: { startHref: string }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1.1, ease: EASE, delay: 0.2 }}
                     onAnimationComplete={measure}
-                    className="relative z-10 mx-auto -mt-2 w-[88%] max-w-[440px] lg:absolute lg:bottom-[9rem] lg:left-1/2 lg:mt-0 lg:h-[78%] lg:w-auto lg:max-w-none lg:-translate-x-1/2"
+                    className="relative z-10 mx-auto -mt-2 w-[88%] max-w-[440px] lg:absolute lg:bottom-[13rem] lg:left-1/2 lg:mt-0 lg:h-[70%] lg:w-auto lg:max-w-none lg:-translate-x-1/2"
                 >
                     <img
-                        src="/photos/hero-cutout-m.webp"
-                        srcSet="/photos/hero-cutout-m-640.webp 640w, /photos/hero-cutout-m.webp 1100w"
+                        src="/photos/hero-cutout-v.webp"
+                        srcSet="/photos/hero-cutout-v-640.webp 640w, /photos/hero-cutout-v.webp 1100w"
                         sizes="(min-width: 1024px) 720px, 88vw"
-                        alt={l("طالب مبتسم لابس سماعات بيجاوب على امتحان شفوي", "A smiling student wearing headphones, answering an oral exam")}
-                        width={1100} height={1341}
+                        alt={l("طالب بيجاوب على امتحان شفوي من اللابتوب", "A student answering an oral exam on his laptop")}
+                        width={1100} height={1077}
                         fetchPriority="high"
                         onLoad={measure}
                         className={cn("block h-auto w-full lg:h-full lg:w-auto", !rtl && "-scale-x-100")}

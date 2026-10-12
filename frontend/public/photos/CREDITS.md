@@ -13,7 +13,7 @@ Credited here anyway, as good practice.
 | student-relaxed.webp | Litoon Dev | https://unsplash.com/photos/erQYGPZxjQg |
 | graduate.webp | Sahil Prajapati | https://unsplash.com/photos/7TUX4d3MeY0 |
 | chip-smile.webp (also the face in screens/exam-mobile.webp) | Mufid Majnun | https://unsplash.com/photos/J6kMThsc41M |
-| hero-cutout-m.webp (also in og.png) | Vikram Sen | https://unsplash.com/photos/3ZSHDk1WNMg |
+| hero-cutout-v.webp (also in og.png) | Noman Khan | https://unsplash.com/photos/V4_wB6EywfE |
 | lecturer-desk.webp, chip-lecturer-desk.webp | Fotos | https://unsplash.com/photos/O-1eWnY5_xk |
 | student-waving.webp | Windows | https://unsplash.com/photos/6G6akT8biLg |
 
