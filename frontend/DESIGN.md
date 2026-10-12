@@ -90,7 +90,8 @@ Dark mode redefines every token; components only reference tokens.
 Shared primitives live in `src/components/ui/` (button, input, panel, feedback, badge, avatar, score-mark, toast, tooltip). Reuse them; do not restyle per page.
 
 - **Nav:** the landing header (sticky, blurred over content) and the app sidebar (light rail in day mode, navy in dark).
-- **Footer:** brand line plus two short link groups. No newsletter box, no social row unless real.
+- **Footer:** brand line plus two short link groups, then the copyright and the contact email. No newsletter box, no social row unless real, no technology list.
+- **Company and contact details** (name, email, phone, location) come only from `src/content/company.ts`. The home page has no team section.
 - **ScoreMark:** `ink="mark"` for lecturers and marketing, `ink="kind"` on a student's own grades.
 - **Grades for students:** `studentGradeOf()` and `encouragementOf()`; the weakest band reads "يحتاج تقوية", never "ضعيف".
 

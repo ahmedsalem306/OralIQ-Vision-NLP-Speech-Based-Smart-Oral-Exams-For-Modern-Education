@@ -9,22 +9,15 @@ import { cn } from "../lib/utils";
 import Logo from "../components/Logo";
 import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import { ButtonLink, buttonClasses } from "../components/ui/button";
-import { Avatar } from "../components/ui/avatar";
 import { LiveGradingDemo } from "../components/landing/LiveGradingDemo";
 import { HeroStage } from "../components/landing/HeroStage";
 import { ClientsStrip } from "../components/landing/ClientsStrip";
+import { COMPANY, telHref } from "../content/company";
 import { IntegrationSection } from "../components/landing/IntegrationSection";
 import { usePageTitle } from "../lib/usePageTitle";
 import {
     EASE, ScrollProgress, motion, useEnterProgress, useScroll, useSpring, useTransform,
 } from "../components/motion";
-
-const TEAM = [
-    { name: "Ahmed Salem", role: { ar: "قائد الفريق", en: "Team leader" } },
-    { name: "Afaf Walid", role: { ar: "تطوير", en: "Developer" } },
-    { name: "Mohamed Gamal", role: { ar: "تطوير", en: "Developer" } },
-    { name: "Roqaia Mohamed", role: { ar: "تطوير", en: "Developer" } },
-];
 
 /* ───────────────────────── small building blocks ───────────────────────── */
 
@@ -420,34 +413,45 @@ export default function LandingPage() {
                         </div>
                     </section>
 
-                    {/* ── Contact + team ── */}
+                    {/* ── Contact (details live in content/company.ts) ── */}
                     <section id="contact" className="scroll-mt-20 border-y border-rule/70 bg-sheet">
-                        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.2fr]">
+                        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[1.1fr_1fr]">
                             <div>
                                 <h2 className="text-3xl font-bold tracking-tight sm:text-[2.4rem] sm:leading-tight">{l("عايز تجرّبه في مؤسستك؟", "Want it for your institution?")}</h2>
-                                <p className="mt-4 text-lg leading-relaxed text-ink-2">
-                                    {l("بنجهّز OralIQ للجامعات والمدارس ومراكز التدريب. كلّمنا ونرتب معاك تجربة على امتحان حقيقي.", "We set OralIQ up for universities, schools and training centres. Get in touch and we'll arrange a trial on a real exam.")}
+                                <p className="mt-4 max-w-lg text-lg leading-relaxed text-ink-2">
+                                    {l("كلّمنا ونرتب معاك تجربة على امتحان حقيقي، أو نتفق على إضافة OralIQ جوّه منصتك.", "Get in touch and we'll arrange a trial on a real exam, or agree how to add OralIQ inside your platform.")}
                                 </p>
-                                <ul className="mt-8 space-y-3 text-ink-2">
-                                    <li className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-pen-wash text-pen"><Mail className="size-5" aria-hidden /></span><a className="ltr hover:text-pen" href="mailto:ahmedsalem250500@gmail.com">ahmedsalem250500@gmail.com</a></li>
-                                    <li className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-pen-wash text-pen"><Phone className="size-5" aria-hidden /></span><a className="ltr hover:text-pen" href="tel:+201065407502">+20 106 540 7502</a></li>
-                                    <li className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-pen-wash text-pen"><MapPin className="size-5" aria-hidden /></span>{l("المنصورة، مصر", "Mansoura, Egypt")}</li>
-                                </ul>
+                                <a href={`mailto:${COMPANY.email}`} className={buttonClasses("primary", "lg", "mt-8")}>
+                                    <Mail className="size-5" aria-hidden />{l("ابعتلنا إيميل", "Email us")}
+                                </a>
                             </div>
-                            <div>
-                                <h3 className="mb-4 text-lg font-semibold">{l("فريق OralIQ", "The OralIQ team")}</h3>
-                                <ul className="grid gap-3 sm:grid-cols-2">
-                                    {TEAM.map((m) => (
-                                        <li key={m.name} className="flex items-center gap-4 rounded-2xl border border-rule/80 bg-paper/60 p-4">
-                                            <Avatar name={m.name} size="lg" />
-                                            <div>
-                                                <p className="font-semibold" dir="ltr">{m.name}</p>
-                                                <p className="text-sm text-ink-2">{l(m.role.ar, m.role.en)}</p>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                            <ul className="divide-y divide-rule rounded-[22px] border border-rule bg-paper">
+                                <li className="flex items-center gap-4 px-6 py-5">
+                                    <Mail className="size-5 shrink-0 text-pen" aria-hidden />
+                                    <div className="min-w-0">
+                                        <p className="text-sm text-ink-3">{l("الإيميل", "Email")}</p>
+                                        <a className="ltr block truncate font-semibold hover:text-pen" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
+                                    </div>
+                                </li>
+                                {COMPANY.phone && (
+                                    <li className="flex items-center gap-4 px-6 py-5">
+                                        <Phone className="size-5 shrink-0 text-pen" aria-hidden />
+                                        <div>
+                                            <p className="text-sm text-ink-3">{l("التليفون", "Phone")}</p>
+                                            <a className="ltr block font-semibold tabular hover:text-pen" href={telHref(COMPANY.phone)}>{COMPANY.phone}</a>
+                                        </div>
+                                    </li>
+                                )}
+                                {COMPANY.location.ar && (
+                                    <li className="flex items-center gap-4 px-6 py-5">
+                                        <MapPin className="size-5 shrink-0 text-pen" aria-hidden />
+                                        <div>
+                                            <p className="text-sm text-ink-3">{l("المكان", "Location")}</p>
+                                            <p className="font-semibold">{l(COMPANY.location.ar, COMPANY.location.en)}</p>
+                                        </div>
+                                    </li>
+                                )}
+                            </ul>
                         </div>
                     </section>
 
@@ -515,8 +519,8 @@ export default function LandingPage() {
                     </div>
                     <div className="border-t border-rule/70">
                         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-3 sm:px-6">
-                            <p>© 2026 OralIQ</p>
-                            <p>{l("مبني بـ Whisper وSentence-BERT وInsightFace وMediaPipe", "Built with Whisper, Sentence-BERT, InsightFace and MediaPipe")}</p>
+                            <p>© 2026 {COMPANY.name}</p>
+                            <a href={`mailto:${COMPANY.email}`} className="ltr hover:text-pen">{COMPANY.email}</a>
                         </div>
                     </div>
                 </footer>
