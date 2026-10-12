@@ -141,7 +141,7 @@ export function DashboardLayout() {
                     >
                         <Search className="size-4" aria-hidden />
                         <span className="flex-1 text-start">{l("بحث سريع", "Quick search")}</span>
-                        <kbd className="rounded border border-rail-line bg-rail px-1.5 text-[0.6875rem] ltr" dir="ltr">Ctrl K</kbd>
+                        <kbd className="rounded border border-rail-line bg-rail px-1.5 text-[0.6875rem] ltr pointer-coarse:hidden" dir="ltr">Ctrl K</kbd>
                     </button>
                 </div>
 

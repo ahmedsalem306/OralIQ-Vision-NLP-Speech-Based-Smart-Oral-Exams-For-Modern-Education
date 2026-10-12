@@ -53,7 +53,8 @@ Tokens live in `src/index.css` (`:root`, plus two dark blocks) and are exposed t
 - **Mark (#C62A39):** the grade circle on lecturer views and marketing, and genuine errors (a failed form, a failed request). Notices that ask a student to do something use sun/warn instead.
 - **Sun (#A44F0C):** encouragement and gentle notices on student screens (low time, "needs practice", proctoring nudges). 5.0:1 on its wash.
 - **Navy:** depth for a few large surfaces. Not a page background.
-- **Violet / teal:** chart and grade-part accents only (fluency, integrity). Never a gradient pair for headlines.
+- **Violet / teal:** stat-card and chart accents only. Never a gradient pair for headlines.
+- **Grade-part bars** (content, fluency, integrity) are pen-blue everywhere, marketing included, and turn mark-red under 50: the colour carries status, not identity.
 
 Dark mode redefines every token; components only reference tokens.
 

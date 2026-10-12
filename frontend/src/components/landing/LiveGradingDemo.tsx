@@ -58,8 +58,8 @@ export function LiveGradingDemo({ className }: { className?: string }) {
 
     const bars = [
         { label: l("المحتوى", "Content"), value: 94, color: "bg-pen" },
-        { label: l("الطلاقة", "Fluency"), value: 86, color: "bg-violet" },
-        { label: l("النزاهة", "Integrity"), value: 100, color: "bg-teal" },
+        { label: l("الطلاقة", "Fluency"), value: 86, color: "bg-pen" },
+        { label: l("النزاهة", "Integrity"), value: 100, color: "bg-pen" },
     ];
 
     return (
