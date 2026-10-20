@@ -74,7 +74,7 @@ export function CommandPalette({ commands, open, onOpenChange }: { commands: Com
             onCancel={(e) => { e.preventDefault(); onOpenChange(false); }}
             onClick={(e) => { if (e.target === ref.current) onOpenChange(false); }}
             // Blurred backdrop behind a modal over the page. avoid-ai-design-ignore: K3
-            className="mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-xl rounded-[20px] border border-rule bg-sheet p-0 text-ink shadow-pop backdrop:bg-overlay backdrop:backdrop-blur-[2px] open:animate-[oiq-pop-in_160ms_ease-out]"
+            className="mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-xl rounded-none border border-rule bg-sheet p-0 text-ink shadow-pop backdrop:bg-overlay backdrop:backdrop-blur-[2px] open:animate-[oiq-pop-in_160ms_ease-out]"
         >
             {open && (
                 <div onKeyDown={onKeyDown}>

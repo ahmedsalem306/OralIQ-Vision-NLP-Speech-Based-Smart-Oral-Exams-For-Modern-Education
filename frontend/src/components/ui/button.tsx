@@ -7,8 +7,8 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "dang
 export type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 const variants: Record<ButtonVariant, string> = {
-    primary: "bg-pen text-pen-ink shadow-[0_8px_20px_-8px_color-mix(in_oklab,var(--pen)_70%,transparent)] hover:bg-pen-hover hover:shadow-[0_10px_24px_-8px_color-mix(in_oklab,var(--pen)_80%,transparent)]",
-    secondary: "bg-sheet text-ink border border-field/80 hover:border-ink-2 hover:bg-sheet-2",
+    primary: "bg-pen text-pen-ink hover:bg-pen-hover",
+    secondary: "bg-transparent text-ink border border-ink hover:bg-ink hover:text-paper",
     ghost: "text-ink-2 hover:text-ink hover:bg-pen-wash",
     danger: "bg-mark text-pen-ink hover:opacity-90",
     "danger-ghost": "text-mark hover:bg-mark-wash",
@@ -25,7 +25,7 @@ const sizes: Record<ButtonSize, string> = {
 export function buttonClasses(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
     return cn(
         "inline-flex items-center justify-center whitespace-nowrap rounded-[var(--radius-control)] font-semibold",
-        "transition-[background-color,border-color,color,opacity,box-shadow,transform] duration-150 active:translate-y-px",
+        "transition-[background-color,border-color,color,opacity] duration-150",
         "disabled:opacity-50 disabled:pointer-events-none",
         variants[variant],
         sizes[size],

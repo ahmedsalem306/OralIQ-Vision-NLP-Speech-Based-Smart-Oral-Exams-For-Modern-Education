@@ -133,7 +133,7 @@ export default function Overview() {
                                 <span className="text-xs text-white/60">{countOf(lang, scored.length, NOUNS.answer)}</span>
                             </div>
                             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden>
-                                <div className="h-full rounded-full bg-[#9DB2FF]" style={{ width: `${avg}%` }} />
+                                <div className="h-full rounded-full bg-white" style={{ width: `${avg}%` }} />
                             </div>
                         </div>
                     )}
@@ -292,7 +292,7 @@ export default function Overview() {
                             srcSet="/photos/friends-reading-480.webp 480w, /photos/friends-reading.webp 800w"
                             sizes="224px"
                             alt=""
-                            className="absolute end-2 top-0 h-60 w-56 rotate-2 rounded-[22px] object-cover shadow-float"
+                            className="absolute end-2 top-0 h-60 w-56 rotate-2 rounded-none object-cover shadow-float"
                         />
                         {pending[0] ? (
                             <div className="absolute bottom-[-0.5rem] start-0 w-64 -rotate-1 rounded-2xl border border-rule bg-sheet p-4 shadow-pop">

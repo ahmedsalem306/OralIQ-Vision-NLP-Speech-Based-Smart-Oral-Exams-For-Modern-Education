@@ -867,7 +867,7 @@ export default function ExamRoom() {
 
     if (phase === "info") return (
         <Sheet size="xl">
-            <div className="grid overflow-hidden rounded-[24px] border border-rule bg-sheet shadow-float md:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
+            <div className="grid overflow-hidden rounded-none border border-rule bg-sheet shadow-float md:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
             <figure className="relative hidden md:block">
                 <img src="/photos/student-relaxed.webp" srcSet="/photos/student-relaxed-480.webp 480w, /photos/student-relaxed.webp 960w" sizes="420px" alt="" className="absolute inset-0 size-full object-cover object-[30%_center]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy/85 via-navy/10 to-transparent" aria-hidden />
@@ -1043,7 +1043,6 @@ export default function ExamRoom() {
 
     return (
         <div className="relative isolate flex min-h-dvh flex-col bg-paper">
-            <CalmBackdrop />
             {/* Sticky bar over scrolling content. avoid-ai-design-ignore: K3 */}
             <header className="sticky top-0 z-20 border-b border-rule bg-sheet/90 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
@@ -1194,7 +1193,6 @@ export default function ExamRoom() {
 function Sheet({ children, wide = false, size }: { children: React.ReactNode; wide?: boolean; size?: "xl" }) {
     return (
         <div className="relative isolate flex min-h-dvh flex-col bg-paper">
-            <CalmBackdrop />
             <header className="flex h-16 items-center justify-between px-5 sm:px-8">
                 <Logo size={28} />
                 <div className="flex items-center gap-1"><LanguageToggle compact /><ThemeToggle /></div>
@@ -1203,19 +1201,5 @@ function Sheet({ children, wide = false, size }: { children: React.ReactNode; wi
                 {children}
             </main>
         </div>
-    );
-}
-
-/** Soft, still light behind the exam screens: warmer than a blank page, never moving. */
-function CalmBackdrop() {
-    return (
-        <div
-            className="pointer-events-none fixed inset-0 -z-10"
-            style={{
-                backgroundImage:
-                    "radial-gradient(40% 45% at 85% 5%, color-mix(in oklab, var(--pen) 9%, transparent), transparent 70%), radial-gradient(35% 40% at 5% 95%, color-mix(in oklab, var(--sun) 9%, transparent), transparent 70%), radial-gradient(30% 35% at 10% 10%, color-mix(in oklab, var(--teal) 6%, transparent), transparent 70%)",
-            }}
-            aria-hidden
-        />
     );
 }
