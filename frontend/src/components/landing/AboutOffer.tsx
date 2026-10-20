@@ -33,7 +33,8 @@ function Bar({ label, value, tone = "bg-pen" }: { label: string; value: number; 
 /**
  * 2. Who we are, and what we offer: one short paragraph, then the product shown as it is,
  * in four rounded cards (lecturer, student, identity, grading), then the four steps.
- * Cards rise as they enter; the screenshots inside drift up a little slower than the page.
+ * Motion is tied to content only: screenshots drift up a little slower than the page,
+ * the score bars fill when they come into view, and a line joins the steps as you read them.
  */
 export function AboutOffer() {
     const { l } = useI18n();
@@ -41,13 +42,10 @@ export function AboutOffer() {
 
     useGSAP(() => {
         withMotion(() => {
-            gsap.from("[data-about-copy] > *", { y: 32, opacity: 0, duration: 0.9, stagger: 0.1, ease: "power3.out", scrollTrigger: { trigger: "[data-about-copy]", start: "top 82%" } });
-            gsap.from("[data-card]", { y: 70, opacity: 0, duration: 1, stagger: 0.12, ease: "power3.out", scrollTrigger: { trigger: "[data-cards]", start: "top 80%" } });
             gsap.utils.toArray<HTMLElement>("[data-shot]").forEach((el) => {
                 gsap.fromTo(el, { yPercent: 18 }, { yPercent: 0, ease: "none", scrollTrigger: { trigger: el, start: "top bottom", end: "top 35%", scrub: true } });
             });
             gsap.from("[data-bar]", { scaleX: 0, duration: 1.2, stagger: 0.12, ease: "power3.out", scrollTrigger: { trigger: "[data-cards]", start: "top 60%" } });
-            gsap.from("[data-step]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.12, ease: "power3.out", scrollTrigger: { trigger: "[data-steps]", start: "top 85%" } });
             gsap.fromTo("[data-steps-line]", { scaleX: 0 }, { scaleX: 1, ease: "none", scrollTrigger: { trigger: "[data-steps]", start: "top 80%", end: "bottom 60%", scrub: true } });
         });
     }, { scope: root });
@@ -62,7 +60,7 @@ export function AboutOffer() {
     return (
         <section ref={root} id="about" className="scroll-mt-20 bg-sheet">
             <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32">
-                <div data-about-copy className="mx-auto max-w-3xl text-center">
+                <div className="mx-auto max-w-3xl text-center">
                     <h2 className="text-[clamp(2rem,4vw,3.25rem)] font-bold leading-tight tracking-tight">{l("من نحن؟", "Who we are")}</h2>
                     <p className="mt-5 text-lg leading-loose text-ink-2 sm:text-xl">
                         {l("OralIQ منصة عربية للامتحانات الشفوية أونلاين. الطالب بيجاوب بصوته، والمنصة بتحوّل إجابته لنص، وتقارن معناها بإجابة المحاضر النموذجية، وتتأكد إنه هو اللي بيجاوب. والمحاضر بيستلم كل إجابة مصححة ومعاها السبب.",
@@ -72,7 +70,7 @@ export function AboutOffer() {
 
                 <div data-cards className="mt-16 grid gap-5 lg:grid-cols-3 lg:grid-rows-[auto_auto]">
                     {/* Lecturer: the results page */}
-                    <article data-card className="relative flex flex-col overflow-hidden rounded-[28px] border border-rule bg-paper lg:col-span-2">
+                    <article className="relative flex flex-col overflow-hidden rounded-[28px] border border-rule bg-paper lg:col-span-2">
                         <div className="p-8 pb-0 sm:p-10 sm:pb-0">
                             <h3 className="text-2xl font-bold">{l("للمحاضر: الإجابات بتوصلك مصححة", "For lecturers: answers arrive graded")}</h3>
                             <p className="mt-2 max-w-lg leading-relaxed text-ink-2">{l("امتحان شفوي لكل طلابك في نفس الوقت، وكل إجابة معاها نصها وتفاصيل درجتها وملاحظات النزاهة. تراجع وتنشر بضغطة.", "An oral exam for all your students at once; every answer comes with its transcript, grade breakdown and integrity notes. Review and publish in one click.")}</p>
@@ -83,7 +81,7 @@ export function AboutOffer() {
                     </article>
 
                     {/* Student: the exam room on a phone */}
-                    <article data-card className="relative flex flex-col overflow-hidden rounded-[28px] bg-pen-wash lg:row-span-2">
+                    <article className="relative flex flex-col overflow-hidden rounded-[28px] bg-pen-wash lg:row-span-2">
                         <div className="p-8 pb-0 sm:p-10 sm:pb-0">
                             <h3 className="text-2xl font-bold">{l("للطالب: يمتحن من موبايله", "For students: answer from a phone")}</h3>
                             <p className="mt-2 leading-relaxed text-ink-2">{l("من بيته ومن غير رهبة اللجنة، ويشوف درجته وتفاصيلها أول ما المحاضر ينشرها.", "From home, without the panel nerves, and they see the grade and its breakdown once it's published.")}</p>
@@ -96,7 +94,7 @@ export function AboutOffer() {
                     </article>
 
                     {/* Identity */}
-                    <article data-card className="rounded-[28px] bg-sun-wash p-8 sm:p-10">
+                    <article className="rounded-[28px] bg-sun-wash p-8 sm:p-10">
                         <h3 className="text-2xl font-bold">{l("الوش والصوت لازم يطابقوا", "Face and voice must match")}</h3>
                         <p className="mt-2 leading-relaxed text-ink-2">{l("بيتسجلوا مرة واحدة ويتقارنوا في كل امتحان، والكاميرا بترصد الموبايل والكتاب والنظر بعيد لفترة طويلة.", "Registered once, checked every exam; the camera notices phones, books and long looks away.")}</p>
                         <ul className="mt-6 space-y-3 rounded-2xl bg-sheet p-4">
@@ -106,7 +104,7 @@ export function AboutOffer() {
                     </article>
 
                     {/* Grading */}
-                    <article data-card className="rounded-[28px] border border-rule bg-paper p-8 sm:p-10">
+                    <article className="rounded-[28px] border border-rule bg-paper p-8 sm:p-10">
                         <h3 className="text-2xl font-bold">{l("الدرجة بالمعنى، ومعاها السبب", "Graded by meaning, with reasons")}</h3>
                         <p className="mt-2 leading-relaxed text-ink-2">{l("لو قال المعنى صح بأسلوبه بياخد حقه. ولو المحتوى أقل من 50% مايقدرش ينجح مهما كانت طلاقته.", "The right idea in their own words earns the marks; under 50% content can't pass, however fluent.")}</p>
                         <ul className="mt-6 space-y-3 rounded-2xl bg-sheet p-4">
@@ -126,7 +124,7 @@ export function AboutOffer() {
                         </div>
                         <ol className="relative grid gap-10 text-center sm:grid-cols-2 lg:grid-cols-4">
                             {steps.map((s, i) => (
-                                <li key={s.title} data-step className="flex flex-col items-center">
+                                <li key={s.title} className="flex flex-col items-center">
                                     <span className="bg-sheet px-3"><StepNumber n={i + 1} /></span>
                                     <h4 className="mt-4 text-lg font-semibold">{s.title}</h4>
                                     <p className="mt-1.5 max-w-60 leading-relaxed text-ink-2">{s.body}</p>

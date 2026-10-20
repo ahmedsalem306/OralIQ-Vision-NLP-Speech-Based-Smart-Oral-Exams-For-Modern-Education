@@ -1,9 +1,8 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { COMPANY, telHref } from "../../content/company";
 import { Field, Input, Textarea } from "../ui/input";
-import { gsap, useGSAP, withMotion } from "../../lib/gsap";
 
 /**
  * 6. Contact. There is no form backend yet, so sending opens the visitor's
@@ -11,14 +10,7 @@ import { gsap, useGSAP, withMotion } from "../../lib/gsap";
  */
 export function ContactSection() {
     const { l } = useI18n();
-    const root = useRef<HTMLElement>(null);
     const [sent, setSent] = useState(false);
-
-    useGSAP(() => {
-        withMotion(() => {
-            gsap.from("[data-contact]", { y: 60, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: root.current, start: "top 75%" } });
-        });
-    }, { scope: root });
 
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -33,30 +25,29 @@ export function ContactSection() {
     };
 
     return (
-        <section ref={root} id="contact" className="scroll-mt-20">
+        <section id="contact" className="scroll-mt-20">
             <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
-                <div data-contact className="grid overflow-hidden rounded-[32px] border border-rule bg-sheet shadow-card lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <div className="relative isolate overflow-hidden bg-pen-wash p-8 sm:p-12">
-                        <div className="pointer-events-none absolute -bottom-24 -end-24 -z-10 size-72 rounded-full bg-pen/15 blur-3xl" aria-hidden />
+                <div className="grid overflow-hidden rounded-[32px] border border-rule bg-sheet shadow-card lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div className="bg-pen-wash p-8 sm:p-12">
                         <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-tight tracking-tight">{l("تواصل معنا", "Contact us")}</h2>
                         <p className="mt-4 max-w-sm text-lg leading-relaxed text-ink-2">
                             {l("عايز تجرّب OralIQ في مؤسستك، أو تضيفه لمنصتك؟ ابعتلنا وهنرد عليك ونرتب معاك تجربة على امتحان حقيقي.",
                                 "Want to try OralIQ at your institution, or add it to your platform? Write to us and we'll arrange a trial on a real exam.")}
                         </p>
-                        <ul className="mt-10 space-y-4">
+                        <ul className="mt-10 space-y-5">
                             <li className="flex items-center gap-3">
-                                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sheet text-pen"><Mail className="size-[18px]" aria-hidden /></span>
+                                <Mail className="size-5 shrink-0 text-pen" aria-hidden />
                                 <a className="ltr min-w-0 truncate font-semibold hover:text-pen" href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
                             </li>
                             {COMPANY.phone && (
                                 <li className="flex items-center gap-3">
-                                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sheet text-pen"><Phone className="size-[18px]" aria-hidden /></span>
+                                    <Phone className="size-5 shrink-0 text-pen" aria-hidden />
                                     <a className="ltr font-semibold tabular hover:text-pen" href={telHref(COMPANY.phone)}>{COMPANY.phone}</a>
                                 </li>
                             )}
                             {COMPANY.location.ar && (
                                 <li className="flex items-center gap-3">
-                                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sheet text-pen"><MapPin className="size-[18px]" aria-hidden /></span>
+                                    <MapPin className="size-5 shrink-0 text-pen" aria-hidden />
                                     <span className="font-semibold">{l(COMPANY.location.ar, COMPANY.location.en)}</span>
                                 </li>
                             )}

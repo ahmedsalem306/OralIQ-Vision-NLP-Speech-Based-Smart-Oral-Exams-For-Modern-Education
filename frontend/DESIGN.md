@@ -100,7 +100,7 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 ## Motion
 
 - **Lenis** smooth scrolling site-wide (`components/SmoothScroll.tsx`, loaded after first paint, off for reduced motion, never inside dialogs).
-- **GSAP + ScrollTrigger** for the home page scenes only (`lib/gsap.ts`, always inside `withMotion`): hero pieces coming out and drifting at their own speeds, cards rising, screenshots drifting, the video growing, the photo wipe in section 5.
+- **GSAP + ScrollTrigger** for the home page scenes only (`lib/gsap.ts`, always inside `withMotion`): hero pieces coming out and drifting at their own speeds, screenshots drifting, score bars filling, the steps line, the video growing, the photo wipe in section 5. Every scene is tied to content; no generic fade-and-rise on section headings or cards (catalog M1).
 - **Motion** (`motion/react`) for app interface feedback, with one easing (`EASE`) and 150-300ms durations.
 - Never split Arabic text into letters for animation; animate whole lines.
 - Motion that answers an action is welcome: drawer slide, toast, the drawn check after submitting.
@@ -114,4 +114,4 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - Do keep student-facing language encouraging and specific ("رجّع عينك للشاشة", not "نظرت لليسار").
 - Don't change: Alexandria + IBM Plex Sans Arabic, the warm light palette with pen blue and the red pen, the home section order.
 - The explainer video is `public/media/oraliq-demo.mp4` with `oraliq-demo-poster.webp`; it is a screen recording of the app with demo data. Replace both files to update it.
-- Don't use: purple-to-blue gradients or gradient headline text; one accented word in a headline (SD5); eyebrow labels with hairlines above every heading (SD4); middle-dot meta strings (SD4d); decorative 01 / 02 / 03 numbering outside real sequences (SD6); fake browser chrome around screenshots (SD7); icons in tinted rounded squares as the default feature treatment (K6); mouse-following spotlights and 3D tilt cards (K10); count-up animations outside live dashboard figures (M5); cream with terracotta or near-black with acid green as an "escape" palette (SD1, SD2).
+- Don't use: decorative blurred blobs behind sections; trust strips of three checkmarks under the hero; icons in tinted circles beside contact details; purple-to-blue gradients or gradient headline text; one accented word in a headline (SD5); eyebrow labels with hairlines above every heading (SD4); middle-dot meta strings (SD4d); decorative 01 / 02 / 03 numbering outside real sequences (SD6); fake browser chrome around screenshots (SD7); icons in tinted rounded squares as the default feature treatment (K6); mouse-following spotlights and 3D tilt cards (K10); count-up animations outside live dashboard figures (M5); cream with terracotta or near-black with acid green as an "escape" palette (SD1, SD2).

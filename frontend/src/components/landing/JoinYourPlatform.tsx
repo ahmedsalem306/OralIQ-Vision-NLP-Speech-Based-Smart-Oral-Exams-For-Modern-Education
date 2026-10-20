@@ -17,7 +17,6 @@ const SLIDE_MS = 5500;
 export function JoinYourPlatform() {
     const { l } = useI18n();
     const reduce = useReducedMotion();
-    const root = useRef<HTMLElement>(null);
     const stage = useRef<HTMLDivElement>(null);
     const [[index, prevIndex], setPair] = useState<[number, number]>([0, 0]);
     const [held, setHeld] = useState(false);
@@ -43,17 +42,10 @@ export function JoinYourPlatform() {
         });
     }, { scope: stage, dependencies: [index] });
 
-    useGSAP(() => {
-        withMotion(() => {
-            gsap.from("[data-join-head] > *", { y: 30, opacity: 0, duration: 0.8, stagger: 0.1, ease: "power3.out", scrollTrigger: { trigger: root.current, start: "top 75%" } });
-            gsap.from("[data-join-stage]", { y: 60, opacity: 0, duration: 1.1, ease: "power3.out", scrollTrigger: { trigger: root.current, start: "top 70%" } });
-        });
-    }, { scope: root });
-
     return (
-        <section ref={root} id="integrate" className="scroll-mt-20 bg-sheet">
+        <section id="integrate" className="scroll-mt-20 bg-sheet">
             <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32">
-                <div data-join-head className="max-w-2xl">
+                <div className="max-w-2xl">
                     <h2 className="text-[clamp(2rem,4vw,3.25rem)] font-bold leading-tight tracking-tight">{l("بننضم لمنصتك", "We join your platform")}</h2>
                     <p className="mt-4 text-lg leading-relaxed text-ink-2">
                         {l("عندك منصتك الخاصة ومش عايز تستخدم منصة تانية؟ بنضيف الامتحان الشفوي كميزة جوّاها، والطالب يمتحن من غير ما يخرج منها.",
@@ -109,7 +101,7 @@ export function JoinYourPlatform() {
                     </ol>
 
                     {/* The photo, with the exam card on it */}
-                    <div data-join-stage className="relative min-h-[360px] sm:min-h-[460px] lg:min-h-[540px]">
+                    <div className="relative min-h-[360px] sm:min-h-[460px] lg:min-h-[540px]">
                         <div ref={stage} className="absolute inset-0">
                             {items.map((it, i) => (
                                 <figure

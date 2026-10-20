@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Check, Mic, Play, ScanFace, ShieldCheck } from "lucide-react";
+import { Mic, Play, ScanFace, ShieldCheck } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { cn } from "../../lib/utils";
 import { ScoreMark } from "../ui/score-mark";
+import { DrawnCheck } from "../motion";
 import { gsap, useGSAP, withMotion } from "../../lib/gsap";
 
 /* ── The pieces that float around the headline ─────────────────────────── */
@@ -67,7 +68,7 @@ function PublishedToast() {
     const { l } = useI18n();
     return (
         <div className="flex items-center gap-2.5 rounded-2xl border border-rule/70 bg-sheet py-2.5 pe-4 ps-3 shadow-float">
-            <span className="flex size-8 items-center justify-center rounded-full bg-pen text-pen-ink"><Check className="size-4" aria-hidden /></span>
+            <DrawnCheck className="size-9 shrink-0 text-pen" delay={1.4} />
             <span className="leading-tight">
                 <span className="block text-sm font-semibold">{l("درجتك اتنشرت", "Your grade is out")}</span>
                 <span className="mt-0.5 block text-xs text-ink-3">{l("من د. سلمى", "From Dr. Salma")}</span>
@@ -173,13 +174,6 @@ export function HeroCollage({ startHref }: { startHref: string }) {
                         <Play className="size-4 fill-current" aria-hidden />{l("شوف الفيديو", "Watch the video")}
                     </a>
                 </div>
-                <ul data-hero-fade className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[0.9375rem] text-ink-2">
-                    {[l("تصحيح بالمعنى مش بالحفظ", "Grades meaning, not memorising"), l("تحقق بالوش والصوت", "Face and voice checks"), l("عربي وإنجليزي", "Arabic and English")].map((t) => (
-                        <li key={t} className="flex items-center gap-2">
-                            <span className="flex size-5 items-center justify-center rounded-full bg-pass-wash text-pass"><Check className="size-3.5" aria-hidden /></span>{t}
-                        </li>
-                    ))}
-                </ul>
             </div>
 
             {/* Phones and tablets: a small still collage under the words */}

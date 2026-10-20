@@ -22,10 +22,6 @@ export function VideoSection() {
                 scale: 1, borderRadius: 28, ease: "none",
                 scrollTrigger: { trigger: "[data-player]", start: "top bottom", end: "center 55%", scrub: true },
             });
-            gsap.from("[data-video-head] > *", {
-                y: 30, opacity: 0, duration: 0.8, stagger: 0.1, ease: "power3.out",
-                scrollTrigger: { trigger: root.current, start: "top 75%" },
-            });
         });
     }, { scope: root });
 
@@ -35,10 +31,9 @@ export function VideoSection() {
     };
 
     return (
-        <section ref={root} id="video" className="relative isolate scroll-mt-20 overflow-hidden">
-            <div className="pointer-events-none absolute inset-x-0 top-1/3 -z-10 mx-auto h-[60%] max-w-5xl rounded-full bg-pen/[0.10] blur-[120px]" aria-hidden />
+        <section ref={root} id="video" className="scroll-mt-20">
             <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
-                <div data-video-head className="mx-auto max-w-2xl text-center">
+                <div className="mx-auto max-w-2xl text-center">
                     <h2 className="text-[clamp(2rem,4vw,3.25rem)] font-bold leading-tight tracking-tight">{l("شوف المنصة وهي شغالة", "See it working")}</h2>
                     <p className="mt-4 text-lg leading-relaxed text-ink-2">
                         {l("في دقيقة: المحاضر بيكتب السؤال، الطالب بيجاوب بصوته، والدرجة بتوصل ومعاها تفاصيلها.",

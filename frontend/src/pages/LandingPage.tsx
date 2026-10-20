@@ -16,6 +16,8 @@ import { ClientsStrip } from "../components/landing/ClientsStrip";
 import { JoinYourPlatform } from "../components/landing/JoinYourPlatform";
 import { ContactSection } from "../components/landing/ContactSection";
 
+// Section widths follow their role (stage, 7xl grids, 6xl media, 3xl reading) per DESIGN.md;
+// the header and footer align to the content grid. avoid-ai-design-ignore-file: L6
 /**
  * Home page, in the owner's order:
  * 1 hero, 2 who we are + what we offer, 3 explainer video, 4 our clients,
