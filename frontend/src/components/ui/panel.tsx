@@ -11,9 +11,9 @@ function AnimatedValue({ value }: { value: React.ReactNode }) {
     return <CountUp to={parseFloat(m[1])} decimals={m[2]?.length ?? 0} suffix={m[3]} duration={1.1} />;
 }
 
-/** The base surface: a white sheet with a hairline edge. */
+/** The base surface: a card lifted off the page with a soft shadow. */
 export function Panel({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-    return <section className={cn("border border-rule bg-sheet", className)} {...props} />;
+    return <section className={cn("rounded-[var(--radius-panel)] border border-rule/80 bg-sheet shadow-card", className)} {...props} />;
 }
 
 interface PanelHeaderProps {
@@ -27,7 +27,7 @@ export function PanelHeader({ title, description, actions, className }: PanelHea
     return (
         <header className={cn("flex flex-wrap items-start justify-between gap-3 border-b border-rule px-5 py-4 sm:px-6", className)}>
             <div className="min-w-0">
-                <h2 className="text-[1.375rem] font-extrabold leading-tight">{title}</h2>
+                <h2 className="text-[1.0625rem] font-semibold">{title}</h2>
                 {description && <p className="mt-0.5 text-sm text-ink-2">{description}</p>}
             </div>
             {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -50,7 +50,7 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
     return (
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0 max-w-2xl">
-                <h1 className="text-[2.25rem] font-extrabold leading-[1.1] sm:text-[3rem]">{title}</h1>
+                <h1 className="text-[1.875rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">{title}</h1>
                 {description && <p className="mt-2 text-[1.0625rem] text-ink-2">{description}</p>}
             </div>
             {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -60,13 +60,13 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
 
 export type StatTone = "pen" | "violet" | "teal" | "warn" | "mark" | "pass";
 
-const toneText: Record<StatTone, string> = {
-    pen: "text-ink",
-    violet: "text-ink",
-    teal: "text-ink",
-    warn: "text-warn",
-    mark: "text-mark",
-    pass: "text-pass",
+const toneChip: Record<StatTone, string> = {
+    pen: "bg-pen-wash text-pen",
+    violet: "bg-violet-wash text-violet",
+    teal: "bg-teal-wash text-teal",
+    warn: "bg-warn-wash text-warn",
+    mark: "bg-mark-wash text-mark",
+    pass: "bg-pass-wash text-pass",
 };
 
 export interface StatItem {
@@ -77,30 +77,30 @@ export interface StatItem {
     tone?: StatTone;
 }
 
-/**
- * Key figures as one ruled strip, like the totals row of a mark sheet.
- * Colour appears only when a figure needs attention (warn / mark tones).
- */
+/** Key figures as a row of small cards, each with a tinted icon. */
 export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
     const cols = items.length === 3 ? "lg:grid-cols-3" : items.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-4";
     return (
-        <dl className={cn("grid grid-cols-2 gap-px border border-rule bg-rule", cols, className)}>
+        <dl className={cn("grid grid-cols-2 gap-3 sm:gap-4", cols, className)}>
             {items.map((item, i) => {
                 const Icon = item.icon;
-                const alert = item.tone === "warn" || item.tone === "mark";
                 return (
                     <div
                         key={i}
                         className={cn(
-                            "bg-sheet p-4 sm:p-5",
+                            "rounded-[var(--radius-panel)] border border-rule/80 bg-sheet p-4 shadow-card sm:p-5",
                             items.length % 2 === 1 && i === items.length - 1 && "col-span-2 lg:col-span-1",
                         )}
                     >
-                        <div className="flex items-center gap-2">
-                            {Icon && <span className={cn("[&>svg]:size-4", alert ? toneText[item.tone ?? "pen"] : "text-ink-3")} aria-hidden><Icon /></span>}
+                        <div className="flex items-start justify-between gap-3">
                             <dt className="text-sm font-medium text-ink-2">{item.label}</dt>
+                            {Icon && (
+                                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl [&>svg]:size-[18px]", toneChip[item.tone ?? "pen"])} aria-hidden>
+                                    <Icon />
+                                </span>
+                            )}
                         </div>
-                        <dd className={cn("mt-3 font-display text-[2.5rem] font-extrabold leading-none", alert ? toneText[item.tone ?? "pen"] : "text-ink")}><AnimatedValue value={item.value} /></dd>
+                        <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink"><AnimatedValue value={item.value} /></dd>
                         {item.hint && <dd className="mt-2 text-xs text-ink-3">{item.hint}</dd>}
                     </div>
                 );

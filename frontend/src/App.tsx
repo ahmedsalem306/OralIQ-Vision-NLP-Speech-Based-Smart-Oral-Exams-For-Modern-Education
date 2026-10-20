@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import PrivateRoute from "./components/PrivateRoute";
 import { PageLoader } from "./components/PageLoader";
-import { SmoothScroll } from "./components/SmoothScroll";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const LoginPage = lazy(() => import("./pages/Login"));
@@ -24,7 +23,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 function App() {
     return (
         <Suspense fallback={<PageLoader fullscreen />}>
-            <SmoothScroll />
             <Routes>
                 {/* Public */}
                 <Route path="/login" element={<LoginPage />} />

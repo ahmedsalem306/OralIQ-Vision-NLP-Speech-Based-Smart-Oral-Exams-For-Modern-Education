@@ -1,84 +1,113 @@
 ---
 version: alpha
 name: OralIQ
-description: The first Arabic platform for online oral exams. Students answer out loud from anywhere; lecturers get every answer graded with its reasons. Confident and editorial on the marketing pages, quiet and white inside the app.
+description: The first Arabic platform for online oral exams. Students answer out loud from anywhere; lecturers get every answer graded with its reasons. It should feel calm for the student and trustworthy for the lecturer.
 colors:
-  black: "#000000"     # bands: header, hero, video, carousel, footer, sidebar
-  sheet: "#FFFFFF"     # white sections, cards, inputs
-  paper: "#F5F5F4"     # app page ground
-  ink: "#111111"       # body text
-  ink-2: "#474746"     # secondary text
-  ink-3: "#5E5E5C"     # muted text, AA on paper and sheet
-  rule: "#E4E4E2"      # hairlines that separate flat surfaces
-  mark: "#C62A39"      # grader's red pen: grades and genuine errors
+  paper: "#F6F5F1"     # page ground (light)
+  sheet: "#FFFFFF"     # cards, sheets, inputs
+  ink: "#1A2134"       # body text
+  ink-2: "#4A5064"     # secondary text
+  ink-3: "#5D6272"     # muted text, still AA on paper
+  pen: "#3252D0"       # ballpoint blue: the one action colour
+  mark: "#C62A39"      # grader's red pen: grades only
+  sun: "#A44F0C"       # warm encouragement (student-facing), amber notices
+  navy: "#0E1834"      # deep surfaces: grading section, hero tabs, lecturer banner
   pass: "#11784C"      # success / excellent
   warn: "#93580D"      # attention, never alarm
-  sun: "#A44F0C"       # gentle student-facing notices
 typography:
   display:
-    fontFamily: Zain
-    fontWeight: 800-900
+    fontFamily: Alexandria
+    fontWeight: 700
+    letterSpacing: -0.01em
   body:
     fontFamily: IBM Plex Sans Arabic
     fontSize: 16px
     lineHeight: 1.7
 rounded:
-  everything: 0px      # sharp edges; only avatars, status dots and the phone mock are round
+  control: 12px
+  panel: 20px
+  feature: 26px
+  stage: 36px
 components:
   button-primary:
-    backgroundColor: "{colors.black}"   # white on black bands
+    backgroundColor: "{colors.pen}"
     textColor: "{colors.sheet}"
-    rounded: 0
+    rounded: "{rounded.control}"
 ---
 
 ## Overview
 
-OralIQ replaces the oral exam panel: a student answers a spoken question on a phone or laptop, and the lecturer receives the answer transcribed, graded by meaning against a model answer, and checked for identity. Arabic first, English second, right-to-left by default.
+OralIQ replaces the oral exam panel: a student answers a spoken question on a phone or laptop, and the lecturer receives the answer transcribed, graded by meaning against a model answer, and checked for identity. The audience is Arabic-speaking universities and schools, Arabic first, English second, right-to-left by default.
 
-The look is an exam sheet: black ink on white paper, sharp edges, heavy headings. Colour is reserved for meaning. The owner's reference (an Arabic editorial site in black and white) set the rhythm of the marketing pages: black bands and white sheets alternating, full-bleed photography under a dark veil, square buttons, a slideshow band with square arrows and a progress line.
+The look comes from the exam itself: the **answer sheet** (warm paper, ruled lines, ballpoint-blue ink) and the **grader's red pen** that circles the final mark. Everything else stays quiet so those two things carry the identity. For students the product must lower stress, not add it: warm ground, soft blue, encouraging copy, amber instead of red for anything that needs their attention.
 
-**Signature detail:** the hand-drawn pen loop (`ScoreMark`), red around a grade. The only other flourish is the stretched tatweel in the hero headline ("أونلايـــن"), which grows as the page scrolls. Do not add a third.
+**Signature detail:** the hand-drawn pen loop (`ScoreMark`). Red around a grade, blue around a step number on the home page, grade-coloured ("kind ink") on the student's own grades. Do not invent a second signature.
 
 ## Colors
 
-Tokens live in `src/index.css` (`:root` plus two dark blocks) and are exposed to Tailwind through `@theme inline`. Components reference tokens, never hex values (the black bands use Tailwind's `bg-black`/`text-white` on purpose: they stay black in both themes).
+Tokens live in `src/index.css` (`:root`, plus two dark blocks) and are exposed to Tailwind through `@theme inline`. Never hard-code a hex in a component when a token exists.
 
-- **Black / white:** the whole identity. `pen` (the action colour) is black in light mode and white in dark mode.
-- **Mark red:** grades on lecturer views and marketing, and real errors. Not decoration.
-- **Pass / warn / sun:** status only (published, needs review, low time, "needs practice").
-- **Violet:** retired to a neutral grey; kept only so old tone names still resolve.
+- **Paper (#F6F5F1):** warm off-white, like exam paper; easier on the eyes than a cold blue-grey.
+- **Ink / ink-2 / ink-3:** 13+ / 7.3 / 5.6 to 1 on paper. Muted text never drops below AA.
+- **Pen (#3252D0):** the single action colour (buttons, links, focus, active nav). 6.4:1 with white.
+- **Mark (#C62A39):** the grade circle on lecturer views and marketing, and genuine errors (a failed form, a failed request). Notices that ask a student to do something use sun/warn instead.
+- **Sun (#A44F0C):** encouragement and gentle notices on student screens (low time, "needs practice", proctoring nudges). 5.0:1 on its wash.
+- **Navy:** depth for a few large surfaces. Not a page background.
+- **Violet / teal:** stat-card and chart accents only. Never a gradient pair for headlines.
+- **Grade-part bars** (content, fluency, integrity) are pen-blue everywhere, marketing included, and turn mark-red under 50: the colour carries status, not identity.
+
+Dark mode redefines every token; components only reference tokens.
 
 ## Typography
 
-- **Zain** (Google Fonts) for every heading and display number, 800-900 weight. **IBM Plex Sans Arabic** for body text. No third face.
-- Marketing section titles: `clamp(2.25rem, 4.4vw, 3.5rem)`, black weight. Hero: `clamp(2.9rem, 5.4vw, 5.4rem)`, three lines that never wrap on desktop.
-- App page titles 2.25-3rem, panel titles 1.375rem.
+- **Alexandria** for headings and numbers (display), **IBM Plex Sans Arabic** for body. Both handle Arabic and Latin.
+- **Kufam** (`font-hero`) only in the home hero: the giant words and the hero headline. Its long horizontal Kufi strokes give the one loud moment its own voice. Nowhere else.
+- Headings: 30px mobile, about 42px desktop for section titles. The home hero's giant words are the one loud moment.
+- Numbers that line up (scores, tables) use `.tabular`.
+- Latin strings inside Arabic (emails, IDs) use `.ltr`.
 
 ## Layout
 
-- Home page, in the owner's order: 1 hero, 2 who we are + what we offer, 3 explainer video, 4 our clients, 5 we join your platform (carousel), 6 contact. Black header and footer.
-- Container `max-w-7xl` with `px-4 sm:px-6`; photo bands and the carousel run full-bleed.
-- App: black sidebar, white quiet content on `paper`, panels are flat sheets with a hairline border. Key figures sit in one ruled strip (`StatStrip`), not separate cards.
+- Arabic first: use logical properties (`ms-`, `pe-`, `start-`, `end-`) everywhere; mirror photos for LTR only when a composition depends on direction.
+- Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
+- Home page order: hero, how it works, the answer sheet, the grading formula, features, the old way against OralIQ with who it is for, clients, the two ways to work with us (platform or inside the client's site), FAQ, contact, closing call to action, footer.
+- The clients section is titled "عملاؤنا" only (no claims about what kind of institutions) and its logos move in one band. Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
+
+## Elevation & Depth
+
+- `shadow-card` for resting surfaces that need separation, `shadow-float` for things that genuinely float (overlays on photos, the hero cut-out, the product shot), `shadow-pop` for menus and toasts.
+- Many surfaces are flat with a 1px `rule` border. Not every card needs a shadow.
+- Blur (`backdrop-blur`) only where something sits over moving or photographic content: sticky bars, modal backdrops, notes over a photo.
+
+## Shapes
+
+- Controls (buttons, inputs): `--radius-control` 12px.
+- Panels and dashboard cards: `--radius-panel` 20px.
+- Marketing feature cards: 26px. The hero stage: 36px.
+- Pills are for status badges and the hero CTA only.
+
+## Components
+
+Shared primitives live in `src/components/ui/` (button, input, panel, feedback, badge, avatar, score-mark, toast, tooltip). Reuse them; do not restyle per page.
+
+- **Nav:** the landing header (sticky, blurred over content) and the app sidebar (light rail in day mode, navy in dark).
+- **Footer:** brand line plus two short link groups, then the copyright and the contact email. No newsletter box, no social row unless real, no technology list.
+- **Company and contact details** (name, email, phone, location) come only from `src/content/company.ts`. The home page has no team section.
+- **ScoreMark:** `ink="mark"` for lecturers and marketing, `ink="kind"` on a student's own grades.
+- **Grades for students:** `studentGradeOf()` and `encouragementOf()`; the weakest band reads "يحتاج تقوية", never "ضعيف".
 
 ## Motion
 
-- **Lenis** smooth scrolling site-wide (`components/SmoothScroll.tsx`), driven by GSAP's ticker. It ignores dialogs and anything marked `data-lenis-prevent`, and switches itself off for reduced motion.
-- **GSAP + ScrollTrigger** for marketing scenes only (`lib/gsap.ts`, always wrapped in `withMotion`): hero entrance and stretching tatweel, photo settling, cards rising, video growing, carousel wipes.
-- **Motion** (`motion/react`) for app interface feedback: page transitions, drawers, sliding indicators, the drawn check.
-- Never split Arabic text into letters for animation; animate whole lines.
-- Nothing decorative moves in the exam room while the camera is proctoring.
-
-## Content rules
-
-- Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production.
-- Company and contact details come only from `src/content/company.ts`.
-- The explainer video is `public/media/oraliq-demo.mp4` with `oraliq-demo-poster.webp`; replace both files to update it.
-- The contact form opens the visitor's email app (there is no form backend yet).
-- Student-facing grades: `studentGradeOf()` and `encouragementOf()`; the weakest band reads "يحتاج تقوية", never "ضعيف".
+- One easing (`EASE` in `src/components/motion.tsx`), durations of 150-300ms for interface feedback.
+- One orchestrated entrance per page (the home hero) and at most one scroll-linked moment per section (the product shot straightening, the steps line filling). No fade-up on every section.
+- Motion that answers an action is welcome: drawer slide, toast, the drawn check after submitting.
+- Everything respects reduced motion (`MotionConfig reducedMotion="user"` plus the CSS media query).
+- Nothing decorative moves in the exam room while the camera is proctoring; only the timer, the recording dot and the microphone level.
 
 ## Do's and Don'ts
 
-- Do keep edges sharp and surfaces flat; separate with rules, lift only what floats.
-- Do add a token before a page needs a new colour or size.
-- Don't change: Zain + IBM Plex Sans Arabic, the black/white identity with the red pen, the home section order.
-- Don't use: gradient headline text, purple/indigo gradients, glass cards, icons in tinted rounded squares, mouse-following spotlights or tilt cards, eyebrow labels above every heading, decorative 01/02/03, fake browser chrome, invented clients or statistics.
+- Do reuse the tokens, nav, footer and primitives above on every page, unchanged.
+- Do add a token to `index.css` and to this file before a page needs a new colour or size.
+- Do keep student-facing language encouraging and specific ("رجّع عينك للشاشة", not "نظرت لليسار").
+- Don't change: Alexandria + IBM Plex Sans Arabic, Kufam in the hero, the pen-blue / red-pen pair, the home hero composition (the owner's reference).
+- Don't use: purple-to-blue gradients or gradient headline text; one accented word in a headline (SD5); eyebrow labels with hairlines above every heading (SD4); middle-dot meta strings (SD4d); decorative 01 / 02 / 03 numbering outside real sequences (SD6); fake browser chrome around screenshots (SD7); icons in tinted rounded squares as the default feature treatment (K6); mouse-following spotlights and 3D tilt cards (K10); count-up animations outside live dashboard figures (M5); cream with terracotta or near-black with acid green as an "escape" palette (SD1, SD2).

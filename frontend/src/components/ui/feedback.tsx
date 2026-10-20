@@ -188,7 +188,7 @@ interface SegmentedProps<T extends string> {
 export function Segmented<T extends string>({ value, onChange, options, label, className }: SegmentedProps<T>) {
     const pillId = React.useId();
     return (
-        <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-rule bg-sheet p-1 [scrollbar-width:none]", className)}>
+        <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-1 [scrollbar-width:none]", className)}>
             {options.map((o) => {
                 const active = o.value === value;
                 return (
@@ -199,8 +199,8 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
                         aria-checked={active}
                         onClick={() => onChange(o.value)}
                         className={cn(
-                            "relative shrink-0 whitespace-nowrap rounded-none px-3 py-1.5 text-sm font-semibold transition-colors",
-                            active ? "text-pen-ink" : "text-ink-2 hover:text-ink",
+                            "relative shrink-0 whitespace-nowrap rounded-[7px] px-3 py-1.5 text-sm font-semibold transition-colors",
+                            active ? "text-ink" : "text-ink-2 hover:text-ink",
                         )}
                     >
                         {/* The selected pill slides between options */}
@@ -208,7 +208,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
                             <motion.span
                                 layoutId={`seg-${pillId}`}
                                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                                className="absolute inset-0 bg-pen"
+                                className="absolute inset-0 rounded-[7px] bg-sheet shadow-[0_1px_2px_rgba(23,33,58,0.12)] ring-1 ring-rule"
                                 aria-hidden
                             />
                         )}
