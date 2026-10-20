@@ -116,6 +116,10 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - Google Fonts load without blocking the first paint (preload + `media="print"` swap in `index.html`). The home hero's two photos are preloaded from `index.html` on `/` only, with `fetchpriority="high"`.
 - Screenshots and large photos ship with `srcSet`/`sizes`; add a smaller file next to any new large image.
 - `public/robots.txt` keeps `/dashboard` and `/exam/` (private exam links) out of search.
+- **The home page is pre-rendered at build time** (`npm run build` → `scripts/prerender.mjs`): `dist/index.html` carries `/` as ready HTML (Arabic, light, signed out); every other route is served the plain shell `dist/app.html` (`vercel.json` rewrite). Only `/` is ever rendered at build time; nothing private is. The head script in `index.html` adopts the HTML (`data-prerender="hydrate"`) only when the visit would render identically, otherwise hides it before the first paint and the app draws from scratch.
+  - Anything the home page renders must be the same in Node and in that browser: no `window`, `localStorage` or `matchMedia` reads during render (read them in effects, or guard them and render the Arabic/light/signed-out result).
+  - Hero entrance tweens use `fromTo` with the resting values written out, and `HeroCollage` removes `data-prerender` once they exist; the pre-rendered CSS holds `[data-hero-line]`, `[data-hero-fade]` and `[data-piece-enter]` hidden until then (shown after 6s if scripts never arrive).
+  - Decorative layers in the hero are positioned in fixed units, so the web fonts arriving after the first paint do not move them.
 
 ## Do's and Don'ts
 

@@ -104,9 +104,11 @@ export function HeroCollage({ startHref }: { startHref: string }) {
 
     useGSAP(() => {
         withMotion(() => {
+            // fromTo with the resting values spelled out: on the pre-rendered home page these start
+            // hidden by CSS (scripts/prerender.mjs), so GSAP must not read them as the end state
             const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-            tl.from("[data-hero-line]", { y: 48, opacity: 0, duration: 1, stagger: 0.12 })
-                .from("[data-hero-fade]", { y: 18, opacity: 0, duration: 0.8, stagger: 0.08 }, "-=0.55");
+            tl.fromTo("[data-hero-line]", { y: 48, opacity: 0 }, { y: 0, opacity: 1, duration: 1, stagger: 0.12 })
+                .fromTo("[data-hero-fade]", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.08 }, "-=0.55");
 
             const box = root.current?.getBoundingClientRect();
             gsap.utils.toArray<HTMLElement>("[data-piece]").forEach((el, i) => {
@@ -115,7 +117,7 @@ export function HeroCollage({ startHref }: { startHref: string }) {
                     const r = el.getBoundingClientRect();
                     const dx = box.left + box.width / 2 - (r.left + r.width / 2);
                     const dy = box.top + box.height * 0.45 - (r.top + r.height / 2);
-                    gsap.from(enter, { x: dx * 0.6, y: dy * 0.6, scale: 0.55, opacity: 0, duration: 1.4, delay: 0.3 + i * 0.06, ease: "expo.out" });
+                    gsap.fromTo(enter, { x: dx * 0.6, y: dy * 0.6, scale: 0.55, opacity: 0 }, { x: 0, y: 0, scale: 1, opacity: 1, duration: 1.4, delay: 0.3 + i * 0.06, ease: "expo.out" });
                 }
                 gsap.to(el, {
                     y: -150 * Number(el.dataset.speed || 1), ease: "none",
@@ -124,14 +126,17 @@ export function HeroCollage({ startHref }: { startHref: string }) {
             });
             gsap.to("[data-hero-copy]", { y: 70, opacity: 0.35, ease: "none", scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true } });
         });
+        // The entrance now holds the hidden starting state, so the pre-render's CSS hold can go
+        delete document.documentElement.dataset.prerender;
     }, { scope: root, dependencies: [lang] });
 
     return (
         <section ref={root} className="relative isolate overflow-hidden lg:min-h-[min(calc(100dvh-4.25rem),900px)]">
             {/* Soft light and a faint dot grid */}
             <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-                <div className="absolute left-1/2 top-[-20%] size-[900px] -translate-x-1/2 rounded-full bg-sun/[0.10] blur-[120px]" />
-                <div className="absolute right-[-10%] top-[30%] size-[520px] rounded-full bg-pen/[0.10] blur-[120px]" />
+                {/* Glows sit at fixed offsets, not % of the section, so a late web font changing the section height does not move them */}
+                <div className="absolute left-1/2 top-[-170px] size-[900px] -translate-x-1/2 rounded-full bg-sun/[0.10] blur-[120px]" />
+                <div className="absolute right-[-10%] top-[250px] size-[520px] rounded-full bg-pen/[0.10] blur-[120px]" />
                 <div
                     className="absolute inset-0 opacity-60"
                     style={{

@@ -385,7 +385,9 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
     const [lang, setLangState] = useState<Language>(() => {
-        const saved = localStorage.getItem("oraliq_lang");
+        // No storage while the home page is rendered at build time (or in a locked-down browser)
+        let saved: string | null = null;
+        try { saved = localStorage.getItem("oraliq_lang"); } catch { /* default to Arabic */ }
         return saved === "en" ? "en" : "ar";
     });
 

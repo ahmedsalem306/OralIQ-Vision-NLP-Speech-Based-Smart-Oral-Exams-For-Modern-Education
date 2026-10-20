@@ -14,4 +14,9 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    // Only for the build-time render of the home page (scripts/prerender.mjs): bundle the
+    // dependencies into that one-off Node build so it runs without ESM/CommonJS mismatches
+    ssr: {
+        noExternal: true,
+    },
 })

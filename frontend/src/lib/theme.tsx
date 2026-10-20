@@ -22,6 +22,8 @@ function readPref(): ThemePref {
 }
 
 function systemTheme(): "light" | "dark" {
+    // No window while the home page is rendered at build time; it renders light
+    if (typeof window === "undefined") return "light";
     return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 

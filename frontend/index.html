@@ -30,12 +30,20 @@
   <script>
     // Apply saved language + theme before first paint to avoid a flash.
     (function () {
+      var de = document.documentElement;
+      // The built home page carries ready HTML (rendered Arabic, light, signed out). Adopt it only
+      // when this visit would render exactly the same; otherwise it is hidden before the first
+      // paint and the app draws the page from scratch (see src/main.tsx).
+      de.dataset.prerender = "skip";
       try {
         var lang = localStorage.getItem("oraliq_lang") === "en" ? "en" : "ar";
-        document.documentElement.lang = lang;
-        document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+        de.lang = lang;
+        de.dir = lang === "ar" ? "rtl" : "ltr";
         var theme = localStorage.getItem("oraliq_theme");
-        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+        if (theme === "light" || theme === "dark") de.dataset.theme = theme;
+        var dark = theme === "dark" || (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        var still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (location.pathname === "/" && lang === "ar" && !dark && !still && !localStorage.getItem("token")) de.dataset.prerender = "hydrate";
       } catch (e) { }
       // Home page: start the hero photos (the largest paint) with the HTML, not after the JS
       if (location.pathname === "/") {

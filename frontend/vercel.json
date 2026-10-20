@@ -1,5 +1,5 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/app.html" }],
   "headers": [
     {
       "source": "/(.*)",
@@ -17,6 +17,10 @@
     },
     {
       "source": "/index.html",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
+    {
+      "source": "/app.html",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     }
   ]
