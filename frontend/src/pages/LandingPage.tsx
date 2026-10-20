@@ -47,35 +47,42 @@ export default function LandingPage() {
         <MotionConfig reducedMotion="user">
             <div className="min-h-dvh overflow-x-clip bg-paper text-ink">
                 <ScrollProgress />
+                <a
+                    href="#main"
+                    onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}
+                    className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-pen focus:px-4 focus:py-2 focus:text-pen-ink"
+                >
+                    {l("تخطَّ إلى المحتوى", "Skip to content")}
+                </a>
 
                 {/* Sticky bar over scrolling content: the one place glass belongs. avoid-ai-design-ignore: K3 */}
                 <header className={cn(
                     "sticky top-0 z-40 border-b backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-300",
                     scrolled ? "border-rule/70 bg-paper/85 shadow-[0_8px_30px_-18px_rgba(17,27,52,0.35)]" : "border-transparent bg-paper/40",
                 )}>
-                    <nav className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-6 px-4 sm:px-6" aria-label={l("الرئيسية", "Main")}>
-                        <Link to="/" aria-label="OralIQ"><Logo size={32} /></Link>
+                    <nav className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-3 px-4 sm:gap-6 sm:px-6" aria-label={l("الرئيسية", "Main")}>
+                        <Link to="/" aria-label="OralIQ"><Logo size={32} textClassName="max-[359px]:hidden" /></Link>
                         <ul className="hidden items-center gap-1 rounded-full border border-rule/70 bg-sheet/70 p-1 text-[0.9375rem] lg:flex">
                             {sections.map((s) => (
                                 <li key={s.href}><a href={s.href} className="block rounded-full px-4 py-1.5 text-ink-2 transition-colors hover:bg-paper hover:text-ink">{s.label}</a></li>
                             ))}
                         </ul>
                         <div className="ms-auto flex items-center gap-1">
-                            <LanguageToggle compact />
+                            <LanguageToggle compact labelClassName="max-sm:hidden" />
                             <ThemeToggle />
                             {loggedIn ? (
                                 <Link to="/dashboard" className="ms-2 inline-flex h-10 items-center whitespace-nowrap rounded-full bg-pen px-5 text-sm font-semibold text-pen-ink hover:bg-pen-hover">{l("لوحة التحكم", "Dashboard")}</Link>
                             ) : (
                                 <>
                                     <Link to="/login" viewTransition className="hidden h-10 items-center rounded-full px-4 text-sm font-semibold text-ink-2 hover:text-ink sm:inline-flex">{l("تسجيل الدخول", "Sign in")}</Link>
-                                    <Link to="/register" viewTransition className="ms-1 inline-flex h-10 items-center whitespace-nowrap rounded-full bg-pen px-5 text-sm font-semibold text-pen-ink hover:bg-pen-hover">{l("أنشئ حساب", "Create account")}</Link>
+                                    <Link to="/register" viewTransition className="ms-1 inline-flex h-10 items-center whitespace-nowrap rounded-full bg-pen px-4 text-sm sm:px-5 font-semibold text-pen-ink hover:bg-pen-hover">{l("أنشئ حساب", "Create account")}</Link>
                                 </>
                             )}
                         </div>
                     </nav>
                 </header>
 
-                <main>
+                <main id="main" tabIndex={-1} className="outline-none">
                     <HeroCollage startHref={startHref} />
                     <AboutOffer />
                     <VideoSection />
@@ -105,7 +112,7 @@ export default function LandingPage() {
                     <div className="border-t border-rule/70">
                         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-3 sm:px-6">
                             <p>© 2026 {COMPANY.name}</p>
-                            <a href={`mailto:${COMPANY.email}`} className="ltr hover:text-pen">{COMPANY.email}</a>
+                            <a href={`mailto:${COMPANY.email}`} className="ltr inline-block py-1 hover:text-pen">{COMPANY.email}</a>
                         </div>
                     </div>
                 </footer>

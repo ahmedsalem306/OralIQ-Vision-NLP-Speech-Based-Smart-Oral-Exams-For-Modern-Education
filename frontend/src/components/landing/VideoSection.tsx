@@ -54,7 +54,7 @@ export function VideoSection() {
                                     <Play className="relative size-8 fill-current" aria-hidden />
                                 </span>
                             </span>
-                            <span className="absolute start-4 top-4 rounded-full bg-sheet/95 px-4 py-1.5 text-sm font-semibold text-ink shadow-pop">{l("دقيقة واحدة", "One minute")}</span>
+                            <span className="absolute start-4 top-4 rounded-full max-sm:hidden bg-sheet/95 px-4 py-1.5 text-sm font-semibold text-ink shadow-pop">{l("دقيقة واحدة", "One minute")}</span>
                         </button>
                     )}
                 </div>

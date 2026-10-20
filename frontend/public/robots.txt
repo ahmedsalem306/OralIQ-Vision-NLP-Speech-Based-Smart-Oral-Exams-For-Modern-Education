@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+# Signed-in pages and personal exam links are private
+Disallow: /dashboard
+Disallow: /exam/

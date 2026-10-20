@@ -119,7 +119,7 @@ export default function MessagesPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Button onClick={() => start(a.exam_token!)}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
+                                        <Button onClick={() => start(a.exam_token!)} aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
                                         <button type="button" className={buttonClasses("ghost", "icon")} onClick={() => dismiss(a.exam_token!)} aria-label={l("إخفاء الدعوة", "Hide invite")} title={l("إخفاء", "Hide")}>
                                             <X className="size-4" aria-hidden />
                                         </button>

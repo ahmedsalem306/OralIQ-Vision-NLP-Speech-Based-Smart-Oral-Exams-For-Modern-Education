@@ -76,7 +76,7 @@ export function AboutOffer() {
                             <p className="mt-2 max-w-lg leading-relaxed text-ink-2">{l("امتحان شفوي لكل طلابك في نفس الوقت، وكل إجابة معاها نصها وتفاصيل درجتها وملاحظات النزاهة. تراجع وتنشر بضغطة.", "An oral exam for all your students at once; every answer comes with its transcript, grade breakdown and integrity notes. Review and publish in one click.")}</p>
                         </div>
                         <div className="mt-8 overflow-hidden px-8 sm:px-10">
-                            <img data-shot src="/screens/results.webp" alt={l("صفحة النتائج عند المحاضر", "The lecturer's results page")} width={1920} height={1200} loading="lazy" className="block w-full rounded-t-[18px] border border-b-0 border-rule shadow-float" />
+                            <img data-shot src="/screens/results.webp" srcSet="/screens/results-720.webp 720w, /screens/results-1280.webp 1280w, /screens/results.webp 1920w" sizes="(min-width: 1024px) 44rem, calc(100vw - 6rem)" alt={l("صفحة النتائج عند المحاضر", "The lecturer's results page")} width={1920} height={1200} loading="lazy" className="block w-full rounded-t-[18px] border border-b-0 border-rule shadow-float" />
                         </div>
                     </article>
 
@@ -88,7 +88,7 @@ export function AboutOffer() {
                         </div>
                         <div className="mt-8 flex flex-1 items-end justify-center overflow-hidden px-8">
                             <div data-shot className="w-[min(250px,80%)] rounded-t-[2.4rem] bg-[#0B1120] p-2 pb-0 shadow-float">
-                                <img src="/screens/exam-mobile.webp" alt={l("أوضة الامتحان على الموبايل", "The exam room on a phone")} width={780} height={1688} loading="lazy" className="block w-full rounded-t-[2rem]" />
+                                <img src="/screens/exam-mobile.webp" srcSet="/screens/exam-mobile-520.webp 520w, /screens/exam-mobile.webp 780w" sizes="250px" alt={l("أوضة الامتحان على الموبايل", "The exam room on a phone")} width={780} height={1688} loading="lazy" className="block w-full rounded-t-[2rem]" />
                             </div>
                         </div>
                     </article>

@@ -105,7 +105,7 @@ export default function AttendancePage() {
                 <Input icon={<Search />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={l("ابحث باسم الطالب", "Search by student")} aria-label={l("بحث", "Search")} className="lg:w-72" />
             </div>
 
-            <Panel className="overflow-x-auto">
+            <Panel className="@container overflow-x-auto">
                 {loading ? (
                     <ListSkeleton rows={5} />
                 ) : visible.length === 0 ? (
@@ -116,8 +116,8 @@ export default function AttendancePage() {
                     />
                 ) : (
                     <>
-                    {/* Phones: one ruled row per student — no sideways scrolling */}
-                    <ul className="divide-y divide-rule md:hidden">
+                    {/* Narrow panels: one ruled row per student, no sideways scrolling */}
+                    <ul className="divide-y divide-rule @3xl:hidden">
                         {visible.map((r) => {
                             const done = r.status === "completed";
                             return (
@@ -139,7 +139,7 @@ export default function AttendancePage() {
                             );
                         })}
                     </ul>
-                    <table className="hidden w-full min-w-[720px] text-sm md:table">
+                    <table className="hidden w-full min-w-[720px] text-sm @3xl:table">
                         <thead className="bg-sheet-2 text-ink-2">
                             <tr>
                                 <th scope="col" className="px-5 py-2.5 text-start font-medium">{l("الطالب", "Student")}</th>

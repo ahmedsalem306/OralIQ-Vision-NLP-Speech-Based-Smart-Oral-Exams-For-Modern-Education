@@ -24,10 +24,10 @@ export function JoinYourPlatform() {
     const paused = held || !inView;
 
     const items = [
-        { img: "/photos/graduate-800.webp", title: l("الجامعات", "Universities"), body: l("الامتحان الشفوي جوّه بوابة الجامعة، لكل الكليات والأقسام.", "Oral exams inside the university portal, for every faculty.") },
-        { img: "/photos/friends-reading.webp", title: l("المدارس", "Schools"), body: l("تقييم شفوي سهل على الطلبة، والمدرس بيتابع الدرجات من مكانه.", "Spoken assessment pupils find easy; teachers follow grades in one place.") },
-        { img: "/photos/lecturer-desk.webp", title: l("السناتر ومراكز التدريب", "Centres and training providers"), body: l("اختبارات شفوية للمجموعات الكبيرة من غير ما تسمع كل تسجيل بنفسك.", "Oral tests for large groups without listening to every recording.") },
-        { img: "/photos/study-cafe.webp", title: l("المنصات التعليمية", "Learning platforms"), body: l("ميزة امتحان شفوي جاهزة جوّه منصتك، بشكلها وتحت اسمك.", "A ready oral-exam feature inside your platform, in its look and name.") },
+        { img: "/photos/graduate-800.webp", srcSet: "/photos/graduate-800.webp 800w, /photos/graduate.webp 1200w", title: l("الجامعات", "Universities"), body: l("الامتحان الشفوي جوّه بوابة الجامعة، لكل الكليات والأقسام.", "Oral exams inside the university portal, for every faculty.") },
+        { img: "/photos/friends-reading.webp", srcSet: "/photos/friends-reading-480.webp 480w, /photos/friends-reading.webp 800w", title: l("المدارس", "Schools"), body: l("تقييم شفوي سهل على الطلبة، والمدرس بيتابع الدرجات من مكانه.", "Spoken assessment pupils find easy; teachers follow grades in one place.") },
+        { img: "/photos/lecturer-desk.webp", srcSet: "/photos/lecturer-desk-640.webp 640w, /photos/lecturer-desk.webp 1200w", title: l("السناتر ومراكز التدريب", "Centres and training providers"), body: l("اختبارات شفوية للمجموعات الكبيرة من غير ما تسمع كل تسجيل بنفسك.", "Oral tests for large groups without listening to every recording.") },
+        { img: "/photos/study-cafe.webp", srcSet: "/photos/study-cafe-800.webp 800w, /photos/study-cafe.webp 1200w", title: l("المنصات التعليمية", "Learning platforms"), body: l("ميزة امتحان شفوي جاهزة جوّه منصتك، بشكلها وتحت اسمك.", "A ready oral-exam feature inside your platform, in its look and name.") },
     ];
     const count = items.length;
     const go = useCallback((i: number) => setPair(([cur]) => [((i % count) + count) % count, cur]), [count]);
@@ -110,7 +110,7 @@ export function JoinYourPlatform() {
                                     aria-hidden={i !== index}
                                     className={cn("absolute inset-0 overflow-hidden rounded-[28px]", i === index ? "z-10" : i === prevIndex ? "z-0" : "invisible")}
                                 >
-                                    <img src={it.img} alt="" loading="lazy" className="size-full object-cover" />
+                                    <img src={it.img} srcSet={it.srcSet} sizes="(min-width: 1024px) 44rem, calc(100vw - 2rem)" alt="" loading="lazy" className="size-full object-cover" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-ink/30 to-transparent" aria-hidden />
                                 </figure>
                             ))}

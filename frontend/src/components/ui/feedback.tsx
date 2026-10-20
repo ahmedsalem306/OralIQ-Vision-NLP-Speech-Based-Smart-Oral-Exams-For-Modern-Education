@@ -187,9 +187,23 @@ interface SegmentedProps<T extends string> {
 
 export function Segmented<T extends string>({ value, onChange, options, label, className }: SegmentedProps<T>) {
     const pillId = React.useId();
+    const group = React.useRef<HTMLDivElement>(null);
+    // A radio group is one tab stop; arrows move the choice (left is "next" in Arabic)
+    const onKeyDown = (e: React.KeyboardEvent) => {
+        const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+        const step = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1, ArrowDown: 1, ArrowUp: -1 }[e.key];
+        const at = options.findIndex((o) => o.value === value);
+        const next = e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : step != null ? (at + step + options.length) % options.length : -1;
+        if (next < 0) return;
+        e.preventDefault();
+        onChange(options[next].value);
+        const btn = group.current?.querySelectorAll<HTMLButtonElement>("[role=radio]")[next];
+        btn?.focus();
+        btn?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    };
     return (
-        <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-1 [scrollbar-width:none]", className)}>
-            {options.map((o) => {
+        <div ref={group} role="radiogroup" aria-label={label} onKeyDown={onKeyDown} className={cn("inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-rule bg-sheet-2 p-1 [scrollbar-width:none]", className)}>
+            {options.map((o, i) => {
                 const active = o.value === value;
                 return (
                     <button
@@ -197,9 +211,10 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
                         type="button"
                         role="radio"
                         aria-checked={active}
+                        tabIndex={active || (i === 0 && !options.some((x) => x.value === value)) ? 0 : -1}
                         onClick={() => onChange(o.value)}
                         className={cn(
-                            "relative shrink-0 whitespace-nowrap rounded-[7px] px-3 py-1.5 text-sm font-semibold transition-colors",
+                            "relative shrink-0 whitespace-nowrap rounded-[7px] px-2 py-1.5 text-[0.8125rem] font-semibold transition-colors sm:px-3 sm:text-sm",
                             active ? "text-ink" : "text-ink-2 hover:text-ink",
                         )}
                     >

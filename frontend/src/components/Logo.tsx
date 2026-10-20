@@ -21,14 +21,16 @@ interface LogoProps {
     className?: string;
     /** For navy / photo backgrounds. */
     light?: boolean;
+    /** Extra classes for the wordmark, e.g. to drop it on the narrowest screens. */
+    textClassName?: string;
 }
 
-export default function Logo({ size = 32, showText = true, className, light = false }: LogoProps) {
+export default function Logo({ size = 32, showText = true, className, light = false, textClassName }: LogoProps) {
     return (
         <span className={cn("inline-flex shrink-0 items-center gap-2", className)} dir="ltr">
             <LogoMark size={size} light={light} />
             {showText && (
-                <span className={cn("font-display font-bold tracking-tight", light ? "text-white" : "text-ink")} style={{ fontSize: size * 0.62 }}>
+                <span className={cn("font-display font-bold tracking-tight", light ? "text-white" : "text-ink", textClassName)} style={{ fontSize: size * 0.62 }}>
                     Oral<span className={light ? "text-[#9DB2FF]" : "text-pen"}>IQ</span>
                 </span>
             )}

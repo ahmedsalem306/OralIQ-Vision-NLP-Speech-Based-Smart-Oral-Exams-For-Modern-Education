@@ -88,18 +88,19 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
                     <div
                         key={i}
                         className={cn(
-                            "rounded-[var(--radius-panel)] border border-rule/80 bg-sheet p-4 shadow-card sm:p-5",
+                            "@container rounded-[var(--radius-panel)] border border-rule/80 bg-sheet p-4 shadow-card sm:p-5",
                             items.length % 2 === 1 && i === items.length - 1 && "col-span-2 lg:col-span-1",
                         )}
                     >
-                        <div className="flex items-start justify-between gap-3">
-                            <dt className="text-sm font-medium text-ink-2">{item.label}</dt>
+                        <dt className="flex items-start justify-between gap-3 text-sm font-medium text-ink-2">
+                            <span>{item.label}</span>
+                            {/* A narrow card gives its width to the label instead of the icon */}
                             {Icon && (
-                                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl [&>svg]:size-[18px]", toneChip[item.tone ?? "pen"])} aria-hidden>
+                                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl @max-[10.5rem]:hidden [&>svg]:size-[18px]", toneChip[item.tone ?? "pen"])} aria-hidden>
                                     <Icon />
                                 </span>
                             )}
-                        </div>
+                        </dt>
                         <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink"><AnimatedValue value={item.value} /></dd>
                         {item.hint && <dd className="mt-2 text-xs text-ink-3">{item.hint}</dd>}
                     </div>

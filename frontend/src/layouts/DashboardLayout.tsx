@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
     Award, BarChart3, CalendarCheck, ClipboardList, EyeOff, Inbox, Languages, LayoutDashboard, LogOut, Menu, Moon, Plus, Search, Settings, ShieldAlert, TrendingUp, Users, X,
@@ -52,6 +52,23 @@ export function DashboardLayout() {
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [isOpen]);
+
+    // Focus moves into the drawer when it opens and back to the menu button when it closes;
+    // widening to the desktop layout closes it so the page behind never stays inert.
+    const menuButton = useRef<HTMLButtonElement>(null);
+    const closeButton = useRef<HTMLButtonElement>(null);
+    const wasOpen = useRef(false);
+    useEffect(() => {
+        if (isOpen) closeButton.current?.focus();
+        else if (wasOpen.current && window.matchMedia("(max-width: 767.98px)").matches) menuButton.current?.focus();
+        wasOpen.current = isOpen;
+    }, [isOpen]);
+    useEffect(() => {
+        const desktop = window.matchMedia("(min-width: 768px)");
+        const onChange = () => { if (desktop.matches) setIsOpen(false); };
+        desktop.addEventListener("change", onChange);
+        return () => desktop.removeEventListener("change", onChange);
+    }, []);
 
     const handleLogout = () => { localStorage.removeItem("token"); navigate("/login"); };
 
@@ -116,14 +133,17 @@ export function DashboardLayout() {
                 id="sidebar"
                 className={cn(
                     "fixed inset-y-0 start-0 z-50 flex w-[17rem] shrink-0 flex-col border-e border-rail-line bg-rail text-rail-ink",
-                    "transition-transform duration-200 ease-out md:sticky md:top-0 md:h-dvh",
-                    !isOpen && "max-md:ltr:-translate-x-full max-md:rtl:translate-x-full",
+                    "duration-200 ease-out md:sticky md:top-0 md:h-dvh",
+                    // Closed on a phone: off screen and out of the tab order and the accessibility tree.
+                    // Opening shows it at once (so focus can land in it); closing hides it after the slide.
+                    isOpen ? "transition-transform" : "transition-[transform,visibility] max-md:invisible max-md:ltr:-translate-x-full max-md:rtl:translate-x-full",
                 )}
                 aria-label={l("القائمة الرئيسية", "Main menu")}
             >
                 <div className="flex h-[4.5rem] shrink-0 items-center justify-between px-5">
                     <Link to="/dashboard" aria-label="OralIQ"><Logo size={32} /></Link>
                     <button
+                        ref={closeButton}
                         type="button"
                         className={cn(buttonClasses("ghost", "icon-sm", "text-rail-muted hover:bg-rail-hover hover:text-rail-ink"), "md:hidden")}
                         onClick={() => setIsOpen(false)}
@@ -188,11 +208,12 @@ export function DashboardLayout() {
             {user && <CommandPalette commands={commands} open={paletteOpen} onOpenChange={setPaletteOpen} />}
 
             {/* ── Main ── */}
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col" inert={isOpen}>
                 {/* Mobile top bar */}
                 {/* Sticky bar over scrolling content: the one place glass belongs. avoid-ai-design-ignore: K3 */}
                 <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-rule bg-paper/90 px-4 backdrop-blur md:hidden">
                     <button
+                        ref={menuButton}
                         type="button"
                         className={buttonClasses("ghost", "icon-sm")}
                         onClick={() => setIsOpen(true)}

@@ -68,6 +68,8 @@ Dark mode redefines every token; components only reference tokens.
 ## Layout
 
 - Arabic first: use logical properties (`ms-`, `pe-`, `start-`, `end-`) everywhere; mirror photos for LTR only when a composition depends on direction.
+- App lists that become tables (results, attendance) switch on the panel's own width with a container query (`@container` + `@3xl:`), never on the screen width: beside the sidebar a tablet screen leaves only ~470px. Stat cards drop their icon when the card itself is narrow.
+- Every page is checked at 320 / 360 / 414 / 768 / 1024 / 1280 / 1920 in both languages and both themes; nothing may be clipped by `overflow-x-clip` (the landing header drops the wordmark below 360px).
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
 - Home page order (the owner's, fixed): 1 hero, 2 who we are + what we offer (with the four steps), 3 explainer video, 4 our clients, 5 we join your platform, 6 contact, then the footer.
 - The hero is a light stage: the headline alone in the middle, with student photos and small product pieces (grade, identity check, recording, published grade) floating around it on desktop; a small still collage under the words on phones.
@@ -106,6 +108,14 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - Motion that answers an action is welcome: drawer slide, toast, the drawn check after submitting.
 - Everything respects reduced motion (`MotionConfig reducedMotion="user"` plus the CSS media query).
 - Nothing decorative moves in the exam room while the camera is proctoring; only the timer, the recording dot and the microphone level.
+
+## Accessibility & Performance
+
+- WCAG 2.2 AA: axe-core reports zero violations on every page in both themes; keep it that way. Description lists hold `dt`/`dd` directly inside each item `div`; a button's accessible name contains its visible words (2.5.3).
+- Keyboard: both layouts start with a skip link to `#main`. The phone drawer is `invisible` when closed, takes focus when it opens, makes the page behind `inert`, and returns focus to the menu button. `Segmented` is one tab stop; arrows move the choice (left is "next" in Arabic).
+- Google Fonts load without blocking the first paint (preload + `media="print"` swap in `index.html`). The home hero's two photos are preloaded from `index.html` on `/` only, with `fetchpriority="high"`.
+- Screenshots and large photos ship with `srcSet`/`sizes`; add a smaller file next to any new large image.
+- `public/robots.txt` keeps `/dashboard` and `/exam/` (private exam links) out of search.
 
 ## Do's and Don'ts
 

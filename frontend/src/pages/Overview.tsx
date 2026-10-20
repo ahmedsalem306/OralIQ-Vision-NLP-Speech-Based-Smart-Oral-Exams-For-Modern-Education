@@ -370,6 +370,7 @@ export default function Overview() {
                                     </div>
                                     <Button
                                         onClick={() => startExam(a.exam_token)}
+                                        aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}
                                         disabled={!ready}
                                         title={!ready ? l("سجّل وجهك وصوتك أولاً", "Register your face and voice first") : undefined}
                                         className="sm:w-auto"

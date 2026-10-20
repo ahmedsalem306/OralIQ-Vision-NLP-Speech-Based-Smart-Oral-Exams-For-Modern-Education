@@ -9,8 +9,8 @@ import { gsap, useGSAP, withMotion } from "../../lib/gsap";
 
 /* ── The pieces that float around the headline ─────────────────────────── */
 
-function Photo({ src, alt = "", className }: { src: string; alt?: string; className?: string }) {
-    return <img src={src} alt={alt} loading="eager" className={cn("block size-full rounded-[22px] object-cover shadow-float ring-4 ring-sheet", className)} />;
+function Photo({ src, alt = "", className, priority = false }: { src: string; alt?: string; className?: string; priority?: boolean }) {
+    return <img src={src} alt={alt} loading="eager" fetchPriority={priority ? "high" : undefined} className={cn("block size-full rounded-[22px] object-cover shadow-float ring-4 ring-sheet", className)} />;
 }
 
 function GradeCard() {
@@ -178,8 +178,8 @@ export function HeroCollage({ startHref }: { startHref: string }) {
 
             {/* Phones and tablets: a small still collage under the words */}
             <div className="relative mx-auto mb-14 h-64 max-w-sm px-4 lg:hidden" aria-hidden>
-                <div className="absolute start-4 top-2 h-52 w-40 -rotate-6"><Photo src="/photos/friends-reading-480.webp" /></div>
-                <div className="absolute end-4 top-8 h-52 w-40 rotate-[5deg]"><Photo src="/photos/student-relaxed-480.webp" /></div>
+                <div className="absolute start-4 top-2 h-52 w-40 -rotate-6"><Photo src="/photos/friends-reading-480.webp" priority /></div>
+                <div className="absolute end-4 top-8 h-52 w-40 rotate-[5deg]"><Photo src="/photos/student-relaxed-480.webp" priority /></div>
                 <div className="absolute bottom-0 left-1/2 w-56 -translate-x-1/2"><GradeCard /></div>
             </div>
         </section>

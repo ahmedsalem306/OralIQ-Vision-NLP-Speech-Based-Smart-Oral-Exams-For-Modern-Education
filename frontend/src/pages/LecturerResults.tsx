@@ -219,7 +219,7 @@ export default function LecturerResults() {
                 </div>
             </div>
 
-            <Panel className="overflow-hidden">
+            <Panel className="@container overflow-hidden">
                 {loading ? (
                     <ListSkeleton rows={6} />
                 ) : visible.length === 0 ? (
@@ -235,7 +235,7 @@ export default function LecturerResults() {
                     />
                 ) : (
                     <>
-                        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] gap-4 border-b border-rule bg-sheet-2 px-5 py-2.5 text-sm font-medium text-ink-2 md:grid">
+                        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] gap-4 border-b border-rule bg-sheet-2 px-5 py-2.5 text-sm font-medium text-ink-2 @3xl:grid">
                             <span>{l("الطالب", "Student")}</span>
                             <span>{l("السؤال", "Question")}</span>
                             <span>{l("التاريخ", "Date")}</span>
@@ -251,28 +251,28 @@ export default function LecturerResults() {
                                         <button
                                             type="button"
                                             onClick={() => setParam("open", String(r.id))}
-                                            className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-5 py-3.5 text-start md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] md:gap-4"
-                                            aria-label={l(`فتح إجابة ${r.student_name}`, `Open ${r.student_name}'s answer`)}
+                                            className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-5 py-3.5 text-start @3xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] @3xl:gap-4"
+                                            aria-haspopup="dialog"
                                         >
-                                            <span className="flex min-w-0 items-center gap-3 max-md:contents">
+                                            <span className="flex min-w-0 items-center gap-3 @max-3xl:contents">
                                                 <Avatar name={r.student_name} size="sm" />
                                                 <span className="min-w-0">
                                                     <span className="block truncate font-semibold">{r.student_name}</span>
                                                     <span className="block text-xs text-ink-3 tabular ltr">{r.student_number}</span>
                                                 </span>
                                             </span>
-                                            <span className="truncate text-sm text-ink-2 max-md:col-span-3 max-md:col-start-2 max-md:row-start-2">{r.question_text || "—"}</span>
-                                            <span className="hidden text-sm text-ink-2 md:block">{formatDate(r.submitted_at, lang)}</span>
-                                            <span className="flex items-center gap-2 max-md:col-start-3 max-md:row-start-1">
+                                            <span className="truncate text-sm text-ink-2 @max-3xl:col-span-3 @max-3xl:col-start-2 @max-3xl:row-start-2">{r.question_text || "—"}</span>
+                                            <span className="hidden text-sm text-ink-2 @3xl:block">{formatDate(r.submitted_at, lang)}</span>
+                                            <span className="flex items-center gap-2 @max-3xl:col-start-3 @max-3xl:row-start-1">
                                                 <ScoreMark score={r.overall_score} size="sm" plain className="w-auto" />
                                             </span>
-                                            {/* Mobile: status under the question line */}
-                                            <span className="col-span-2 col-start-2 row-start-3 flex flex-wrap gap-1.5 md:hidden">
+                                            {/* Narrow panel: status under the question line */}
+                                            <span className="col-span-2 col-start-2 row-start-3 flex flex-wrap gap-1.5 @3xl:hidden">
                                                 {flagged && <Badge tone="warn">{l("مراجعة", "Review")}</Badge>}
                                                 {g && !flagged && <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge>}
                                                 {r.grade_visible ? <Badge tone="pass">{l("منشورة", "Published")}</Badge> : null}
                                             </span>
-                                            <span className="hidden flex-wrap gap-1.5 md:flex">
+                                            <span className="hidden flex-wrap gap-1.5 @3xl:flex">
                                                 {flagged && <Badge tone="warn">{l("مراجعة", "Review")}</Badge>}
                                                 {g && !flagged && <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge>}
                                                 {r.grade_visible ? <Badge tone="pass">{l("منشورة", "Published")}</Badge> : null}

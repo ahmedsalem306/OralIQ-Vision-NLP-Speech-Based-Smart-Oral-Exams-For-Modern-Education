@@ -3,7 +3,7 @@ import { useI18n } from "../i18n";
 import { useTheme } from "../lib/theme";
 import { buttonClasses } from "./ui/button";
 
-export default function LanguageToggle({ compact = false, className }: { compact?: boolean; className?: string }) {
+export default function LanguageToggle({ compact = false, className, labelClassName }: { compact?: boolean; className?: string; labelClassName?: string }) {
     const { lang, toggleLang } = useI18n();
     const next = lang === "ar" ? "English" : "العربية";
     return (
@@ -15,7 +15,7 @@ export default function LanguageToggle({ compact = false, className }: { compact
             className={buttonClasses("ghost", compact ? "sm" : "md", className)}
         >
             <Languages className="size-4" aria-hidden />
-            {next}
+            <span className={labelClassName}>{next}</span>
         </button>
     );
 }

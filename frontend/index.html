@@ -23,9 +23,10 @@
   <meta name="twitter:image" content="https://oral-iq-vision-nlp-speech-based-sma.vercel.app/og.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
-    rel="stylesheet" />
+  <!-- Google Fonts without blocking the first paint: fetched early, applied when it arrives -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" /></noscript>
   <script>
     // Apply saved language + theme before first paint to avoid a flash.
     (function () {
@@ -36,6 +37,14 @@
         var theme = localStorage.getItem("oraliq_theme");
         if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
       } catch (e) { }
+      // Home page: start the hero photos (the largest paint) with the HTML, not after the JS
+      if (location.pathname === "/") {
+        ["/photos/student-relaxed-480.webp", "/photos/friends-reading-480.webp"].forEach(function (href) {
+          var link = document.createElement("link");
+          link.rel = "preload"; link.as = "image"; link.href = href; link.setAttribute("fetchpriority", "high");
+          document.head.appendChild(link);
+        });
+      }
     })();
   </script>
 </head>

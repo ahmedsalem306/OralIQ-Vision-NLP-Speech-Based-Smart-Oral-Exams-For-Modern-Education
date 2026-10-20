@@ -27,12 +27,12 @@ export function AuthShell({ children, scene = "signin" }: { children: React.Reac
         <div className="grid min-h-dvh bg-paper lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
             {/* Form side */}
             <div className="flex flex-col px-5 py-6 sm:px-10">
-                <div className="flex items-center justify-between">
+                <header className="flex items-center justify-between">
                     <Link to="/" aria-label="OralIQ"><Logo size={30} /></Link>
                     <div className="flex items-center gap-1"><LanguageToggle compact /><ThemeToggle /></div>
-                </div>
+                </header>
                 <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">{children}</main>
-                <p className="text-center text-xs text-ink-3">© 2026 {COMPANY.name}</p>
+                <footer className="text-center text-xs text-ink-3">© 2026 {COMPANY.name}</footer>
             </div>
 
             {/* Brand side — a real moment (student answering), with the product floating on top */}

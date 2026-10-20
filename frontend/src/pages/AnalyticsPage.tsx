@@ -150,14 +150,12 @@ export default function AnalyticsPage() {
                         <PanelHeader title={l("متوسط كل عنصر", "Average by component")} description={l("أي جزء من الدرجة بيشد المتوسط لتحت", "Which part of the grade pulls the average down")} />
                         <dl className="grid gap-5 p-5 sm:grid-cols-3">
                             {components.map((c) => (
-                                <div key={c.label}>
-                                    <div className="flex items-baseline justify-between">
-                                        <dt className="font-semibold">{c.label}</dt>
-                                        <dd className="font-display text-lg font-semibold">{c.value != null ? `${Math.round(c.value)}%` : "—"}</dd>
-                                    </div>
-                                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-pen-wash" aria-hidden>
+                                <div key={c.label} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-y-2">
+                                    <dt className="font-semibold">{c.label}</dt>
+                                    <dd className="font-display text-lg font-semibold">{c.value != null ? `${Math.round(c.value)}%` : "—"}</dd>
+                                    <dd className="col-span-2 h-1.5 overflow-hidden rounded-full bg-pen-wash" aria-hidden>
                                         <div className={cn("h-full rounded-full", c.value != null && c.value < 50 ? "bg-mark" : "bg-chart")} style={{ width: `${Math.min(100, c.value ?? 0)}%` }} />
-                                    </div>
+                                    </dd>
                                 </div>
                             ))}
                         </dl>
