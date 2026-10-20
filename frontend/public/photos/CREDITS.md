@@ -18,3 +18,4 @@ Credited here anyway, as good practice.
 | student-waving.webp | Windows | https://unsplash.com/photos/6G6akT8biLg |
 
 The newer photos share one light warm colour grade so the set reads as one.
+The explainer video (`/media/oraliq-demo.mp4`) is a screen recording of the app with demo data; the student's face in it is the chip-smile photo.

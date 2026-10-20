@@ -61,7 +61,6 @@ Dark mode redefines every token; components only reference tokens.
 ## Typography
 
 - **Alexandria** for headings and numbers (display), **IBM Plex Sans Arabic** for body. Both handle Arabic and Latin.
-- **Kufam** (`font-hero`) only in the home hero: the giant words and the hero headline. Its long horizontal Kufi strokes give the one loud moment its own voice. Nowhere else.
 - Headings: 30px mobile, about 42px desktop for section titles. The home hero's giant words are the one loud moment.
 - Numbers that line up (scores, tables) use `.tabular`.
 - Latin strings inside Arabic (emails, IDs) use `.ltr`.
@@ -70,7 +69,9 @@ Dark mode redefines every token; components only reference tokens.
 
 - Arabic first: use logical properties (`ms-`, `pe-`, `start-`, `end-`) everywhere; mirror photos for LTR only when a composition depends on direction.
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
-- Home page order: hero, how it works, the answer sheet, the grading formula, features, the old way against OralIQ with who it is for, clients, the two ways to work with us (platform or inside the client's site), FAQ, contact, closing call to action, footer.
+- Home page order (the owner's, fixed): 1 hero, 2 who we are + what we offer (with the four steps), 3 explainer video, 4 our clients, 5 we join your platform, 6 contact, then the footer.
+- The hero is a light stage: the headline alone in the middle, with student photos and small product pieces (grade, identity check, recording, published grade) floating around it on desktop; a small still collage under the words on phones.
+- References from the owner (e.g. their Pinterest board of websites) are read as a whole for taste: light, airy, rounded, real product and real people. Never clone one design.
 - The clients section is titled "عملاؤنا" only (no claims about what kind of institutions) and its logos move in one band. Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
 
 ## Elevation & Depth
@@ -98,8 +99,10 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 
 ## Motion
 
-- One easing (`EASE` in `src/components/motion.tsx`), durations of 150-300ms for interface feedback.
-- One orchestrated entrance per page (the home hero) and at most one scroll-linked moment per section (the product shot straightening, the steps line filling). No fade-up on every section.
+- **Lenis** smooth scrolling site-wide (`components/SmoothScroll.tsx`, loaded after first paint, off for reduced motion, never inside dialogs).
+- **GSAP + ScrollTrigger** for the home page scenes only (`lib/gsap.ts`, always inside `withMotion`): hero pieces coming out and drifting at their own speeds, cards rising, screenshots drifting, the video growing, the photo wipe in section 5.
+- **Motion** (`motion/react`) for app interface feedback, with one easing (`EASE`) and 150-300ms durations.
+- Never split Arabic text into letters for animation; animate whole lines.
 - Motion that answers an action is welcome: drawer slide, toast, the drawn check after submitting.
 - Everything respects reduced motion (`MotionConfig reducedMotion="user"` plus the CSS media query).
 - Nothing decorative moves in the exam room while the camera is proctoring; only the timer, the recording dot and the microphone level.
@@ -109,5 +112,6 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - Do reuse the tokens, nav, footer and primitives above on every page, unchanged.
 - Do add a token to `index.css` and to this file before a page needs a new colour or size.
 - Do keep student-facing language encouraging and specific ("رجّع عينك للشاشة", not "نظرت لليسار").
-- Don't change: Alexandria + IBM Plex Sans Arabic, Kufam in the hero, the pen-blue / red-pen pair, the home hero composition (the owner's reference).
+- Don't change: Alexandria + IBM Plex Sans Arabic, the warm light palette with pen blue and the red pen, the home section order.
+- The explainer video is `public/media/oraliq-demo.mp4` with `oraliq-demo-poster.webp`; it is a screen recording of the app with demo data. Replace both files to update it.
 - Don't use: purple-to-blue gradients or gradient headline text; one accented word in a headline (SD5); eyebrow labels with hairlines above every heading (SD4); middle-dot meta strings (SD4d); decorative 01 / 02 / 03 numbering outside real sequences (SD6); fake browser chrome around screenshots (SD7); icons in tinted rounded squares as the default feature treatment (K6); mouse-following spotlights and 3D tilt cards (K10); count-up animations outside live dashboard figures (M5); cream with terracotta or near-black with acid green as an "escape" palette (SD1, SD2).

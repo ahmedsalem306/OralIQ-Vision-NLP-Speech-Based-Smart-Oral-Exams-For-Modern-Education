@@ -26,7 +26,7 @@ export function ClientsStrip() {
         <ul aria-hidden={hidden || undefined} className="flex shrink-0 items-center gap-14 pe-14">
             {preview
                 ? Array.from({ length: SLOTS }).map((_, i) => (
-                    <li key={i} className="flex h-16 w-40 items-center justify-center rounded-xl border border-dashed border-rule-strong text-sm font-semibold text-ink-3">
+                    <li key={i} className="flex h-16 w-40 items-center justify-center rounded-[20px] bg-sheet border border-dashed border-rule-strong text-sm font-semibold text-ink-3">
                         {l("شعار العميل", "Client logo")}
                     </li>
                 ))
@@ -35,8 +35,8 @@ export function ClientsStrip() {
     );
 
     return (
-        <section aria-labelledby="clients-title" className="py-20">
-            <h2 id="clients-title" className="text-center text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">{l("عملاؤنا", "Our clients")}</h2>
+        <section id="clients" aria-labelledby="clients-title" className="scroll-mt-20 border-t border-rule/70 py-24">
+            <h2 id="clients-title" className="text-center text-[clamp(2rem,4vw,3.25rem)] font-bold leading-tight tracking-tight">{l("عملاؤنا", "Our clients")}</h2>
 
             {preview && (
                 <p className="mx-auto mt-3 max-w-md px-4 text-center text-sm text-warn">
