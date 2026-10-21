@@ -48,8 +48,8 @@
       // Home page: start the hero photo (the largest paint) with the HTML, not after the JS
       if (location.pathname === "/") {
         var link = document.createElement("link");
-        link.rel = "preload"; link.as = "image"; link.href = "/photos/hero-student-1280.webp";
-        link.setAttribute("imagesrcset", "/photos/hero-student-640.webp 640w, /photos/hero-student-960.webp 960w, /photos/hero-student-1280.webp 1280w, /photos/hero-student-1600.webp 1600w");
+        link.rel = "preload"; link.as = "image"; link.href = "/photos/hero-steps-1280.webp";
+        link.setAttribute("imagesrcset", "/photos/hero-steps-640.webp 640w, /photos/hero-steps-960.webp 960w, /photos/hero-steps-1280.webp 1280w, /photos/hero-steps-1600.webp 1600w");
         link.setAttribute("imagesizes", "(min-width: 1024px) 60vw, 100vw");
         link.setAttribute("fetchpriority", "high");
         document.head.appendChild(link);

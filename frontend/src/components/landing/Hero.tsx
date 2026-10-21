@@ -2,22 +2,26 @@ import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
 import { useI18n } from "../../i18n";
+import { cn } from "../../lib/utils";
 import { gsap, useGSAP, withMotion } from "../../lib/gsap";
 
-/** Hero photos, graded to match the set (public/photos/CREDITS.md). */
+/**
+ * Hero photos, graded to match the set (public/photos/CREDITS.md). `mirror` flips the photo in one
+ * reading direction so the student always faces the words.
+ */
 const PHOTOS = {
-    student: { base: "/photos/hero-student", width: 1600, height: 1507, position: "50% 22%" },
-    cafe: { base: "/photos/hero-cafe", width: 1600, height: 1404, position: "50% 50%" },
+    steps: { base: "/photos/hero-steps", width: 1600, height: 1455, position: "50% 20%", mirror: "" },
+    desk: { base: "/photos/hero-desk", width: 1600, height: 1451, position: "50% 50%", mirror: "rtl:-scale-x-100" },
 };
 
-// Preview only: /?cafe on the dev server shows the second photo for comparison
+// Preview only: /?desk on the dev server shows the second photo for comparison
 function pickPhoto() {
-    if (import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("cafe")) return PHOTOS.cafe;
-    return PHOTOS.student;
+    if (import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("desk")) return PHOTOS.desk;
+    return PHOTOS.steps;
 }
 
 /**
- * 1. Hero. One photo of a student at a laptop, the headline and the two actions. On wide
+ * 1. Hero. One photo of a student with a laptop, the headline and the two actions. On wide
  * screens the photo fills the end side of the stage and fades into the paper under the words;
  * on phones it sits on top and fades into them from below.
  */
@@ -41,8 +45,7 @@ export function Hero({ startHref }: { startHref: string }) {
 
     return (
         <section ref={root} className="relative isolate overflow-hidden">
-            {/* The photo: the end side of the stage from 1024px, the top of it below that.
-                Mirrored in English so the student still faces the words. */}
+            {/* The photo: the end side of the stage from 1024px, the top of it below that */}
             <div className="relative h-[min(72vw,24rem)] sm:h-[28rem] lg:absolute lg:inset-y-0 lg:end-0 lg:h-auto lg:w-[60%]">
                 <img
                     src={`${photo.base}-1280.webp`}
@@ -54,7 +57,7 @@ export function Hero({ startHref }: { startHref: string }) {
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
-                    className="size-full object-cover ltr:-scale-x-100"
+                    className={cn("size-full object-cover", photo.mirror)}
                     style={{ objectPosition: photo.position }}
                 />
                 {/* Fade into the paper: from below on phones, from the words' side on wide screens */}
