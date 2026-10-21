@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
-# Signed-in pages and personal exam links are private
+# Signed-in pages hold nothing for search engines
 Disallow: /dashboard
-Disallow: /exam/
+# Exam links carry their token in the URL. They are answered with "X-Robots-Tag: noindex"
+# (vercel.json); they are not blocked here, because a blocked URL can still be indexed from
+# a public link and a crawler that may not fetch it never sees the noindex.
