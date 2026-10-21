@@ -9,7 +9,7 @@ import { ScrollProgress } from "../components/motion";
 import { usePageTitle } from "../lib/usePageTitle";
 import { COMPANY } from "../content/company";
 import { CLIENTS } from "../content/clients";
-import { HeroCollage } from "../components/landing/HeroCollage";
+import { Hero } from "../components/landing/Hero";
 import { AboutOffer } from "../components/landing/AboutOffer";
 import { VideoSection } from "../components/landing/VideoSection";
 import { ClientsStrip } from "../components/landing/ClientsStrip";
@@ -21,7 +21,7 @@ import { LandingMenu } from "../components/landing/LandingMenu";
 // the header and footer align to the content grid. avoid-ai-design-ignore-file: L6
 /**
  * Home page, in the owner's order:
- * 1 hero (agreed with the owner on 2026-10-20; keep it as it is), 2 who we are + what we offer
+ * 1 hero (one photo, the headline and two actions; the owner's call on 2026-10-22), 2 who we are + what we offer
  * (about beside the live answer sheet, marking scheme, results screen, student side, steps),
  * 3 explainer video, 4 our clients, 5 we join your platform, 6 contact.
  */
@@ -86,7 +86,7 @@ export default function LandingPage() {
                 </header>
 
                 <main id="main" tabIndex={-1} className="outline-none">
-                    <HeroCollage startHref={startHref} />
+                    <Hero startHref={startHref} />
                     <AboutOffer />
                     <div className="border-t border-rule/70"><VideoSection /></div>
                     <ClientsStrip />
@@ -98,7 +98,7 @@ export default function LandingPage() {
                     <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.6fr_1fr_1fr]">
                         <div className="col-span-2 md:col-span-1">
                             <Logo size={30} />
-                            <p className="mt-4 max-w-sm leading-relaxed text-ink-2">{l("أول منصة عربية للامتحانات الشفوية أونلاين: الطالب يجاوب بصوته، والتصحيح يوصل جاهز.", "The first Arabic platform for online oral exams: students answer out loud, and the grading arrives done.")}</p>
+                            <p className="mt-4 max-w-sm leading-relaxed text-ink-2">{l("أول منصة عربية للامتحانات الشفوية أونلاين: الطالب بيجاوب بصوته، والدرجة بتوصلك جاهزة.", "The first Arabic platform for online oral exams: students answer out loud, and the grade reaches you ready.")}</p>
                         </div>
                         <nav aria-label={l("أقسام الصفحة", "Page sections")}>
                             <ul className="space-y-2.5 text-ink-2">

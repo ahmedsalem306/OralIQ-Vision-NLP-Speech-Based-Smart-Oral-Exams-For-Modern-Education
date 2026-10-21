@@ -25,10 +25,10 @@ export function JoinYourPlatform() {
         <section id="integrate" className="scroll-mt-20 bg-sheet">
             <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:py-28">
                 <div>
-                    <h2 className="font-display text-[clamp(2rem,4vw,3.25rem)] font-bold leading-[1.15] tracking-tight">{l("بننضم لمنصتك", "We join your platform")}</h2>
+                    <h2 className="font-display text-[clamp(2rem,4vw,3.25rem)] font-bold leading-[1.15] tracking-tight">{l("بننضم لمنصتك، وتفضل باسمك.", "We join your platform, under your name.")}</h2>
                     <p className="mt-5 max-w-xl text-lg leading-[1.8] text-ink-2">
-                        {l("عندك منصتك الخاصة ومش عايز تستخدم منصة تانية؟ بنضيف الامتحان الشفوي كميزة جوّاها، والطالب يمتحن من غير ما يخرج منها.",
-                            "Have your own platform and don't want another one? We add the oral exam as a feature inside it, and students take it without leaving.")}
+                        {l("مش لازم طلابك يتعلموا موقع جديد. بنضيف الامتحان الشفوي كميزة جوّه منصتك، بشكلها وتحت اسمك، والطالب يمتحن من غير ما يخرج منها.",
+                            "Your students don't need to learn a new site. We add the oral exam as a feature inside your platform, in its look and under your name, and students take it without leaving.")}
                     </p>
                     <div className="mt-9 flex flex-wrap gap-2" role="group" aria-label={l("نوع المكان", "Kind of place")}>
                         {places.map((p, i) => (
@@ -45,7 +45,7 @@ export function JoinYourPlatform() {
                     </div>
                     <p className="mt-5 min-h-[3.5rem] max-w-xl leading-relaxed text-ink-2" aria-live="polite">{place.body}</p>
                     <a href="#contact" className="mt-4 inline-flex min-h-10 items-center gap-2 font-semibold text-pen hover:underline">
-                        {l("كلّمنا عن إضافته لمنصتك", "Talk to us about your platform")}<ArrowLeft className="size-4 ltr:rotate-180" aria-hidden />
+                        {l("كلّمنا ونشوف إزاي نضيفه لمنصتك", "Talk to us about adding it to your platform")}<ArrowLeft className="size-4 ltr:rotate-180" aria-hidden />
                     </a>
                 </div>
 

@@ -14,18 +14,18 @@ type L = (ar: string, en: string) => string;
 /** 2a. Who we are, beside the product doing its job. On a phone the sheet follows the paragraph. */
 function About({ l }: { l: L }) {
     const offer = [
-        { href: "#lecturer", title: l("للمحاضر", "For lecturers"), body: l("الإجابات بتوصلك مصححة، ومعاها السبب.", "Answers arrive graded, with the reasons.") },
-        { href: "#student", title: l("للطالب", "For students"), body: l("يمتحن من موبايله، من غير رهبة اللجنة.", "They take the exam on their phone, without the panel nerves.") },
-        { href: "#integrate", title: l("لمنصتك", "For your platform"), body: l("الامتحان الشفوي كميزة جوّه منصتك.", "The oral exam as a feature inside your platform.") },
+        { href: "#lecturer", title: l("للمحاضر", "For lecturers"), body: l("وفّر ساعات اللجنة، واستلم كل إجابة مصححة ومعاها السبب.", "Save the hours a panel takes, and get every answer graded, with the reasons.") },
+        { href: "#student", title: l("للطالب", "For students"), body: l("يمتحن من مكانه وهو مرتاح، من غير رهبة اللجنة.", "They sit the exam wherever they feel at ease, without panel nerves.") },
+        { href: "#integrate", title: l("لمنصتك", "For your platform"), body: l("ضيف الامتحان الشفوي لمنصتك، باسمك وبشكلها.", "Add oral exams to your platform, under your name and in its look.") },
     ];
     return (
         <section id="about" className="scroll-mt-20 bg-sheet">
             <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-16 gap-y-12 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-[auto_1fr] lg:py-28">
                 <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
-                    <h2 className={H2}>{l("من نحن؟", "Who we are")}</h2>
+                    <h2 className={H2}>{l("إحنا بنسهّل الامتحان الشفوي على المحاضر والطالب.", "We make oral exams easier for lecturers and students.")}</h2>
                     <p className="mt-5 max-w-xl text-lg leading-[1.85] text-ink-2">
-                        {l("OralIQ منصة عربية للامتحانات الشفوية أونلاين. الطالب بيجاوب بصوته، والمنصة بتحوّل إجابته لنص، وتقارن معناها بإجابة المحاضر النموذجية، وتتأكد إنه هو اللي بيجاوب. والمحاضر بيستلم كل إجابة مصححة ومعاها السبب.",
-                            "OralIQ is an Arabic platform for online oral exams. Students answer out loud; the platform transcribes the answer, compares its meaning with the lecturer's model answer, and checks the right student is answering. The lecturer receives every answer graded, with the reasons.")}
+                        {l("اللجنة الشفوية بتاخد ساعات طويلة من وقت المحاضر، والطالب بيدخلها متوتر بعد ما يستنى دوره. مع OralIQ الطالب بيجاوب بصوته من موبايله أو اللابتوب، والمنصة بتكتب إجابته، وتقارن معناها بإجابتك النموذجية، وتتأكد إنه هو اللي بيجاوب. وانت بتراجع وتنشر.",
+                            "An oral exam panel takes hours of a lecturer's time, and students walk in nervous after waiting their turn. With OralIQ, students answer out loud from a phone or laptop; the platform writes the answer down, compares its meaning with your model answer and checks it's really them. You review and publish.")}
                     </p>
                 </div>
                 <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
@@ -54,15 +54,15 @@ function About({ l }: { l: L }) {
 /** 2b. The marking scheme as a real sheet, its figures large enough to remember (the real 80/10/10 weights). */
 function MarkingScheme({ l }: { l: L }) {
     const weights = [
-        { pct: 80, title: l("المحتوى", "Content"), body: l("إجابة الطالب بتتحوّل لنص، وبتتقارن بالإجابة النموذجية بالمعنى مش بالكلمات. لو قال نفس الفكرة بأسلوبه، بياخد حقه.", "The spoken answer is transcribed and compared with the model answer by meaning, not wording. The same idea in their own words earns full credit.") },
-        { pct: 10, title: l("الطلاقة", "Fluency"), body: l("سرعة الكلام، والوقفات، وكلمات التردد زي «يعني» و«اه». بتأثر شوية، بس عمرها ما تضيّع إجابة صح.", "Speaking pace, pauses and filler words. It counts a little, but never sinks a correct answer.") },
-        { pct: 10, title: l("النزاهة", "Integrity"), body: l("الكاميرا بترصد النظر بعيد عن الشاشة، أو موبايل أو كتاب قدام الطالب، وبتكتب ملاحظة يشوفها المحاضر.", "The camera notices looking away from the screen, or a phone or book in front of the student, and leaves a note for the lecturer.") },
+        { pct: 80, title: l("المحتوى", "Content"), body: l("بنحوّل كلام الطالب لنص ونقارنه بإجابتك النموذجية بالمعنى مش بالكلمات. اللي فهم وقال الفكرة بأسلوبه بياخد حقه.", "We turn the spoken answer into text and compare it with your model answer by meaning, not wording. A student who understood and put it their own way gets the credit.") },
+        { pct: 10, title: l("الطلاقة", "Fluency"), body: l("سرعة الكلام والوقفات وكلمات التردد زي «يعني» و«اه». ليها وزن صغير، وعمرها ما تضيّع إجابة صح.", "Speaking pace, pauses and filler words. It carries a small weight and never sinks a correct answer.") },
+        { pct: 10, title: l("النزاهة", "Integrity"), body: l("الكاميرا بتلاحظ لو الطالب بص بعيد كتير، أو كان قدامه موبايل أو كتاب، وبتكتبلك ملاحظة تراجعها.", "The camera notices long looks away from the screen, or a phone or book in front of the student, and leaves you a note to review.") },
     ];
     return (
         <section id="marking" className="scroll-mt-20">
             <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-                <h2 className={cn(H2, "max-w-3xl")}>{l("الدرجة بتتحسب بنفس الأوزان، لكل طالب، كل مرة.", "Every grade uses the same weights, for every student, every time.")}</h2>
-                <p className="mt-5 max-w-2xl text-lg leading-[1.8] text-ink-2">{l("لو قال المعنى صح بأسلوبه بياخد حقه. ولو المحتوى أقل من 50% مايقدرش ينجح مهما كانت طلاقته.", "The right idea in their own words earns the marks; under 50% content can't pass, however fluent.")}</p>
+                <h2 className={cn(H2, "max-w-3xl")}>{l("درجة عادلة لكل طالب، بنفس المقياس كل مرة.", "A fair grade for every student, on the same scale every time.")}</h2>
+                <p className="mt-5 max-w-2xl text-lg leading-[1.8] text-ink-2">{l("أول طالب وآخر طالب بيتصححوا بنفس الطريقة، من غير تعب آخر اليوم. اللي قال المعنى الصح بأسلوبه بياخد حقه، واللي محتواه أقل من 50% مش هينجح مهما كانت طلاقته.", "The first student and the last are marked the same way, with no end-of-day fatigue. The right idea in their own words earns the marks; under 50% content can't pass, however fluent.")}</p>
                 <div className="relative mt-14 overflow-hidden rounded-[20px] border border-rule-strong bg-sheet shadow-card">
                     <span className="absolute inset-y-0 start-8 w-px bg-mark/35 sm:start-12" aria-hidden />
                     <div className="flex items-baseline justify-between gap-4 border-b border-rule py-4 pe-6 ps-14 sm:pe-10 sm:ps-20">
@@ -86,8 +86,8 @@ function MarkingScheme({ l }: { l: L }) {
                     </dl>
                     <p className="border-t border-rule bg-mark-wash/50 py-5 pe-6 ps-14 text-lg leading-relaxed sm:pe-10 sm:ps-20">
                         <strong className="font-semibold text-mark">{l("شرط الهوية:", "Identity rule:")}</strong>{" "}
-                        {l("الوش 55% على الأقل والصوت 75% على الأقل، الاتنين مع بعض. ولو واحد منهم ما اتأكدش، الإجابة بتوصلك بتنبيه تراجعه بنفسك.",
-                            "face at least 55% and voice at least 75%, both together. If either isn't confirmed, the answer reaches you flagged for your own review.")}
+                        {l("الوش 55% على الأقل والصوت 75% على الأقل، الاتنين مع بعض. ولو واحد منهم ما اتأكدش، الإجابة بتوصلك بتنبيه، وانت اللي تقرر.",
+                            "face at least 55% and voice at least 75%, both together. If either isn't confirmed, the answer reaches you flagged, and you decide.")}
                     </p>
                 </div>
             </div>
@@ -106,17 +106,17 @@ const DRAWER = 894 / 1920;
 /** 2c. The lecturer's side: the real results screen, large, marked up in red pen. */
 function Results({ l }: { l: L }) {
     const notes = [
-        l("الدرجة في دايرة حمرا، زي ما بتتكتب على الورقة.", "The grade, circled in red, as it would be on paper."),
+        l("الدرجة في دايرة حمرا، زي ما بتكتبها على الورقة.", "The grade, circled in red, the way you'd mark it on paper."),
         l("تفاصيلها: المحتوى والطلاقة والنزاهة، كل واحدة بوزنها.", "Its breakdown: content, fluency and integrity, each at its weight."),
-        l("نص الإجابة زي ما الطالب قالها، علشان تراجع بنفسك.", "The answer as the student said it, so you can check it yourself."),
-        l("الدرجة مخفية عن الطالب لحد ما تنشرها بضغطة.", "The student doesn't see the grade until you publish it, in one click."),
+        l("إجابة الطالب مكتوبة زي ما قالها، علشان تراجع بنفسك.", "The student's answer written out as they said it, so you can check it yourself."),
+        l("الطالب مش بيشوف الدرجة غير لما تنشرها انت.", "The student only sees the grade once you publish it."),
     ];
     return (
         <section id="lecturer" className="scroll-mt-20 border-y border-rule bg-sheet">
             <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:py-28">
                 <div className="grid gap-6 lg:grid-cols-2 lg:items-end lg:gap-16">
-                    <h2 className={H2}>{l("للمحاضر: الإجابات بتوصلك مصححة.", "For lecturers: answers arrive graded.")}</h2>
-                    <p className="max-w-xl text-lg leading-[1.8] text-ink-2">{l("امتحان شفوي لكل طلابك في نفس الوقت، وكل إجابة معاها نصها وتفاصيل درجتها وملاحظات النزاهة. تراجع وتنشر بضغطة.", "An oral exam for all your students at once; every answer comes with its transcript, grade breakdown and integrity notes. Review and publish in one click.")}</p>
+                    <h2 className={H2}>{l("للمحاضر: الدفعة كلها تمتحن، وانت تراجع بس.", "For lecturers: the whole class sits the exam; you just review.")}</h2>
+                    <p className="max-w-xl text-lg leading-[1.8] text-ink-2">{l("ابعت رابط واحد، والطلاب يمتحنوا في نفس الوقت. كل إجابة بتوصلك مكتوبة ومصححة، ومعاها تفاصيل الدرجة وملاحظات النزاهة، وتنشر الدرجات بضغطة.", "Send one link and the class sits the exam at the same time. Every answer reaches you written out and graded, with the breakdown and integrity notes, and you publish the grades in one click.")}</p>
                 </div>
                 <figure className="mt-14">
                     <div className="relative overflow-hidden rounded-[18px] border border-rule-strong shadow-float">
@@ -153,16 +153,16 @@ function Results({ l }: { l: L }) {
 /** 2d. The student's side, on the one deep surface of the page. */
 function Student({ l }: { l: L }) {
     const points = [
-        { title: l("الكاميرا الأول، والسؤال بعدين", "Camera first, question second"), body: l("الطالب بيشوف نفسه ويظبط مكانه براحته. السؤال والوقت مبيبدأوش غير لما يدوس «ابدأ الإجابة».", "Students see themselves and settle in at their own pace. The question and the timer only start when they press Start answering.") },
+        { title: l("الكاميرا الأول، والسؤال بعدين", "Camera first, question second"), body: l("بيشوف نفسه ويظبط قعدته براحته، والسؤال والوقت مبيبدأوش غير لما يدوس «ابدأ الإجابة».", "They see themselves and settle in at their own pace; the question and the timer only start when they press Start answering.") },
         { title: l("نفس قبل الامتحان", "A breath before the exam"), body: l("لو حاسس بتوتر، فيه تمرين تنفس قصير جوّه صفحة الامتحان نفسها.", "If they feel nervous, there's a short breathing exercise on the exam page itself.") },
-        { title: l("كلام مشجّع، مش أحكام", "Encouragement, not verdicts"), body: l("أضعف تقدير اسمه «يحتاج تقوية»، والتنبيهات بتقول له يعمل إيه، مش إيه اللي غلط فيه.", "The lowest band is called “Needs practice”, and alerts say what to do next, not what went wrong.") },
+        { title: l("كلام مشجّع، مش أحكام", "Encouragement, not verdicts"), body: l("أقل تقدير اسمه «يحتاج تقوية»، والتنبيهات بتقوله يعمل إيه بعد كده.", "The lowest band is called “Needs practice”, and alerts tell them what to do next.") },
     ];
     return (
         <section id="student" className="scroll-mt-20 bg-navy text-navy-ink">
             <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:py-28">
                 <div>
                     <h2 className={cn(H2, "max-w-xl text-navy-ink")}>{l("للطالب: امتحان من غير رهبة اللجنة.", "For students: an exam without the panel nerves.")}</h2>
-                    <p className="mt-5 max-w-xl text-lg leading-[1.8] text-navy-muted">{l("من بيته، ومن موبايله، وبصوته. وأول ما المحاضر ينشر، بيشوف درجته وتفاصيلها.", "From home, on their phone, in their own voice. As soon as the lecturer publishes, they see the grade and its breakdown.")}</p>
+                    <p className="mt-5 max-w-xl text-lg leading-[1.8] text-navy-muted">{l("من بيته وبصوته، من غير ما يقف مستني دوره قدام باب اللجنة. وأول ما تنشر الدرجة، بيشوفها هي وتفاصيلها.", "From home, in their own voice, without queuing outside the exam room. As soon as you publish, they see the grade and its breakdown.")}</p>
                     <ul className="mt-10 grid gap-7">
                         {points.map((p) => (
                             <li key={p.title} className="border-s-2 border-[#9DB2FF]/60 ps-5">
@@ -187,15 +187,15 @@ function Student({ l }: { l: L }) {
 /** 2e. The four steps, as the questions of an exam paper. */
 function Steps({ l }: { l: L }) {
     const steps = [
-        { title: l("اكتب السؤال وإجابته النموذجية", "Write the question and model answer"), body: l("بالكتابة أو بصوتك. وحدّد الوقت والصعوبة.", "Type or dictate it, then set the time and difficulty.") },
-        { title: l("ابعت رابط الامتحان", "Send the exam link"), body: l("رابط واحد على جروب المادة، أو لطلاب معيّنين.", "One link to the class group, or to specific students.") },
-        { title: l("الطالب يجاوب بصوته", "Students answer out loud"), body: l("من الموبايل أو اللابتوب، والكاميرا بتتأكد إنه هو.", "From a phone or laptop, while the camera confirms it's them.") },
-        { title: l("الدرجة توصلك جاهزة", "The grade arrives ready"), body: l("مع نص الإجابة وتفاصيلها. تراجع وتنشر بضغطة.", "With the transcript and breakdown. Review and publish in one click.") },
+        { title: l("اكتب السؤال والإجابة النموذجية", "Write the question and model answer"), body: l("بالكتابة أو بصوتك، وحدد الوقت والصعوبة.", "Type it or say it, then set the time and difficulty.") },
+        { title: l("ابعت الرابط لطلابك", "Send the link to your students"), body: l("رابط واحد على جروب المادة، أو لطلاب بعينهم.", "One link to the class group, or to chosen students.") },
+        { title: l("الطلاب يجاوبوا بصوتهم", "Students answer out loud"), body: l("من الموبايل أو اللابتوب، والكاميرا بتتأكد إن كل واحد هو نفسه.", "From a phone or laptop, while the camera checks each one is who they say.") },
+        { title: l("راجع وانشر", "Review and publish"), body: l("الدرجات بتوصلك جاهزة ومعاها التفاصيل، وتنشرها بضغطة.", "Grades arrive ready with the details; publish them in one click.") },
     ];
     return (
         <section id="how" className="scroll-mt-20">
             <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-                <h2 className={cn(H2, "max-w-2xl")}>{l("من السؤال للدرجة، في أربع خطوات.", "From question to grade, in four steps.")}</h2>
+                <h2 className={cn(H2, "max-w-2xl")}>{l("أربع خطوات، وامتحانك الشفوي جاهز.", "Four steps, and your oral exam is ready.")}</h2>
                 <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
                     {steps.map((s, k) => (
                         <li key={s.title} className="relative lg:border-t lg:border-rule-strong lg:pe-8 lg:pt-8">

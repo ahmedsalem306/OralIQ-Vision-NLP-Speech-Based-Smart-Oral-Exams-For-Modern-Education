@@ -34,8 +34,8 @@ export function ContactSection() {
                     <div className="bg-pen-wash p-8 sm:p-12">
                         <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-tight tracking-tight">{l("تواصل معنا", "Contact us")}</h2>
                         <p className="mt-4 max-w-sm text-lg leading-relaxed text-ink-2">
-                            {l("عايز تجرّب OralIQ في مؤسستك، أو تضيفه لمنصتك؟ ابعتلنا وهنرد عليك ونرتب معاك تجربة على امتحان حقيقي.",
-                                "Want to try OralIQ at your institution, or add it to your platform? Write to us and we'll arrange a trial on a real exam.")}
+                            {l("عايز تجرّب OralIQ مع طلابك، أو تضيفه لمنصتك؟ ابعتلنا، وهنرتب معاك تجربة على امتحان حقيقي في مادتك.",
+                                "Want to try OralIQ with your students, or add it to your platform? Write to us and we'll set up a trial on a real exam in your course.")}
                         </p>
                         <ul className="mt-10 space-y-5">
                             <li className="flex items-center gap-3">

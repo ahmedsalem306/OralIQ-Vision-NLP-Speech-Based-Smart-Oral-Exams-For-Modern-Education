@@ -45,13 +45,14 @@
         var still = matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (location.pathname === "/" && lang === "ar" && !dark && !still && !localStorage.getItem("token")) de.dataset.prerender = "hydrate";
       } catch (e) { }
-      // Home page: start the hero photos (the largest paint) with the HTML, not after the JS
+      // Home page: start the hero photo (the largest paint) with the HTML, not after the JS
       if (location.pathname === "/") {
-        ["/photos/student-relaxed-480.webp", "/photos/friends-reading-480.webp"].forEach(function (href) {
-          var link = document.createElement("link");
-          link.rel = "preload"; link.as = "image"; link.href = href; link.setAttribute("fetchpriority", "high");
-          document.head.appendChild(link);
-        });
+        var link = document.createElement("link");
+        link.rel = "preload"; link.as = "image"; link.href = "/photos/hero-student-1280.webp";
+        link.setAttribute("imagesrcset", "/photos/hero-student-640.webp 640w, /photos/hero-student-960.webp 960w, /photos/hero-student-1280.webp 1280w, /photos/hero-student-1600.webp 1600w");
+        link.setAttribute("imagesizes", "(min-width: 1024px) 60vw, 100vw");
+        link.setAttribute("fetchpriority", "high");
+        document.head.appendChild(link);
       }
     })();
   </script>

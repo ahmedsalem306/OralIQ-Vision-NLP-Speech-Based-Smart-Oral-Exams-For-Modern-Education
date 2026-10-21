@@ -34,10 +34,10 @@ export function VideoSection() {
         <section ref={root} id="video" className="scroll-mt-20">
             <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
                 <div className="mx-auto max-w-2xl text-center">
-                    <h2 className="text-[clamp(2rem,4vw,3.25rem)] font-bold leading-tight tracking-tight">{l("شوف المنصة وهي شغالة", "See it working")}</h2>
+                    <h2 className="text-[clamp(2rem,4vw,3.25rem)] font-bold leading-tight tracking-tight">{l("دقيقة واحدة، وتشوف كل حاجة بعينك.", "One minute, and you'll see it all.")}</h2>
                     <p className="mt-4 text-lg leading-relaxed text-ink-2">
-                        {l("في دقيقة: المحاضر بيكتب السؤال، الطالب بيجاوب بصوته، والدرجة بتوصل ومعاها تفاصيلها.",
-                            "In a minute: the lecturer writes a question, the student answers out loud, and the grade arrives with its breakdown.")}
+                        {l("من كتابة السؤال، لإجابة الطالب بصوته، لحد ما الدرجة توصل جاهزة بتفاصيلها.",
+                            "From writing the question, to the student answering out loud, to the grade arriving with its breakdown.")}
                     </p>
                 </div>
 
