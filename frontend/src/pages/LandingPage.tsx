@@ -15,13 +15,15 @@ import { VideoSection } from "../components/landing/VideoSection";
 import { ClientsStrip } from "../components/landing/ClientsStrip";
 import { JoinYourPlatform } from "../components/landing/JoinYourPlatform";
 import { ContactSection } from "../components/landing/ContactSection";
+import { LandingMenu } from "../components/landing/LandingMenu";
 
 // Section widths follow their role (stage, 7xl grids, 6xl media, 3xl reading) per DESIGN.md;
 // the header and footer align to the content grid. avoid-ai-design-ignore-file: L6
 /**
  * Home page, in the owner's order:
- * 1 hero, 2 who we are + what we offer, 3 explainer video, 4 our clients,
- * 5 we join your platform, 6 contact.
+ * 1 hero (agreed with the owner on 2026-10-20; keep it as it is), 2 who we are + what we offer
+ * (about beside the live answer sheet, marking scheme, results screen, student side, steps),
+ * 3 explainer video, 4 our clients, 5 we join your platform, 6 contact.
  */
 export default function LandingPage() {
     const { l } = useI18n();
@@ -68,8 +70,8 @@ export default function LandingPage() {
                             ))}
                         </ul>
                         <div className="ms-auto flex items-center gap-1">
-                            <LanguageToggle compact labelClassName="max-sm:hidden" />
-                            <ThemeToggle />
+                            {/* Below 1024px these move into the menu, with the section links */}
+                            <span className="hidden items-center gap-1 lg:flex"><LanguageToggle compact /><ThemeToggle /></span>
                             {loggedIn ? (
                                 <Link to="/dashboard" className="ms-2 inline-flex h-10 items-center whitespace-nowrap rounded-full bg-pen px-5 text-sm font-semibold text-pen-ink hover:bg-pen-hover">{l("لوحة التحكم", "Dashboard")}</Link>
                             ) : (
@@ -78,6 +80,7 @@ export default function LandingPage() {
                                     <Link to="/register" viewTransition className="ms-1 inline-flex h-10 items-center whitespace-nowrap rounded-full bg-pen px-4 text-sm sm:px-5 font-semibold text-pen-ink hover:bg-pen-hover">{l("أنشئ حساب", "Create account")}</Link>
                                 </>
                             )}
+                            <LandingMenu sections={sections} loggedIn={loggedIn} />
                         </div>
                     </nav>
                 </header>
@@ -85,7 +88,7 @@ export default function LandingPage() {
                 <main id="main" tabIndex={-1} className="outline-none">
                     <HeroCollage startHref={startHref} />
                     <AboutOffer />
-                    <VideoSection />
+                    <div className="border-t border-rule/70"><VideoSection /></div>
                     <ClientsStrip />
                     <JoinYourPlatform />
                     <ContactSection />

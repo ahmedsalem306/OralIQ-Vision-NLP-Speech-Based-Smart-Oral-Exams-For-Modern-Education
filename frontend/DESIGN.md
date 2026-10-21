@@ -41,7 +41,7 @@ OralIQ replaces the oral exam panel: a student answers a spoken question on a ph
 
 The look comes from the exam itself: the **answer sheet** (warm paper, ruled lines, ballpoint-blue ink) and the **grader's red pen** that circles the final mark. Everything else stays quiet so those two things carry the identity. For students the product must lower stress, not add it: warm ground, soft blue, encouraging copy, amber instead of red for anything that needs their attention.
 
-**Signature detail:** the hand-drawn pen loop (`ScoreMark`). Red around a grade, blue around a step number on the home page, grade-coloured ("kind ink") on the student's own grades. Do not invent a second signature.
+**Signature detail:** the hand-drawn pen loop (`ScoreMark`). Red around a grade (and around the note numbers on the home page's results screen, with the red pen underlining the marking-scheme figures), blue around a step number on the home page, grade-coloured ("kind ink") on the student's own grades. Do not invent a second signature.
 
 ## Colors
 
@@ -72,7 +72,9 @@ Dark mode redefines every token; components only reference tokens.
 - Every page is checked at 320 / 360 / 414 / 768 / 1024 / 1280 / 1920 in both languages and both themes; nothing may be clipped by `overflow-x-clip` (the landing header drops the wordmark below 360px).
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
 - Home page order (the owner's, fixed): 1 hero, 2 who we are + what we offer (with the four steps), 3 explainer video, 4 our clients, 5 we join your platform, 6 contact, then the footer.
-- The hero is a light stage: the headline alone in the middle, with student photos and small product pieces (grade, identity check, recording, published grade) floating around it from 1280px wide (narrower, they would cover the words); a small still collage under the words below that.
+- Section 2 (approved by the owner on 2026-10-21) has five parts, each with its own shape so the page does not repeat one layout: (a) "من نحن؟" beside the live answer sheet (`AnswerSheet`: records, writes the answer onto ruled lines, underlines keywords, circles the grade; once, when it scrolls into view), with a short list linking to the lecturer, student and platform parts; on a phone the sheet comes straight after the paragraph; (b) the marking scheme as a ruled sheet with the real 80 / 10 / 10 weights as large figures and the identity rule (face 55% and voice 75%, together) at its foot; (c) the lecturer's real results screen at full width with four red-pen note numbers and their legend (a phone gets the answer-sheet drawer alone, `results-drawer.webp`); (d) the student's side on navy, the page's one deep band; (e) the four steps written as exam questions (س١ to س٤ / Q1 to Q4).
+- Section 5: the four kinds of place are buttons; the chosen one names the site in a plain drawing of someone else's course page with the OralIQ exam inside it. Nothing in it moves on its own.
+- The hero (agreed with the owner on 2026-10-20; any proposal keeps it as it is) is a light stage: the headline alone in the middle, with student photos and small product pieces (grade, identity check, recording, published grade) floating around it from 1280px wide (narrower, they would cover the words); a small still collage under the words below that.
 - References from the owner (e.g. their Pinterest board of websites) are read as a whole for taste: light, airy, rounded, real product and real people. Never clone one design.
 - The clients section is titled "عملاؤنا" only (no claims about what kind of institutions) and its logos move in one band. Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
 
@@ -93,7 +95,7 @@ Dark mode redefines every token; components only reference tokens.
 
 Shared primitives live in `src/components/ui/` (button, input, panel, feedback, badge, avatar, score-mark, toast, tooltip). Reuse them; do not restyle per page.
 
-- **Nav:** the landing header (sticky, blurred over content) and the app sidebar (light rail in day mode, navy in dark).
+- **Nav:** the landing header (sticky, blurred over content; below 1024px a menu button opens the section links, account links, language and theme in a side sheet) and the app sidebar (light rail in day mode, navy in dark).
 - **Footer:** brand line plus two short link groups, then the copyright and the contact email. No newsletter box, no social row unless real, no technology list.
 - **Company and contact details** (name, email, phone, location) come only from `src/content/company.ts`. The home page has no team section.
 - **ScoreMark:** `ink="mark"` for lecturers and marketing, `ink="kind"` on a student's own grades.
@@ -107,7 +109,7 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 ## Motion
 
 - **Lenis** smooth scrolling site-wide (`components/SmoothScroll.tsx`, loaded after first paint, off for reduced motion, never inside dialogs).
-- **GSAP + ScrollTrigger** for the home page scenes only (`lib/gsap.ts`, always inside `withMotion`): hero pieces coming out and drifting at their own speeds, screenshots drifting, score bars filling, the steps line, the video growing, the photo wipe in section 5. Every scene is tied to content; no generic fade-and-rise on section headings or cards (catalog M1).
+- **GSAP + ScrollTrigger** for the home page scenes only (`lib/gsap.ts`, always inside `withMotion`): hero pieces coming out and drifting at their own speeds, and the video growing. The answer sheet in section 2 plays its own short sequence with Motion. Every scene is tied to content; no generic fade-and-rise on section headings or cards (catalog M1).
 - **Motion** (`motion/react`) for app interface feedback, with one easing (`EASE`) and 150-300ms durations.
 - Never split Arabic text into letters for animation; animate whole lines.
 - Motion that answers an action is welcome: drawer slide, toast, the drawn check after submitting.
