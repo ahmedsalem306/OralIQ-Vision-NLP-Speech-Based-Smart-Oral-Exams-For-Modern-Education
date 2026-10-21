@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useI18n } from "../../i18n";
+import { cn } from "../../lib/utils";
 import Logo from "../Logo";
 import LanguageToggle, { ThemeToggle } from "../LanguageToggle";
 
@@ -10,7 +11,7 @@ import LanguageToggle, { ThemeToggle } from "../LanguageToggle";
  * with the account links, language and theme. A native dialog: focus, Escape and the backdrop
  * behave as expected, and Lenis leaves it alone.
  */
-export function LandingMenu({ sections, loggedIn }: { sections: { href: string; label: string }[]; loggedIn: boolean }) {
+export function LandingMenu({ sections, loggedIn, className }: { sections: { href: string; label: string }[]; loggedIn: boolean; className?: string }) {
     const { l } = useI18n();
     const ref = useRef<HTMLDialogElement>(null);
     const [open, setOpen] = useState(false);
@@ -29,7 +30,7 @@ export function LandingMenu({ sections, loggedIn }: { sections: { href: string; 
                 onClick={() => setOpen(true)}
                 aria-label={l("القائمة", "Menu")}
                 aria-expanded={open}
-                className="flex size-10 items-center justify-center rounded-full text-ink hover:bg-sheet lg:hidden"
+                className={cn("flex size-10 items-center justify-center rounded-full lg:hidden", className ?? "text-ink hover:bg-sheet")}
             >
                 <Menu className="size-5" aria-hidden />
             </button>

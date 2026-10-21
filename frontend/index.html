@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Google Fonts without blocking the first paint: fetched early, applied when it arrives -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" /></noscript>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" /></noscript>
   <script>
     // Apply saved language + theme before first paint to avoid a flash.
     (function () {
@@ -48,9 +48,9 @@
       // Home page: start the hero photo (the largest paint) with the HTML, not after the JS
       if (location.pathname === "/") {
         var link = document.createElement("link");
-        link.rel = "preload"; link.as = "image"; link.href = "/photos/hero-steps-1280.webp";
-        link.setAttribute("imagesrcset", "/photos/hero-steps-640.webp 640w, /photos/hero-steps-960.webp 960w, /photos/hero-steps-1280.webp 1280w, /photos/hero-steps-1600.webp 1600w");
-        link.setAttribute("imagesizes", "(min-width: 1024px) 60vw, 100vw");
+        link.rel = "preload"; link.as = "image"; link.href = "/photos/face-light-960.webp";
+        link.setAttribute("imagesrcset", "/photos/face-light-480.webp 480w, /photos/face-light-720.webp 720w, /photos/face-light-960.webp 960w, /photos/face-light-1280.webp 1280w");
+        link.setAttribute("imagesizes", "(min-width: 1024px) 40vw, 90vw");
         link.setAttribute("fetchpriority", "high");
         document.head.appendChild(link);
       }

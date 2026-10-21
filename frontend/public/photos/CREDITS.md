@@ -16,8 +16,12 @@ Credited here anyway, as good practice.
 | hero-cutout-v.webp (also in og.png) | Noman Khan | https://unsplash.com/photos/V4_wB6EywfE |
 | lecturer-desk.webp, chip-lecturer-desk.webp | Fotos | https://unsplash.com/photos/O-1eWnY5_xk |
 | student-waving.webp | Windows | https://unsplash.com/photos/6G6akT8biLg |
-| hero-steps-*.webp (home hero, option 1) | Amit Ranjan | https://unsplash.com/photos/3S0Ucv4BDCk |
-| hero-desk-*.webp (home hero, option 2) | Vitaly Gariev | https://unsplash.com/photos/VjQ1FQQXgo8 |
+| face-light-*.webp (home hero, light theme; cut out, black and white) | Hamid Moayyedi | https://unsplash.com/photos/YzP8nF-a86k |
+| face-dark-*.webp (home hero, dark theme; cut out, black and white) | Payton Tuttle | https://unsplash.com/photos/RFFR1JjkJx8 |
+| about-desk-*.webp (home, who we are; black and white) | Vitaly Gariev | https://unsplash.com/photos/VjQ1FQQXgo8 |
+| video-cover-*.webp (home, video banner; black and white) | Amit Ranjan | https://unsplash.com/photos/3S0Ucv4BDCk |
 
 The newer photos share one light warm colour grade so the set reads as one.
 The explainer video (`/media/oraliq-demo.mp4`) is a screen recording of the app with demo data; the student's face in it is the chip-smile photo.
+
+The face mesh drawn over the hero portraits is MediaPipe FaceMesh (refineLandmarks, 478 points) run on those photos, the same model the exam room uses (`src/components/home/faceMesh.ts`).
