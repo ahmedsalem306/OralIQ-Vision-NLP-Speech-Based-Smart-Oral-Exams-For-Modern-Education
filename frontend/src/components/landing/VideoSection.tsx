@@ -45,7 +45,7 @@ export function VideoSection() {
                     {playing ? (
                         <video ref={video} src={VIDEO.src} poster={VIDEO.poster} controls playsInline preload="auto" className="size-full bg-sheet object-contain" />
                     ) : (
-                        <button type="button" onClick={play} className="group absolute inset-0 size-full" aria-label={l("تشغيل الفيديو التوضيحي", "Play the walkthrough video")}>
+                        <button type="button" onClick={play} className="group absolute inset-0 size-full" aria-label={l("تشغيل الفيديو التوضيحي، دقيقة واحدة", "Play the walkthrough video, one minute")}>
                             <img src={VIDEO.poster} alt="" loading="lazy" className="size-full object-cover" />
                             <span className="absolute inset-0 bg-ink/10 transition-colors duration-300 group-hover:bg-ink/0" aria-hidden />
                             <span className="absolute inset-0 flex items-center justify-center">

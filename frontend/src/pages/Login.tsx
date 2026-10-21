@@ -9,6 +9,8 @@ import { Field, Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
 import { Alert } from "../components/ui/feedback";
 import { usePageTitle } from "../lib/usePageTitle";
+import { useFieldErrors } from "../lib/useFieldErrors";
+import { getApiErrorMessage } from "../lib/apiErrors";
 
 export default function LoginPage() {
     const { l } = useI18n();
@@ -16,6 +18,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const { errors, validate, clear } = useFieldErrors();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const redirectTo = searchParams.get("redirect") || "/dashboard";
@@ -23,6 +26,7 @@ export default function LoginPage() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validate(e.currentTarget as HTMLFormElement)) return;
         setLoading(true);
         setError("");
         try {
@@ -33,11 +37,13 @@ export default function LoginPage() {
             localStorage.setItem("token", response.data.access_token);
             navigate(redirectTo);
         } catch (err: unknown) {
-            const status = (err as { response?: { status?: number } })?.response?.status;
+            // The API answers 400 both for wrong credentials and for a disabled account; anything
+            // else (offline, server error, too many tries) gets its own message, not "check your connection"
+            const res = (err as { response?: { status?: number; data?: { detail?: unknown } } })?.response;
             setError(
-                status === 400
+                res?.status === 400 && res.data?.detail !== "Inactive user"
                     ? l("البريد أو كلمة المرور غير صحيحة. راجعهم وجرّب تاني.", "That email and password don't match. Check them and try again.")
-                    : l("تعذّر الوصول للسيرفر. تأكد من الإنترنت وجرّب بعد لحظات.", "Couldn't reach the server. Check your connection and try again shortly."),
+                    : getApiErrorMessage(err),
             );
         } finally {
             setLoading(false);
@@ -58,17 +64,17 @@ export default function LoginPage() {
             )}
             {error && <Alert tone="error" className="mt-6">{error}</Alert>}
 
-            <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-5" noValidate={false}>
-                <Field label={l("البريد الإلكتروني", "Email")} htmlFor="email">
+            <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-5" noValidate>
+                <Field label={l("البريد الإلكتروني", "Email")} htmlFor="email" error={errors.email}>
                     <Input
                         id="email" type="email" icon={<Mail />} autoComplete="email" required dir="ltr"
-                        value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@uni.edu.eg"
+                        value={email} onChange={(e) => { setEmail(e.target.value); clear("email"); }} placeholder="name@uni.edu.eg"
                     />
                 </Field>
-                <Field label={l("كلمة المرور", "Password")} htmlFor="password">
+                <Field label={l("كلمة المرور", "Password")} htmlFor="password" error={errors.password}>
                     <PasswordInput
                         id="password" autoComplete="current-password" required
-                        value={password} onChange={(e) => setPassword(e.target.value)}
+                        value={password} onChange={(e) => { setPassword(e.target.value); clear("password"); }}
                     />
                 </Field>
                 <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">

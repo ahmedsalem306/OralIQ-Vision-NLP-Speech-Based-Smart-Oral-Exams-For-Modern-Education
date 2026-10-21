@@ -1,7 +1,9 @@
 import * as React from "react";
-import { AlertCircle, CheckCircle2, Info, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, RefreshCw, TriangleAlert, WifiOff } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../i18n";
+import { Button } from "./button";
 
 export function Skeleton({ className }: { className?: string }) {
     return <div className={cn("oiq-skeleton rounded-md", className)} aria-hidden />;
@@ -45,6 +47,23 @@ export function EmptyState({ icon, title, body, action, className }: EmptyStateP
             {body && <p className="mt-1.5 max-w-sm text-ink-2">{body}</p>}
             {action && <div className="mt-5">{action}</div>}
         </div>
+    );
+}
+
+/**
+ * A list or page that failed to load. Never shown as "nothing here yet": no data and
+ * no connection are different news, and only one of them is fixed by trying again.
+ */
+export function LoadFailed({ onRetry, detail, className }: { onRetry: () => void; detail?: React.ReactNode; className?: string }) {
+    const { l } = useI18n();
+    return (
+        <EmptyState
+            className={className}
+            icon={<WifiOff />}
+            title={l("مقدرناش نجيب البيانات", "We couldn't load this")}
+            body={detail || l("غالباً مشكلة في الاتصال أو السيرفر بيجهز. بياناتك محفوظة، جرّب تاني.", "Probably a connection issue or the server is starting. Your data is safe; try again.")}
+            action={<Button onClick={onRetry}><RefreshCw className="size-4" aria-hidden />{l("حاول تاني", "Try again")}</Button>}
+        />
     );
 }
 

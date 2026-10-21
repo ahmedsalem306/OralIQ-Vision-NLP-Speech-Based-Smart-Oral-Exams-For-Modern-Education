@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 // Real figures from the API, counted up on purpose (owner's choice). avoid-ai-design-ignore-file: M5
 import { CountUp } from "../motion";
+import { Skeleton } from "./feedback";
 
 /** Numbers ("71%", "6", 91.5) count up once; anything else renders as-is. */
 function AnimatedValue({ value }: { value: React.ReactNode }) {
@@ -77,11 +78,14 @@ export interface StatItem {
     tone?: StatTone;
 }
 
-/** Key figures as a row of small cards, each with a tinted icon. */
-export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
+/**
+ * Key figures as a row of small cards, each with a tinted icon. While `loading`, the figures
+ * are placeholders: a "0" before the data arrives would read as a real (and alarming) number.
+ */
+export function StatStrip({ items, loading = false, className }: { items: StatItem[]; loading?: boolean; className?: string }) {
     const cols = items.length === 3 ? "lg:grid-cols-3" : items.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-4";
     return (
-        <dl className={cn("grid grid-cols-2 gap-3 sm:gap-4", cols, className)}>
+        <dl className={cn("grid grid-cols-2 gap-3 sm:gap-4", cols, className)} aria-busy={loading || undefined}>
             {items.map((item, i) => {
                 const Icon = item.icon;
                 return (
@@ -101,8 +105,14 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
                                 </span>
                             )}
                         </dt>
-                        <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink"><AnimatedValue value={item.value} /></dd>
-                        {item.hint && <dd className="mt-2 text-xs text-ink-3">{item.hint}</dd>}
+                        {loading ? (
+                            <dd className="mt-2"><Skeleton className="h-[1.875rem] w-16" /></dd>
+                        ) : (
+                            <>
+                                <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink"><AnimatedValue value={item.value} /></dd>
+                                {item.hint && <dd className="mt-2 text-xs text-ink-3">{item.hint}</dd>}
+                            </>
+                        )}
                     </div>
                 );
             })}

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, CircleCheck, LifeBuoy, ShieldAlert, TrendingUp } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 import { Panel, PanelHeader, PageHeader, StatStrip } from "../components/ui/panel";
-import { Alert, EmptyState, Skeleton } from "../components/ui/feedback";
+import { EmptyState, LoadFailed, Skeleton } from "../components/ui/feedback";
 import { ButtonLink } from "../components/ui/button";
 import { ColumnChart } from "../components/charts/ColumnChart";
 import { formatScore } from "../lib/grades";
@@ -20,12 +20,16 @@ export default function AnalyticsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setError("");
         api.get("/exams/all-results")
             .then((res) => setSubs(res.data))
             .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحميل التحليلات.", "Couldn't load analytics."))))
             .finally(() => setLoading(false));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [l]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { load(); }, [load]);
 
     const scored = useMemo(() => subs.filter((s) => s.overall_score != null), [subs]);
     const scores = scored.map((s) => s.overall_score as number);
@@ -109,9 +113,9 @@ export default function AnalyticsPage() {
         <>
             <PageHeader title={l("التحليلات", "Analytics")} description={l("أداء طلابك عبر كل الامتحانات، وأين يحتاجون مساعدة.", "How your students perform across exams, and where they need help.")} />
 
-            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
-
-            {scored.length === 0 ? (
+            {error ? (
+                <Panel><LoadFailed detail={error} onRetry={load} /></Panel>
+            ) : scored.length === 0 ? (
                 <Panel>
                     <EmptyState
                         icon={<BarChart3 />}

@@ -1,20 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ClipboardList, Clock, Copy, Lock, Plus, Search, Trash2, UserPlus } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Clock, Copy, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 import VoiceRecordButton from "../components/VoiceRecordButton";
-import { Button, buttonClasses } from "../components/ui/button";
+import { Button } from "../components/ui/button";
 import { Field, Input, Textarea } from "../components/ui/input";
 import { Panel, PageHeader } from "../components/ui/panel";
-import { Alert, EmptyState, ListSkeleton, Modal, Segmented } from "../components/ui/feedback";
+import { Alert, EmptyState, ListSkeleton, LoadFailed, Modal, Segmented } from "../components/ui/feedback";
 import { Badge } from "../components/ui/badge";
 import { Avatar } from "../components/ui/avatar";
 import { countOf, difficultyInfo, formatDate, NOUNS, parseServerDate } from "../lib/format";
 import { getApiErrorMessage } from "../lib/apiErrors";
 import type { Question, StudentRow } from "../lib/types";
 import { useToast } from "../components/ui/toast";
+import { useFieldErrors } from "../lib/useFieldErrors";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -33,6 +34,9 @@ export default function Dashboard() {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState("");
+    const [loadError, setLoadError] = useState("");
+    const { errors: fieldErrors, validate, clear: clearField, reset: resetFields } = useFieldErrors();
+    const editorFields = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState<string | null>(null);
 
     // Editor
@@ -55,12 +59,15 @@ export default function Dashboard() {
     const [busyStudent, setBusyStudent] = useState<number | null>(null);
     const [assignError, setAssignError] = useState("");
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setLoadError("");
         api.get("/questions/")
             .then((res) => setQuestions(res.data))
-            .catch((err) => setPageError(getApiErrorMessage(err, l("تعذّر تحميل الأسئلة.", "Couldn't load questions."))))
+            .catch((err) => setLoadError(getApiErrorMessage(err, l("تعذّر تحميل الأسئلة.", "Couldn't load questions."))))
             .finally(() => setLoading(false));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [l]);
+    useEffect(() => { load(); }, [load]);
 
     // /dashboard/questions?new=1 opens the editor straight away
     useEffect(() => {
@@ -106,14 +113,12 @@ export default function Dashboard() {
         setDraft({ ...emptyDraft, category: group?.questions[0]?.category && group.questions[0].category !== "general" ? group.questions[0].category : "" });
         setAddedNow([]);
         setEditorError("");
+        resetFields();
         setEditorOpen(true);
     };
 
     const save = async (addAnother: boolean) => {
-        if (!draft.text.trim() || !draft.model_answer.trim()) {
-            setEditorError(l("اكتب السؤال والإجابة النموذجية الأول.", "Write the question and the model answer first."));
-            return;
-        }
+        if (!validate(editorFields.current)) return;
         setSaving(true);
         setEditorError("");
         try {
@@ -187,18 +192,6 @@ export default function Dashboard() {
         }
     };
 
-    const allowReenroll = async (sid: number) => {
-        setBusyStudent(sid);
-        try {
-            await api.post(`/voice/allow-reenroll/${sid}`);
-            setStudents((prev) => prev?.map((s) => (s.id === sid ? { ...s, voice_reenroll_allowed: true } : s)) ?? prev);
-        } catch (err) {
-            setAssignError(getApiErrorMessage(err, l("تعذّر تغيير الإذن.", "Couldn't change the permission.")));
-        } finally {
-            setBusyStudent(null);
-        }
-    };
-
     const filteredStudents = (students ?? []).filter((s) => {
         const q = studentQuery.trim().toLowerCase();
         return !q || s.full_name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
@@ -222,6 +215,8 @@ export default function Dashboard() {
 
             {loading ? (
                 <Panel><ListSkeleton rows={4} /></Panel>
+            ) : loadError ? (
+                <Panel><LoadFailed detail={loadError} onRetry={load} /></Panel>
             ) : groups.length === 0 ? (
                 <Panel>
                     <EmptyState
@@ -334,18 +329,18 @@ export default function Dashboard() {
                 )}
                 {editorError && <Alert tone="error" className="mb-5">{editorError}</Alert>}
 
-                <div className="grid gap-5">
+                <div ref={editorFields} className="grid gap-5">
                     <Field
-                        label={l("السؤال", "Question")} htmlFor="q-text"
+                        label={l("السؤال", "Question")} htmlFor="q-text" error={fieldErrors["q-text"] && l("اكتب السؤال اللي الطالب هيجاوب عليه.", "Write the question the student will answer.")}
                         action={<VoiceRecordButton hint={l("سؤال امتحان شفوي", "oral exam question")} onTranscribed={(t) => setDraft((d) => ({ ...d, text: d.text ? `${d.text} ${t}` : t }))} />}
                     >
-                        <Textarea id="q-text" data-autofocus rows={3} value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} placeholder={l("مثال: عرّف الذكاء الاصطناعي واذكر مثالين على استخدامه", "e.g. Define artificial intelligence and give two examples")} />
+                        <Textarea id="q-text" data-autofocus required rows={3} value={draft.text} onChange={(e) => { setDraft({ ...draft, text: e.target.value }); clearField("q-text"); }} placeholder={l("مثال: عرّف الذكاء الاصطناعي واذكر مثالين على استخدامه", "e.g. Define artificial intelligence and give two examples")} />
                     </Field>
                     <Field
-                        label={l("الإجابة النموذجية", "Model answer")} htmlFor="q-answer"
+                        label={l("الإجابة النموذجية", "Model answer")} htmlFor="q-answer" error={fieldErrors["q-answer"] && l("اكتب الإجابة النموذجية؛ التصحيح بيقارن بيها.", "Write the model answer; grading compares against it.")}
                         action={<VoiceRecordButton hint={draft.text} onTranscribed={(t) => setDraft((d) => ({ ...d, model_answer: d.model_answer ? `${d.model_answer} ${t}` : t }))} />}
                     >
-                        <Textarea id="q-answer" rows={4} value={draft.model_answer} onChange={(e) => setDraft({ ...draft, model_answer: e.target.value })} />
+                        <Textarea id="q-answer" required rows={4} value={draft.model_answer} onChange={(e) => { setDraft({ ...draft, model_answer: e.target.value }); clearField("q-answer"); }} />
                     </Field>
                     <Field label={l("كلمات مفتاحية", "Keywords")} htmlFor="q-keywords" hint={l("اختياري. مصطلحات لازم تيجي في الإجابة، افصل بينها بفاصلة.", "Optional. Terms the answer must mention, separated by commas.")}>
                         <Input id="q-keywords" value={draft.keywords} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} placeholder={l("محاكاة، تعلم، بيانات", "simulation, learning, data")} aria-describedby="q-keywords-hint" />
@@ -409,14 +404,9 @@ export default function Dashboard() {
                                             <p className="truncate font-semibold">{s.full_name}</p>
                                             <p className="truncate text-xs text-ink-3 ltr">{s.email}</p>
                                         </div>
+                                        {/* Identity permissions live on the Students page; this dialog is only about sending */}
                                         {!bioReady && <Badge tone="warn">{l("لم يسجل هويته", "No ID setup")}</Badge>}
-                                        {s.voice_locked && !s.voice_reenroll_allowed && (
-                                            <button type="button" onClick={() => allowReenroll(s.id)} disabled={busyStudent === s.id}
-                                                className={buttonClasses("ghost", "sm", "h-8 px-2 text-xs")} title={l("اسمح له يعيد تسجيل وجهه وصوته", "Let them re-register face and voice")}>
-                                                <Lock className="size-3.5" aria-hidden />{l("سماح بإعادة التسجيل", "Allow re-register")}
-                                            </button>
-                                        )}
-                                        <Button size="sm" variant={done ? "secondary" : "primary"} disabled={done} loading={busyStudent === s.id} onClick={() => assign(s.id)} className={cn(done && "text-pass")}>
+                                        <Button size="sm" variant="secondary" disabled={done} loading={busyStudent === s.id} onClick={() => assign(s.id)} className={cn(done && "text-pass")}>
                                             {done ? <><Check className="size-4" aria-hidden />{l("اتبعت", "Sent")}</> : l("إرسال", "Send")}
                                         </Button>
                                     </li>

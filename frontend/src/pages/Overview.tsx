@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardList, Lock, RefreshCw, TrendingUp, WifiOff, Lamp, MessagesSquare, HeartHandshake, PartyPopper } from "lucide-react";
+import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardList, Lock, EyeOff, Lamp, MessagesSquare, HeartHandshake, PartyPopper } from "lucide-react";
 import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import api from "../lib/api";
@@ -8,7 +8,7 @@ import { useI18n } from "../i18n";
 import { Button, ButtonLink, buttonClasses } from "../components/ui/button";
 import { Panel, PanelHeader, RuledList, StatStrip } from "../components/ui/panel";
 import { WelcomeBanner, onDark } from "../components/WelcomeBanner";
-import { Alert, EmptyState, ListSkeleton, Skeleton } from "../components/ui/feedback";
+import { Alert, EmptyState, ListSkeleton, LoadFailed, Skeleton } from "../components/ui/feedback";
 import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
@@ -75,12 +75,7 @@ export default function Overview() {
     if (loadError && !loading) {
         return (
             <Panel>
-                <EmptyState
-                    icon={<WifiOff />}
-                    title={l("مقدرناش نجيب بياناتك", "We couldn't load your data")}
-                    body={l("غالباً مشكلة في الاتصال أو السيرفر بيجهز. بياناتك محفوظة — جرّب تاني.", "Probably a connection issue or the server is starting. Your data is safe — try again.")}
-                    action={<Button onClick={load}><RefreshCw className="size-4" aria-hidden />{l("حاول تاني", "Try again")}</Button>}
-                />
+                <LoadFailed onRetry={load} />
             </Panel>
         );
     }
@@ -105,6 +100,8 @@ export default function Overview() {
         const scored = results.filter((r) => r.overall_score != null);
         const avg = scored.length ? Math.round(scored.reduce((s, r) => s + (r.overall_score ?? 0), 0) / scored.length) : null;
         const flagged = results.filter(needsReview);
+        // Same rule as the Results page, so the two numbers always agree
+        const unpublished = results.filter((r) => !r.grade_visible).length;
         const recent = [...results]
             .sort((a, b) => (parseServerDate(b.submitted_at)?.getTime() ?? 0) - (parseServerDate(a.submitted_at)?.getTime() ?? 0))
             .slice(0, 6);
@@ -189,8 +186,9 @@ export default function Overview() {
                     items={[
                         { label: l("الامتحانات", "Exams"), value: exams, hint: countOf(lang, questions.length, NOUNS.question), icon: ClipboardList, tone: "pen" },
                         { label: l("الإجابات", "Submissions"), value: results.length, icon: Inbox, tone: "violet" },
-                        { label: l("متوسط الدرجات", "Average score"), value: avg != null ? `${avg}%` : "—", icon: TrendingUp, tone: "teal" },
                         { label: l("تحتاج مراجعتك", "Need your review"), value: flagged.length, hint: l("النزاهة أو الهوية", "Integrity or identity"), icon: ShieldAlert, tone: "warn" },
+                        // The average already leads the banner above; the last figure is what is left to do
+                        { label: l("لم تُنشر بعد", "Not published"), value: unpublished, hint: l("الطالب مش شايف درجتها", "Hidden from the student"), icon: EyeOff, tone: "teal" },
                     ]}
                 />}
 
@@ -254,6 +252,8 @@ export default function Overview() {
     // ── Student ───────────────────────────────────────────────────────────────
     const pending = assignments.filter((a) => a.status === "pending");
     const ready = !!bio?.biometrics_complete;
+    // "All done" is only true for a student who has had exams; a new account simply has none yet
+    const finishedAll = pending.length === 0 && assignments.length > 0;
     let inviteToken: string | null = null;
     try { inviteToken = localStorage.getItem("pendingExamToken"); } catch { /* ignore */ }
     const inviteOutsideList = inviteToken && !pending.some((a) => a.exam_token === inviteToken);
@@ -300,7 +300,7 @@ export default function Overview() {
                                 <p className="mt-1.5 line-clamp-2 font-display font-semibold leading-snug">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
                                 <p className="mt-2 text-xs text-ink-3">{pending[0].assigned_by_name}</p>
                             </div>
-                        ) : (
+                        ) : finishedAll && (
                             <div className="absolute bottom-2 start-6 flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet px-4 py-3 shadow-pop">
                                 <span className="flex size-9 items-center justify-center rounded-full bg-pass-wash text-pass"><PartyPopper className="size-[18px]" aria-hidden /></span>
                                 <p className="text-sm font-semibold">{l("خلّصت كل امتحاناتك", "All exams done")}</p>
@@ -348,11 +348,13 @@ export default function Overview() {
             <Panel>
                 <PanelHeader title={l("امتحاناتك المطلوبة", "Your exams")} />
                 {pending.length === 0 ? (
+                    // The banner above already offers "My grades"; this only says what the list means
                     <EmptyState
                         icon={<ClipboardList />}
-                        title={l("كل امتحاناتك خلصت", "You're all caught up")}
-                        body={l("أي امتحان يرسله المحاضر هيظهر هنا. ودرجاتك المنشورة في صفحة الدرجات.", "Any exam your lecturer sends shows up here. Published grades are on the Grades page.")}
-                        action={<ButtonLink to="/dashboard/grades" variant="secondary">{l("درجاتي", "My grades")}</ButtonLink>}
+                        title={finishedAll ? l("خلّصت كل امتحاناتك", "You're all caught up") : l("لسه مفيش امتحانات", "No exams yet")}
+                        body={finishedAll
+                            ? l("أي امتحان جديد يرسله المحاضر هيظهر هنا، ودرجاتك المنشورة في صفحة الدرجات.", "Any new exam your lecturer sends shows up here; published grades are on the Grades page.")
+                            : l("لما المحاضر يبعتلك امتحان هيظهر هنا، وتقدر تبدأه وقت ما تكون جاهز.", "When a lecturer sends you an exam it shows up here, and you can start it when you're ready.")}
                     />
                 ) : (
                     <RuledList>
@@ -368,7 +370,9 @@ export default function Overview() {
                                             {a.question_difficulty && <Badge tone={diff.tone}>{diff.label}</Badge>}
                                         </p>
                                     </div>
+                                    {/* One primary action per screen: the banner's "start the first exam"; rows stay secondary */}
                                     <Button
+                                        variant={ready ? "secondary" : "primary"}
                                         onClick={() => startExam(a.exam_token)}
                                         aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}
                                         disabled={!ready}

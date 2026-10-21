@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Inbox, Mic, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, RuledList } from "../components/ui/panel";
-import { Alert, EmptyState, ListSkeleton } from "../components/ui/feedback";
+import { Alert, EmptyState, ListSkeleton, LoadFailed } from "../components/ui/feedback";
 import { Badge } from "../components/ui/badge";
 import { Button, ButtonLink, buttonClasses } from "../components/ui/button";
 import { difficultyInfo, timeAgo } from "../lib/format";
@@ -26,7 +26,9 @@ export default function MessagesPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setError("");
         api.get("/exams/my-assignments")
             .then((res) => setItems(res.data))
             .catch((err) => {
@@ -39,7 +41,9 @@ export default function MessagesPage() {
                 setError(getApiErrorMessage(err, l("تعذّر تحميل الدعوات.", "Couldn't load invites.")));
             })
             .finally(() => setLoading(false));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [navigate, l]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { load(); }, [load]);
 
     let inviteToken: string | null = null;
     try { inviteToken = localStorage.getItem("pendingExamToken"); } catch { /* ignore */ }
@@ -70,8 +74,6 @@ export default function MessagesPage() {
                 description={l("الامتحانات اللي المحاضرين بعتوهالك. ابدأ أي واحد لما تكون جاهز.", "Exams your lecturers sent you. Start any of them when you're ready.")}
             />
 
-            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
-
             {showInviteLink && (
                 <Alert
                     tone="info"
@@ -93,6 +95,8 @@ export default function MessagesPage() {
             <Panel className="overflow-hidden">
                 {loading ? (
                     <ListSkeleton rows={3} />
+                ) : error ? (
+                    <LoadFailed detail={error} onRetry={load} />
                 ) : visible.length === 0 ? (
                     <EmptyState
                         icon={<Inbox />}
@@ -119,7 +123,7 @@ export default function MessagesPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Button onClick={() => start(a.exam_token!)} aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
+                                        <Button variant="secondary" onClick={() => start(a.exam_token!)} aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
                                         <button type="button" className={buttonClasses("ghost", "icon")} onClick={() => dismiss(a.exam_token!)} aria-label={l("إخفاء الدعوة", "Hide invite")} title={l("إخفاء", "Hide")}>
                                             <X className="size-4" aria-hidden />
                                         </button>

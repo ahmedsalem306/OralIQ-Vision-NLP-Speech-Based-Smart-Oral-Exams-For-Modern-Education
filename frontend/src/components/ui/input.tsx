@@ -62,15 +62,25 @@ interface FieldProps {
     children: React.ReactNode;
 }
 
-/** Label + control + hint/error, stacked. The control keeps its own id = htmlFor. */
+/**
+ * Label + control + hint/error, stacked. The control keeps its own id = htmlFor; the hint or
+ * error is linked to it (aria-describedby, aria-invalid) so screen readers read it with the field.
+ */
 export function Field({ label, htmlFor, hint, error, action, className, children }: FieldProps) {
+    const noteId = error ? `${htmlFor}-error` : hint ? `${htmlFor}-hint` : null;
+    let control = children;
+    if (React.isValidElement<{ "aria-describedby"?: string; "aria-invalid"?: boolean }>(children)) {
+        const own = (children.props["aria-describedby"] || "").split(" ").filter((id) => id && id !== `${htmlFor}-hint` && id !== `${htmlFor}-error`);
+        const describedBy = [...own, noteId].filter(Boolean).join(" ") || undefined;
+        control = React.cloneElement(children, { "aria-describedby": describedBy, "aria-invalid": error ? true : children.props["aria-invalid"] });
+    }
     return (
         <div className={cn("flex flex-col gap-1.5", className)}>
             <div className="flex items-center justify-between gap-3">
                 <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">{label}</label>
                 {action}
             </div>
-            {children}
+            {control}
             {error ? (
                 <p id={`${htmlFor}-error`} className="text-sm text-mark">{error}</p>
             ) : hint ? (

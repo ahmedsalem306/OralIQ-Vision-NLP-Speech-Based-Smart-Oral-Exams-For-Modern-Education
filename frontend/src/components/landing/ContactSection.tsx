@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { COMPANY, telHref } from "../../content/company";
 import { Field, Input, Textarea } from "../ui/input";
+import { useFieldErrors } from "../../lib/useFieldErrors";
 
 /**
  * 6. Contact. There is no form backend yet, so sending opens the visitor's
@@ -11,9 +12,11 @@ import { Field, Input, Textarea } from "../ui/input";
 export function ContactSection() {
     const { l } = useI18n();
     const [sent, setSent] = useState(false);
+    const { errors, validate, clear } = useFieldErrors();
 
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!validate(e.currentTarget)) return;
         const f = new FormData(e.currentTarget);
         const name = String(f.get("name") || "").trim();
         const from = String(f.get("email") || "").trim();
@@ -54,15 +57,15 @@ export function ContactSection() {
                         </ul>
                     </div>
 
-                    <form onSubmit={submit} className="grid gap-5 p-8 sm:p-12">
-                        <Field label={l("الاسم", "Name")} htmlFor="c-name">
-                            <Input id="c-name" name="name" required autoComplete="name" />
+                    <form onSubmit={submit} className="grid gap-5 p-8 sm:p-12" noValidate>
+                        <Field label={l("الاسم", "Name")} htmlFor="c-name" error={errors["c-name"]}>
+                            <Input id="c-name" name="name" required autoComplete="name" onChange={() => clear("c-name")} />
                         </Field>
-                        <Field label={l("البريد الإلكتروني", "Email")} htmlFor="c-email">
-                            <Input id="c-email" name="email" type="email" required autoComplete="email" dir="ltr" placeholder="name@school.edu" />
+                        <Field label={l("البريد الإلكتروني", "Email")} htmlFor="c-email" error={errors["c-email"]}>
+                            <Input id="c-email" name="email" type="email" required autoComplete="email" dir="ltr" placeholder="name@school.edu" onChange={() => clear("c-email")} />
                         </Field>
-                        <Field label={l("الرسالة", "Message")} htmlFor="c-message">
-                            <Textarea id="c-message" name="message" required rows={5} placeholder={l("اكتب رسالتك هنا…", "Write your message here…")} />
+                        <Field label={l("الرسالة", "Message")} htmlFor="c-message" error={errors["c-message"]}>
+                            <Textarea id="c-message" name="message" required rows={5} placeholder={l("اكتب رسالتك هنا…", "Write your message here…")} onChange={() => clear("c-message")} />
                         </Field>
                         <div className="flex flex-wrap items-center gap-4">
                             <button type="submit" className="inline-flex h-12 items-center gap-2 rounded-full bg-pen px-8 font-semibold text-pen-ink transition-colors hover:bg-pen-hover">

@@ -131,7 +131,8 @@ export function HeroCollage({ startHref }: { startHref: string }) {
     }, { scope: root, dependencies: [lang] });
 
     return (
-        <section ref={root} className="relative isolate overflow-hidden lg:min-h-[min(calc(100dvh-4.25rem),900px)]">
+        // From 1280px the stage is at least 736px tall: on short laptop screens a squeezed stage pushed the bottom pieces into the buttons
+        <section ref={root} className="relative isolate overflow-hidden xl:min-h-[clamp(46rem,calc(100dvh-4.25rem),900px)]">
             {/* Soft light and a faint dot grid */}
             <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
                 {/* Glows sit at fixed offsets, not % of the section, so a late web font changing the section height does not move them */}
@@ -148,8 +149,8 @@ export function HeroCollage({ startHref }: { startHref: string }) {
                 />
             </div>
 
-            {/* Floating pieces (desktop) */}
-            <div className="pointer-events-none absolute inset-0 hidden lg:block" aria-hidden>
+            {/* Floating pieces (from 1280px; narrower screens push them onto the words) */}
+            <div className="pointer-events-none absolute inset-0 hidden xl:block" aria-hidden>
                 {PIECES.map((p) => (
                     <div key={p.key} data-piece data-speed={p.speed} className={cn("absolute", p.pos)}>
                         <div data-piece-enter className="size-full">
@@ -162,8 +163,9 @@ export function HeroCollage({ startHref }: { startHref: string }) {
             </div>
 
             {/* The words */}
-            <div data-hero-copy className="relative mx-auto flex max-w-[60rem] flex-col items-center px-4 pb-10 pt-16 text-center sm:px-6 lg:min-h-[inherit] lg:justify-center lg:pb-24 lg:pt-20">
-                <h1 className="font-display text-[clamp(2.3rem,4.6vw,4.2rem)] font-bold leading-[1.18] tracking-tight lg:[&>span]:whitespace-nowrap">
+            <div data-hero-copy className="relative mx-auto flex max-w-[60rem] flex-col items-center px-4 pb-10 pt-16 text-center sm:px-6 xl:min-h-[inherit] xl:justify-center xl:pb-24 xl:pt-20">
+                {/* From 1280px the floating pieces share the stage, so the headline scales a touch slower to keep clear of them */}
+                <h1 className="font-display text-[clamp(2.3rem,4.6vw,4.2rem)] font-bold leading-[1.18] tracking-tight lg:[&>span]:whitespace-nowrap xl:text-[clamp(3.2rem,4.25vw,4.2rem)]">
                     <span data-hero-line className="block">{l("أول منصة عربية", "The first Arabic platform")}</span>
                     <span data-hero-line className="block">{l("للامتحانات الشفوية أونلاين.", "for online oral exams.")}</span>
                 </h1>
@@ -181,8 +183,8 @@ export function HeroCollage({ startHref }: { startHref: string }) {
                 </div>
             </div>
 
-            {/* Phones and tablets: a small still collage under the words */}
-            <div className="relative mx-auto mb-14 h-64 max-w-sm px-4 lg:hidden" aria-hidden>
+            {/* Phones, tablets and small laptops: a small still collage under the words */}
+            <div className="relative mx-auto mb-14 h-64 max-w-sm px-4 xl:hidden" aria-hidden>
                 <div className="absolute start-4 top-2 h-52 w-40 -rotate-6"><Photo src="/photos/friends-reading-480.webp" priority /></div>
                 <div className="absolute end-4 top-8 h-52 w-40 rotate-[5deg]"><Photo src="/photos/student-relaxed-480.webp" priority /></div>
                 <div className="absolute bottom-0 left-1/2 w-56 -translate-x-1/2"><GradeCard /></div>

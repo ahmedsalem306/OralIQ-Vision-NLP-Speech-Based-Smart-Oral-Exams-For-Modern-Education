@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarCheck, CircleCheck, Hourglass, Search } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, StatStrip } from "../components/ui/panel";
-import { Alert, EmptyState, ListSkeleton, Segmented } from "../components/ui/feedback";
+import { Alert, EmptyState, ListSkeleton, LoadFailed, Segmented } from "../components/ui/feedback";
 import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
@@ -35,16 +35,23 @@ export default function AttendancePage() {
     const [filter, setFilter] = useState<Filter>("all");
     const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
+    const load = useCallback(() =>
+        api.get("/exams/attendance")
+            .then((res) => { setRows(res.data); setUpdatedAt(new Date().toISOString()); setError(""); })
+            .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحديث الحضور.", "Couldn't refresh attendance."))))
+            .finally(() => setLoading(false)),
+    [l]);
+
     useEffect(() => {
-        const load = () =>
-            api.get("/exams/attendance")
-                .then((res) => { setRows(res.data); setUpdatedAt(new Date().toISOString()); setError(""); })
-                .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحديث الحضور.", "Couldn't refresh attendance."))))
-                .finally(() => setLoading(false));
         load();
         const t = setInterval(load, REFRESH_MS);
         return () => clearInterval(t);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [load]);
+
+    // A failed refresh keeps the last list (with a notice); only a first load that failed has nothing to show
+    const firstLoadFailed = !loading && !updatedAt && !!error;
+    const retry = () => { setLoading(true); setError(""); load(); };
+    const hasData = !!updatedAt && rows.length > 0;
 
     const completed = rows.filter((r) => r.status === "completed").length;
     const pending = rows.length - completed;
@@ -79,18 +86,19 @@ export default function AttendancePage() {
                 )}
             />
 
-            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
+            {error && !firstLoadFailed && <Alert tone="error" className="mb-6">{error}</Alert>}
 
-            <StatStrip
+            {(loading || hasData) && <StatStrip
                 className="mb-6 sm:grid-cols-3"
+                loading={loading}
                 items={[
                     { label: l("المطلوب", "Expected"), value: rows.length, icon: CalendarCheck, tone: "pen" },
                     { label: l("خلّصوا", "Completed"), value: completed, hint: rows.length ? l(`${Math.round((completed / rows.length) * 100)}% من المطلوب`, `${Math.round((completed / rows.length) * 100)}% of expected`) : undefined, icon: CircleCheck, tone: "pass" },
                     { label: l("لسه", "Not yet"), value: pending, icon: Hourglass, tone: "warn" },
                 ]}
-            />
+            />}
 
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {hasData && <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <Segmented
                     label={l("تصفية الحضور", "Filter attendance")}
                     value={filter}
@@ -103,11 +111,13 @@ export default function AttendancePage() {
                     ]}
                 />
                 <Input icon={<Search />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={l("ابحث باسم الطالب", "Search by student")} aria-label={l("بحث", "Search")} className="lg:w-72" />
-            </div>
+            </div>}
 
             <Panel className="@container overflow-x-auto">
                 {loading ? (
                     <ListSkeleton rows={5} />
+                ) : firstLoadFailed ? (
+                    <LoadFailed detail={error} onRetry={retry} />
                 ) : visible.length === 0 ? (
                     <EmptyState
                         icon={<CalendarCheck />}

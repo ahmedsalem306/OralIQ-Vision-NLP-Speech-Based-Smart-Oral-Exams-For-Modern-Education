@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Lock, LockOpen, Mic, ScanFace, Search, ShieldCheck, UserX, Users } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 import { Panel, PageHeader, StatStrip } from "../components/ui/panel";
-import { Alert, EmptyState, ListSkeleton, Segmented } from "../components/ui/feedback";
+import { Alert, EmptyState, ListSkeleton, LoadFailed, Segmented } from "../components/ui/feedback";
 import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -23,17 +23,22 @@ export default function StudentsPage() {
     const [students, setStudents] = useState<StudentRow[]>([]);
     const [subs, setSubs] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [error, setError] = useState("");
     const [query, setQuery] = useState("");
     const [filter, setFilter] = useState<Filter>("all");
     const [busy, setBusy] = useState<number | null>(null);
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setLoadError("");
         Promise.all([api.get("/exams/students"), api.get("/exams/all-results").catch(() => ({ data: [] }))])
             .then(([s, r]) => { setStudents(s.data); setSubs(r.data); })
-            .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحميل الطلاب.", "Couldn't load students."))))
+            .catch((err) => setLoadError(getApiErrorMessage(err, l("تعذّر تحميل الطلاب.", "Couldn't load students."))))
             .finally(() => setLoading(false));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [l]);
+    useEffect(() => { load(); }, [load]);
+    const hasData = !loading && !loadError && students.length > 0;
 
     // Submissions carry the name the student confirmed at check-in (no student id in the API),
     // so per-student stats are matched by name.
@@ -81,16 +86,17 @@ export default function StudentsPage() {
 
             {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
-            <StatStrip
+            {(loading || hasData) && <StatStrip
                 className="mb-6 sm:grid-cols-3"
+                loading={loading}
                 items={[
                     { label: l("الطلاب", "Students"), value: students.length, icon: Users, tone: "pen" },
                     { label: l("سجّلوا وشهم وصوتهم", "Identity set up"), value: ready, icon: ShieldCheck, tone: "pass" },
                     { label: l("لسه ماسجلوش", "Not set up yet"), value: students.length - ready, hint: l("مش هيقدروا يدخلوا امتحان", "Can't take exams yet"), icon: UserX, tone: "warn" },
                 ]}
-            />
+            />}
 
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {hasData && <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <Segmented
                     label={l("تصفية الطلاب", "Filter students")}
                     value={filter}
@@ -103,11 +109,13 @@ export default function StudentsPage() {
                     className="max-w-full self-start overflow-x-auto"
                 />
                 <Input icon={<Search />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={l("ابحث بالاسم أو البريد", "Search by name or email")} aria-label={l("بحث", "Search")} className="lg:w-72" />
-            </div>
+            </div>}
 
             <Panel className="overflow-hidden">
                 {loading ? (
                     <ListSkeleton rows={5} />
+                ) : loadError ? (
+                    <LoadFailed detail={loadError} onRetry={load} />
                 ) : visible.length === 0 ? (
                     <EmptyState
                         icon={<Users />}

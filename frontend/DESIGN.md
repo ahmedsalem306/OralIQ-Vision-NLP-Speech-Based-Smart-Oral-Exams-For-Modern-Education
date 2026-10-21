@@ -72,7 +72,7 @@ Dark mode redefines every token; components only reference tokens.
 - Every page is checked at 320 / 360 / 414 / 768 / 1024 / 1280 / 1920 in both languages and both themes; nothing may be clipped by `overflow-x-clip` (the landing header drops the wordmark below 360px).
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
 - Home page order (the owner's, fixed): 1 hero, 2 who we are + what we offer (with the four steps), 3 explainer video, 4 our clients, 5 we join your platform, 6 contact, then the footer.
-- The hero is a light stage: the headline alone in the middle, with student photos and small product pieces (grade, identity check, recording, published grade) floating around it on desktop; a small still collage under the words on phones.
+- The hero is a light stage: the headline alone in the middle, with student photos and small product pieces (grade, identity check, recording, published grade) floating around it from 1280px wide (narrower, they would cover the words); a small still collage under the words below that.
 - References from the owner (e.g. their Pinterest board of websites) are read as a whole for taste: light, airy, rounded, real product and real people. Never clone one design.
 - The clients section is titled "عملاؤنا" only (no claims about what kind of institutions) and its logos move in one band. Clients come only from `src/content/clients.ts` and must be real. With an empty list the section is a development-only preview and is hidden in production; never ship invented names or logos. Add sections only when they answer a question a buyer actually has.
 
@@ -98,6 +98,11 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - **Company and contact details** (name, email, phone, location) come only from `src/content/company.ts`. The home page has no team section.
 - **ScoreMark:** `ink="mark"` for lecturers and marketing, `ink="kind"` on a student's own grades.
 - **Grades for students:** `studentGradeOf()` and `encouragementOf()`; the weakest band reads "يحتاج تقوية", never "ضعيف".
+- **One primary button per view.** The page's main action is `primary`; repeated row actions in a list (start exam, send to student) are `secondary`.
+- **Data states, on every list page:** while loading, `StatStrip loading` shows placeholders (never a "0" before the data arrives) and the list shows `ListSkeleton`; if loading failed, `LoadFailed` (with "حاول تاني") replaces the list and the figures; only a real empty list gets `EmptyState`. Filters, search and export appear only when there is something to act on. A live page (attendance) keeps its last data when a refresh fails and says so in an `Alert`.
+- **Forms:** rules live in the markup (`required`, `type="email"`, `minLength`, `min`/`max`) and `useFieldErrors()` (`src/lib/useFieldErrors.ts`) checks them on submit with `noValidate` on the form, showing the message under the field in the page's language and focusing (centred) the first problem. `Field` links its hint or error to the control (`aria-describedby`, `aria-invalid`) by itself. Server errors go through `getApiErrorMessage`; never show a raw backend string or a status code.
+- **Every string the user can see goes through `l()`/`t()`**, including error messages in the exam and identity flows. A camera or face problem is described as one (light, framing), never as a server problem.
+- Tooltips are for mouse and keyboard; they are hidden on touch screens.
 
 ## Motion
 

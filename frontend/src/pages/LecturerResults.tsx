@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, Inbox, Printer, Search, Send, TrendingUp, Trophy, X } from "lucide-react";
 import api from "../lib/api";
@@ -7,7 +7,7 @@ import { cn } from "../lib/utils";
 import { Button, buttonClasses } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Panel, PageHeader, RuledList, StatStrip } from "../components/ui/panel";
-import { Alert, Drawer, EmptyState, ListSkeleton, Modal, Segmented } from "../components/ui/feedback";
+import { Alert, Drawer, EmptyState, ListSkeleton, LoadFailed, Modal, Segmented } from "../components/ui/feedback";
 import { Avatar } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
@@ -74,12 +74,17 @@ export default function LecturerResults() {
         setShown(PAGE);
     }
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setLoadError("");
         api.get("/exams/all-results")
             .then((res) => setResults(res.data))
             .catch((err) => setLoadError(getApiErrorMessage(err, l("تعذّر تحميل النتائج.", "Couldn't load results."))))
             .finally(() => setLoading(false));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [l]);
+    useEffect(() => { load(); }, [load]);
+    // Figures, filters and export only mean something once there are answers to act on
+    const hasData = !loading && !loadError && results.length > 0;
 
     const sorted = useMemo(
         () => [...results].sort((a, b) => (parseServerDate(b.submitted_at)?.getTime() ?? 0) - (parseServerDate(a.submitted_at)?.getTime() ?? 0)),
@@ -173,7 +178,7 @@ export default function LecturerResults() {
             <PageHeader
                 title={l("النتائج", "Results")}
                 description={l("كل إجابة مصحّحة تلقائياً. راجع، وبعدين انشر الدرجة للطالب.", "Every answer is graded automatically. Review it, then publish the grade to the student.")}
-                actions={
+                actions={hasData && (
                     <>
                         <Button variant="secondary" onClick={() => downloadCsv(visible, lang)} disabled={!visible.length}>
                             <Download className="size-4" aria-hidden />{l("تصدير Excel", "Export CSV")}
@@ -184,22 +189,23 @@ export default function LecturerResults() {
                             </Button>
                         )}
                     </>
-                }
+                )}
             />
 
-            <StatStrip
+            {(loading || hasData) && <StatStrip
                 className="mb-6"
+                loading={loading}
                 items={[
                     { label: l("الإجابات", "Submissions"), value: results.length, icon: Inbox, tone: "violet" },
                     { label: l("المتوسط", "Average"), value: avg != null ? `${avg}%` : "—", icon: TrendingUp, tone: "teal" },
                     { label: l("أعلى درجة", "Highest"), value: top != null ? `${formatScore(top)}%` : "—", icon: Trophy, tone: "pen" },
                     { label: l("لم تُنشر بعد", "Not published"), value: unpublished.length, icon: EyeOff, tone: "warn" },
                 ]}
-            />
+            />}
 
-            {(loadError || actionError) && <Alert tone="error" className="mb-6">{loadError || actionError}</Alert>}
+            {actionError && <Alert tone="error" className="mb-6">{actionError}</Alert>}
 
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {hasData && <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <Segmented label={l("تصفية النتائج", "Filter results")} value={filter} onChange={(v) => setParam("filter", v)} options={filters} className="max-w-full overflow-x-auto" />
                 <div className="relative lg:w-72">
                     <Input
@@ -217,11 +223,13 @@ export default function LecturerResults() {
                         </button>
                     )}
                 </div>
-            </div>
+            </div>}
 
             <Panel className="@container overflow-hidden">
                 {loading ? (
                     <ListSkeleton rows={6} />
+                ) : loadError ? (
+                    <LoadFailed detail={loadError} onRetry={load} />
                 ) : visible.length === 0 ? (
                     <EmptyState
                         icon={<Inbox />}

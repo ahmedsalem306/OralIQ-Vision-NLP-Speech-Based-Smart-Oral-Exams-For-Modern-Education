@@ -16,6 +16,8 @@ import { ScoreMark } from "../components/ui/score-mark";
 import { encouragementOf, studentGradeOf } from "../lib/grades";
 import { countOf, NOUNS } from "../lib/format";
 import { usePageTitle } from "../lib/usePageTitle";
+import { useFieldErrors } from "../lib/useFieldErrors";
+import { getApiErrorMessage } from "../lib/apiErrors";
 import { DrawnCheck } from "../components/motion";
 import { cn } from "../lib/utils";
 
@@ -58,6 +60,9 @@ export default function ExamRoom() {
     const [studentName, setStudentName] = useState("");
     const [studentId, setStudentId] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
+    // Check-in step: name and student number, each with its own message
+    const detailsRef = useRef<HTMLDivElement>(null);
+    const { errors: detailErrors, validate: checkDetails, clear: clearDetail } = useFieldErrors();
     const [timeLeft, setTimeLeft] = useState(120);
     const [result, setResult] = useState<ExamResult | null>(null);
 
@@ -604,10 +609,7 @@ export default function ExamRoom() {
 
     // ── START EXAM: info → preview ────────────────────────────────────────────
     const startExam = useCallback(async () => {
-        if (!studentName.trim() || !studentId.trim()) {
-            setErrorMsg(t("exam.needData"));
-            return;
-        }
+        if (!checkDetails(detailsRef.current)) return;
         if (!question) { setErrorMsg(t("exam.noQuestion")); return; }
         setErrorMsg("");
 
@@ -657,7 +659,7 @@ export default function ExamRoom() {
         antiCheatAlertsRef.current = {};
         lastFrameTimeRef.current = performance.now();
         lastAlertTimeRef.current = 0;
-    }, [studentName, studentId, question]);
+    }, [studentName, studentId, question, checkDetails]);
 
     // ── START RECORDING: preview → recording ─────────────────────────────────
     const startRecording = useCallback(() => {
@@ -712,7 +714,7 @@ export default function ExamRoom() {
 
             const blob = new Blob(chunksRef.current, { type: "audio/webm" });
             if (blob.size < 500) {
-                setErrorMsg("التسجيل قصير جداً — اضغط التسجيل وتكلم أكتر.");
+                setErrorMsg(l("التسجيل قصير شوية. اضغط «ابدأ الإجابة» واتكلم براحتك.", "That recording was a little short. Press Start answering and take your time."));
                 setPhase("preview");
                 return;
             }
@@ -731,7 +733,7 @@ export default function ExamRoom() {
     // (response carries an id). Anything else -> "failed" with the actual error.
     const submitToBackend = async (blob: Blob) => {
         if (!question?.id) {
-            setErrorMsg("مفيش سؤال محمّل — تأكد من الرابط.");
+            setErrorMsg(l("السؤال ماتحمّلش. افتح رابط الامتحان تاني.", "The question didn't load. Open the exam link again."));
             setPhase("failed");
             return;
         }
@@ -781,11 +783,10 @@ export default function ExamRoom() {
                     setPhase("done");
                 }
             } else {
-                setErrorMsg("السيرفر رجع رد غير متوقع.");
+                setErrorMsg(l("إجابتك ماتسجلتش لأن السيرفر رد بشكل مش متوقع. جرّب تاني.", "Your answer wasn't saved because the server replied unexpectedly. Try again."));
                 setPhase("failed");
             }
         } catch (e: any) {
-            const detail = e?.response?.data?.detail;
             const status = e?.response?.status;
             if (status === 401 || status === 403) {
                 localStorage.removeItem("token");
@@ -793,10 +794,8 @@ export default function ExamRoom() {
                 setPhase("failed");
                 return;
             }
-            const msg = (typeof detail === "string" ? detail : null)
-                || (status ? `خطأ ${status} من السيرفر` : null)
-                || e?.message
-                || "تعذّر الاتصال بالسيرفر";
+            // A calm, specific sentence for the student (never "error 500"); details stay in the console
+            const msg = getApiErrorMessage(e, l("إجابتك ماتسجلتش. جرّب تاني.", "Your answer wasn't saved. Try again."));
             console.error("[ExamRoom] submit error:", status, e?.response?.data, e);
             setErrorMsg(msg);
             setPhase("failed");
@@ -899,12 +898,12 @@ export default function ExamRoom() {
 
                 {errorMsg && <Alert tone="error" className="mt-5">{errorMsg}</Alert>}
 
-                <div className="mt-6 grid gap-4">
-                    <Field label={l("الاسم بالكامل", "Full name")} htmlFor="ex-name">
-                        <Input id="ex-name" value={studentName} onChange={(e) => setStudentName(e.target.value)} autoComplete="name" />
+                <div ref={detailsRef} className="mt-6 grid gap-4">
+                    <Field label={l("الاسم بالكامل", "Full name")} htmlFor="ex-name" error={detailErrors["ex-name"] && l("اكتب اسمك زي ما هو في الكشف.", "Write your name as it appears on the class list.")}>
+                        <Input id="ex-name" required value={studentName} onChange={(e) => { setStudentName(e.target.value); clearDetail("ex-name"); }} autoComplete="name" />
                     </Field>
-                    <Field label={l("الرقم الجامعي", "Student number")} htmlFor="ex-id">
-                        <Input id="ex-id" value={studentId} onChange={(e) => setStudentId(e.target.value)} inputMode="numeric" className="tabular" data-autofocus autoFocus />
+                    <Field label={l("الرقم الجامعي", "Student number")} htmlFor="ex-id" error={detailErrors["ex-id"] && l("اكتب رقمك الجامعي.", "Write your student number.")}>
+                        <Input id="ex-id" required value={studentId} onChange={(e) => { setStudentId(e.target.value); clearDetail("ex-id"); }} inputMode="numeric" className="tabular" data-autofocus autoFocus />
                     </Field>
                 </div>
 

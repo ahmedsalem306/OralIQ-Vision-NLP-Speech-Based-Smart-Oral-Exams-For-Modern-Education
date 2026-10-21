@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Award, TrendingUp, Trophy, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, RuledList, StatStrip } from "../components/ui/panel";
-import { Alert, Drawer, EmptyState, ListSkeleton } from "../components/ui/feedback";
+import { Drawer, EmptyState, ListSkeleton, LoadFailed } from "../components/ui/feedback";
 import { Badge } from "../components/ui/badge";
 import { ScoreMark } from "../components/ui/score-mark";
 import { buttonClasses, ButtonLink } from "../components/ui/button";
@@ -20,12 +20,16 @@ export default function MyGrades() {
     const [error, setError] = useState("");
     const [openId, setOpenId] = useState<number | null>(null);
 
-    useEffect(() => {
+    const load = useCallback(() => {
+        setLoading(true);
+        setError("");
         api.get("/exams/my-grades")
             .then((res) => setGrades(res.data))
             .catch((err) => setError(getApiErrorMessage(err, l("تعذّر تحميل درجاتك.", "Couldn't load your grades."))))
             .finally(() => setLoading(false));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [l]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { load(); }, [load]);
 
     const sorted = useMemo(
         () => [...grades].sort((a, b) => (parseServerDate(b.submitted_at)?.getTime() ?? 0) - (parseServerDate(a.submitted_at)?.getTime() ?? 0)),
@@ -45,8 +49,6 @@ export default function MyGrades() {
                 description={l("بتظهر هنا الدرجات اللي المحاضر راجعها ونشرها.", "Grades show up here once your lecturer reviews and publishes them.")}
             />
 
-            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
-
             {scored.length > 1 && (
                 <StatStrip
                     className="mb-6 sm:grid-cols-3"
@@ -62,6 +64,8 @@ export default function MyGrades() {
             <Panel className="overflow-hidden">
                 {loading ? (
                     <ListSkeleton rows={3} />
+                ) : error ? (
+                    <LoadFailed detail={error} onRetry={load} />
                 ) : sorted.length === 0 ? (
                     <EmptyState
                         icon={<Award />}

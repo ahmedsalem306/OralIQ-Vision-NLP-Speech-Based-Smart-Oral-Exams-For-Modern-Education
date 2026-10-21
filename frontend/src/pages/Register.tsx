@@ -10,6 +10,8 @@ import { Field, Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
 import { Alert } from "../components/ui/feedback";
 import { usePageTitle } from "../lib/usePageTitle";
+import { useFieldErrors } from "../lib/useFieldErrors";
+import { getApiErrorMessage } from "../lib/apiErrors";
 
 export default function RegisterPage() {
     const { l } = useI18n();
@@ -18,6 +20,7 @@ export default function RegisterPage() {
     const [fullName, setFullName] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const { errors, validate, clear } = useFieldErrors();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const redirectTo = searchParams.get("redirect") || "/dashboard";
@@ -27,6 +30,7 @@ export default function RegisterPage() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validate(e.currentTarget as HTMLFormElement)) return;
         setLoading(true);
         setError("");
         try {
@@ -45,7 +49,7 @@ export default function RegisterPage() {
             } else if (e2?.response?.status === 422) {
                 setError(l("راجع البريد الإلكتروني، شكله مش مكتوب صح.", "Check the email address — it doesn't look right."));
             } else {
-                setError(typeof detail === "string" ? detail : l("تعذّر إنشاء الحساب. جرّب تاني بعد لحظات.", "Couldn't create the account. Try again shortly."));
+                setError(getApiErrorMessage(err, l("تعذّر إنشاء الحساب. جرّب تاني بعد لحظات.", "Couldn't create the account. Try again shortly.")));
             }
         } finally {
             setLoading(false);
@@ -78,7 +82,7 @@ export default function RegisterPage() {
                 </Alert>
             )}
 
-            <form onSubmit={handleRegister} className="mt-8 flex flex-col gap-5">
+            <form onSubmit={handleRegister} className="mt-8 flex flex-col gap-5" noValidate>
                 {!forcedRole && (
                     <fieldset>
                         <legend className="mb-1.5 text-sm font-semibold">{l("أنا", "I'm a")}</legend>
@@ -105,22 +109,22 @@ export default function RegisterPage() {
                     </fieldset>
                 )}
 
-                <Field label={l("الاسم بالكامل", "Full name")} htmlFor="fullName" hint={l("هيظهر للمحاضر في النتائج.", "Your lecturer sees this in results.")}>
+                <Field label={l("الاسم بالكامل", "Full name")} htmlFor="fullName" hint={l("هيظهر للمحاضر في النتائج.", "Your lecturer sees this in results.")} error={errors.fullName}>
                     <Input
-                        id="fullName" icon={<User />} autoComplete="name" required aria-describedby="fullName-hint"
-                        value={fullName} onChange={(e) => setFullName(e.target.value)}
+                        id="fullName" icon={<User />} autoComplete="name" required
+                        value={fullName} onChange={(e) => { setFullName(e.target.value); clear("fullName"); }}
                     />
                 </Field>
-                <Field label={l("البريد الإلكتروني", "Email")} htmlFor="email">
+                <Field label={l("البريد الإلكتروني", "Email")} htmlFor="email" error={errors.email}>
                     <Input
                         id="email" type="email" icon={<Mail />} autoComplete="email" required dir="ltr"
-                        value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@uni.edu.eg"
+                        value={email} onChange={(e) => { setEmail(e.target.value); clear("email"); }} placeholder="name@uni.edu.eg"
                     />
                 </Field>
-                <Field label={l("كلمة المرور", "Password")} htmlFor="password" hint={l("8 حروف أو أرقام على الأقل.", "At least 8 characters.")}>
+                <Field label={l("كلمة المرور", "Password")} htmlFor="password" hint={l("8 حروف أو أرقام على الأقل.", "At least 8 characters.")} error={errors.password}>
                     <PasswordInput
-                        id="password" autoComplete="new-password" required minLength={8} aria-describedby="password-hint"
-                        value={password} onChange={(e) => setPassword(e.target.value)}
+                        id="password" autoComplete="new-password" required minLength={8}
+                        value={password} onChange={(e) => { setPassword(e.target.value); clear("password"); }}
                     />
                 </Field>
                 <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">

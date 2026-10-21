@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { Alert, Modal } from "./ui/feedback";
 import { DrawnCheck } from "./motion";
 import { buildFaceEnrollForm } from "../lib/faceBiometrics";
+import { isAxiosError } from "axios";
 import { getApiErrorMessage } from "../lib/apiErrors";
 
 interface VoiceEnrollmentModalProps {
@@ -159,7 +160,9 @@ function EnrollmentFlow({
             clearInterval(progressTimer);
             setFaceScanning(false);
             setFaceScanProgress(0);
-            setErrorMsg(getApiErrorMessage(err, l("ماقدرناش نمسح الوش. اتأكد من الإضاءة وجرّب تاني.", "Couldn't scan your face. Check the lighting and try again.")));
+            // Only a request error is about the server; a face the camera could not read is about light and framing
+            const faceFailed = l("ماقدرناش نمسح الوش. اتأكد من الإضاءة وإن وشك كله باين، وجرّب تاني.", "Couldn't scan your face. Check the lighting and that your whole face is in view, then try again.");
+            setErrorMsg(isAxiosError(err) ? getApiErrorMessage(err, faceFailed) : faceFailed);
             setStep("error");
         }
     };
@@ -206,7 +209,7 @@ function EnrollmentFlow({
 
         } catch (err) {
             console.error("Mic access error:", err);
-            setErrorMsg("تعذّر الوصول إلى الميكروفون. يُرجى السماح بالوصول وإعادة المحاولة.");
+            setErrorMsg(l("مقدرناش نوصل للميكروفون. اسمح للمتصفح يستخدمه وجرّب تاني.", "We couldn't reach your microphone. Allow the browser to use it and try again."));
             setStep("error");
         }
     };
@@ -227,7 +230,7 @@ function EnrollmentFlow({
     // ── Handle each phrase recording completion ──────────────────────────────
     const onPhraseRecorded = (blob: Blob) => {
         if (blob.size < 1000) {
-            setErrorMsg("التسجيل قصير جداً. يُرجى التحدث بصوت واضح وإعادة المحاولة.");
+            setErrorMsg(l("التسجيل قصير شوية. اقرا الجملة بصوت واضح وجرّب تاني.", "That recording was a little short. Read the sentence clearly and try again."));
             setStep("error");
             return;
         }
@@ -266,13 +269,12 @@ function EnrollmentFlow({
                 setStep("success");
                 setTimeout(() => onSuccess(), 1400);
             } else {
-                setErrorMsg("فشل تسجيل بصمة الصوت. يُرجى إعادة المحاولة.");
+                setErrorMsg(l("صوتك ماتسجلش المرة دي. جرّب تاني.", "Your voice wasn't saved this time. Try again."));
                 setStep("error");
             }
         } catch (err: any) {
             console.error("Voice enrollment error:", err);
-            const detail = err.response?.data?.detail;
-            setErrorMsg(detail || "حدث خطأ أثناء حفظ بصمة الصوت. يُرجى إعادة المحاولة.");
+            setErrorMsg(getApiErrorMessage(err, l("حصلت مشكلة وإحنا بنحفظ صوتك. جرّب تاني.", "Something went wrong saving your voice. Try again.")));
             setStep("error");
         }
     };
@@ -339,7 +341,7 @@ function EnrollmentFlow({
             {enrollPhase === "face" && step !== "success" && (
                 <div className="flex flex-col items-center text-center">
                     <div className={cn(
-                        "relative aspect-square w-full max-w-60 overflow-hidden rounded-full bg-sheet-2 ring-4 transition-colors",
+                        "relative aspect-square w-full max-w-48 overflow-hidden sm:max-w-60 rounded-full bg-sheet-2 ring-4 transition-colors",
                         faceScanning ? "ring-pen" : "ring-rule",
                     )}>
                         <video ref={faceVideoRef} muted playsInline className="size-full -scale-x-100 object-cover" />
