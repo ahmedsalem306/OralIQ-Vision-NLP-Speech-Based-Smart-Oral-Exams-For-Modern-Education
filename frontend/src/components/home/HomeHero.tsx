@@ -27,10 +27,12 @@ export function HomeHero({ startHref }: { startHref: string }) {
     }, { scope: root, dependencies: [lang] });
 
     return (
-        <section ref={root} className="relative isolate overflow-hidden bg-home-hero text-home-hero-ink">
-            {/* Phones read it as words, face, then the detail; wide screens put the face beside both */}
-            <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-6 gap-y-8 px-4 pt-10 sm:px-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:grid-rows-[1fr_auto] lg:pt-14">
-                <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
+        <section ref={root} className="relative isolate overflow-hidden bg-home-hero text-home-hero-ink lg:flex lg:min-h-[min(50vw,48rem)]">
+            {/* Phones read it as words, face, then the detail. Wide screens give the face the whole end
+                side: large, standing on the foot of the stage and running off the edge of the page, as
+                in the owner's reference */}
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-x-6 gap-y-8 px-4 pt-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[1fr_auto] lg:pt-14">
+                <div className="relative z-10 lg:col-start-1 lg:row-start-1 lg:self-end">
                     <p data-hero-fade className="flex items-center gap-3 text-sm text-home-hero-muted">
                         <span className="h-px w-8 bg-current" aria-hidden />{l("امتحانات شفوية بالذكاء الاصطناعي", "AI oral exams")}
                     </p>
@@ -48,12 +50,12 @@ export function HomeHero({ startHref }: { startHref: string }) {
                     </div>
                 </div>
 
-                <div className="relative mx-auto w-full max-w-[22rem] sm:max-w-[26rem] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-w-none lg:self-end">
+                <div className="relative mx-auto w-full max-w-[24rem] sm:max-w-[28rem] lg:absolute lg:bottom-0 lg:end-0 lg:z-0 lg:mx-0 lg:w-[min(48vw,46rem)] lg:max-w-none">
                     <div className="home-light-only"><FaceScan tone="light" priority /></div>
                     <div className="home-dark-only"><FaceScan tone="dark" /></div>
                 </div>
 
-                <div className="pb-14 lg:col-start-1 lg:row-start-2 lg:pb-24">
+                <div className="relative z-10 pb-14 lg:col-start-1 lg:row-start-2 lg:pb-24">
                     <div data-hero-fade className="grid max-w-xl gap-x-8 gap-y-5 border-t border-home-hero-line pt-7 sm:grid-cols-[auto_minmax(0,1fr)] lg:mt-4">
                         <p className="flex items-center gap-3">
                             <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-home-hero-line"><ScanFace className="size-5" aria-hidden /></span>

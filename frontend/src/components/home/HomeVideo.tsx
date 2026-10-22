@@ -24,14 +24,19 @@ export function HomeVideo() {
 
     return (
         <section id="video" className="scroll-mt-20 bg-home-bg px-4 pb-24 text-home-ink sm:px-6 lg:pb-32">
-            <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px]">
-                <img src="/photos/video-cover-1280.webp" srcSet="/photos/video-cover-720.webp 720w, /photos/video-cover-1280.webp 1280w, /photos/video-cover-1920.webp 1920w"
-                    sizes="(min-width: 1280px) 1216px, 100vw" width={1920} height={1278} loading="lazy" decoding="async" alt=""
-                    className="absolute inset-0 size-full object-cover object-[50%_30%]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/10 sm:rtl:bg-gradient-to-l sm:ltr:bg-gradient-to-r sm:from-black/85 sm:via-black/50 sm:to-transparent" aria-hidden />
-                <div className="relative flex min-h-[26rem] flex-col justify-end gap-8 p-7 sm:min-h-[30rem] sm:p-12 lg:min-h-[34rem] lg:flex-row lg:items-end lg:justify-between lg:p-16">
+            <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] bg-black">
+                {/* The student fills the end side; the words have the black start side to themselves.
+                    On phones the photo sits on top and the words below it. */}
+                <div className="relative aspect-[6/5] lg:absolute lg:inset-y-0 lg:end-0 lg:aspect-auto lg:w-[56%]">
+                    <img src="/photos/video-cover-1080.webp" srcSet="/photos/video-cover-720.webp 720w, /photos/video-cover-1080.webp 1080w, /photos/video-cover-1440.webp 1440w"
+                        sizes="(min-width: 1280px) 680px, (min-width: 1024px) 56vw, 100vw" width={1440} height={1200} loading="lazy" decoding="async" alt=""
+                        className="size-full object-cover object-[50%_30%]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 via-30% to-transparent lg:hidden" aria-hidden />
+                    <div className="absolute inset-0 hidden from-black via-black/40 via-25% to-transparent to-60% lg:block rtl:bg-gradient-to-l ltr:bg-gradient-to-r" aria-hidden />
+                </div>
+                <div className="relative flex flex-col justify-end gap-8 p-7 sm:p-12 lg:min-h-[34rem] lg:max-w-[52%] lg:justify-center lg:p-16">
                     <h2 className={`${H2} max-w-xl text-white`}>{l("دقيقة واحدة، وتشوف كل حاجة بعينك.", "One minute, and you'll see it all.")}</h2>
-                    <div className="flex items-center gap-5 lg:max-w-sm">
+                    <div className="flex items-center gap-5 sm:max-w-md">
                         <button type="button" onClick={() => setOpen(true)} aria-label={l("تشغيل الفيديو التوضيحي، دقيقة واحدة", "Play the walkthrough video, one minute")}
                             className="relative flex size-16 shrink-0 items-center justify-center rounded-full border border-white/60 text-white transition-colors hover:bg-white hover:text-black">
                             <Play className="size-6 fill-current" aria-hidden />
