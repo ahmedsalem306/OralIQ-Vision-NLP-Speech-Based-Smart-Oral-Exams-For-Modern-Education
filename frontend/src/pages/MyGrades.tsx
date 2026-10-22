@@ -100,7 +100,7 @@ export default function MyGrades() {
 
             {/* A reminder of where all this is heading */}
             <figure className="relative hidden overflow-hidden rounded-[var(--radius-panel)] shadow-card lg:block">
-                <img src="/photos/graduate-800.webp" alt="" className="aspect-[4/5] w-full object-cover" loading="lazy" />
+                <img src="/photos/grades-student-800.webp" srcSet="/photos/grades-student-480.webp 480w, /photos/grades-student-800.webp 800w" sizes="(min-width: 1024px) 20rem, 90vw" alt="" className="aspect-[4/5] w-full object-cover" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/25 to-transparent" aria-hidden />
                 <figcaption className="absolute inset-x-0 bottom-0 p-5 text-white">
                     <p className="font-display text-lg font-semibold leading-snug">

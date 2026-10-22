@@ -8,14 +8,14 @@ import { COMPANY } from "../content/company";
 const scenes = {
     /** Sign in: a student mid-answer, with the graded result floating on top. */
     signin: {
-        src: "/photos/study-cafe.webp",
-        srcSet: "/photos/study-cafe-800.webp 800w, /photos/study-cafe.webp 1200w",
+        src: "/photos/auth-signin-1200.webp",
+        srcSet: "/photos/auth-signin-800.webp 800w, /photos/auth-signin-1200.webp 1200w",
         position: "center",
     },
     /** Sign up: where it all leads. */
     signup: {
-        src: "/photos/graduate.webp",
-        srcSet: "/photos/graduate-800.webp 800w, /photos/graduate.webp 1200w",
+        src: "/photos/auth-signup-1200.webp",
+        srcSet: "/photos/auth-signup-800.webp 800w, /photos/auth-signup-1200.webp 1200w",
         position: "center 30%",
     },
 } as const;
@@ -40,7 +40,6 @@ export function AuthShell({ children, scene = "signin" }: { children: React.Reac
             <aside className="relative hidden overflow-hidden md:block">
                 <img src={photo.src} srcSet={photo.srcSet} sizes="50vw" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: photo.position }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/10" aria-hidden />
-                <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(70% 50% at 100% 0%, color-mix(in oklab, var(--pen) 45%, transparent), transparent 70%)" }} aria-hidden />
 
                 <div className="relative flex h-full flex-col justify-end px-8 pb-12 lg:px-12 lg:pb-16 xl:px-16">
                     {/* Floats over the photo, so the blur is real layering. avoid-ai-design-ignore: K3 */}

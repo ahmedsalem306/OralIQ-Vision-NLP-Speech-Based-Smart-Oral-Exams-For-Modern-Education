@@ -20,9 +20,9 @@ export function HomeAbout({ startHref }: { startHref: string }) {
         <section id="about" className="scroll-mt-20 bg-home-bg text-home-ink">
             <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 pb-20 pt-24 sm:px-6 lg:grid-cols-2 lg:gap-20 lg:pb-28 lg:pt-32">
                 <figure className="overflow-hidden rounded-2xl">
-                    <img src="/photos/about-desk-960.webp" srcSet="/photos/about-desk-480.webp 480w, /photos/about-desk-720.webp 720w, /photos/about-desk-960.webp 960w, /photos/about-desk-1280.webp 1280w"
-                        sizes="(min-width: 1024px) 40vw, 90vw" width={1280} height={1200} loading="lazy" decoding="async"
-                        alt={l("طالبة بتجاوب امتحانها من على اللابتوب في أوضة منوّرة", "A student answering her exam on a laptop in a bright room")}
+                    <img src="/photos/about-student-960.webp" srcSet="/photos/about-student-480.webp 480w, /photos/about-student-720.webp 720w, /photos/about-student-960.webp 960w, /photos/about-student-1280.webp 1280w"
+                        sizes="(min-width: 1024px) 40vw, 90vw" width={1280} height={1196} loading="lazy" decoding="async"
+                        alt={l("طالب بيجاوب امتحانه من على اللابتوب في الفصل", "A student answering his exam on a laptop in class")}
                         className="block h-auto w-full" />
                 </figure>
                 <div>

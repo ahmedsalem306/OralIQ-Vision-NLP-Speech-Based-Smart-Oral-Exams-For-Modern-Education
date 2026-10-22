@@ -868,7 +868,7 @@ export default function ExamRoom() {
         <Sheet size="xl">
             <div className="grid overflow-hidden rounded-[24px] border border-rule bg-sheet shadow-float md:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
             <figure className="relative hidden md:block">
-                <img src="/photos/student-relaxed.webp" srcSet="/photos/student-relaxed-480.webp 480w, /photos/student-relaxed.webp 960w" sizes="420px" alt="" className="absolute inset-0 size-full object-cover object-[30%_center]" />
+                <img src="/photos/exam-student-960.webp" srcSet="/photos/exam-student-480.webp 480w, /photos/exam-student-960.webp 960w" sizes="420px" alt="" className="absolute inset-0 size-full object-cover object-[30%_center]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy/85 via-navy/10 to-transparent" aria-hidden />
                 <figcaption className="absolute inset-x-0 bottom-0 p-7 text-white">
                     <p className="font-display text-xl font-semibold leading-snug">{l("اتكلم براحتك.", "Speak at your own pace.")}</p>

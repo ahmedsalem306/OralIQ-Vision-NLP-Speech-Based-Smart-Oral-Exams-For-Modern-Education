@@ -2,26 +2,22 @@
 
 All photos are from [Unsplash](https://unsplash.com) under the
 [Unsplash License](https://unsplash.com/license) (free for commercial use, no attribution required).
-Credited here anyway, as good practice.
+Credited here anyway, as good practice. Every photo is shown in black and white (the site's look since 2026-10-22).
 
-| File | Photographer | Source |
-|------|--------------|--------|
-| chip-student.webp | BandLab | https://unsplash.com/photos/l1WhJTd6UZs |
-| study-cafe.webp | Surface | https://unsplash.com/photos/Nb5Dm6cIpQU |
-| student-library.webp | Joseph Ogbonnaya | https://unsplash.com/photos/exPHuE6Tk3Q |
-| friends-reading.webp | Fotos | https://unsplash.com/photos/HQkHmZ7d_Vk |
-| student-relaxed.webp | Litoon Dev | https://unsplash.com/photos/erQYGPZxjQg |
-| graduate.webp | Sahil Prajapati | https://unsplash.com/photos/7TUX4d3MeY0 |
-| chip-smile.webp (also the face in screens/exam-mobile.webp) | Mufid Majnun | https://unsplash.com/photos/J6kMThsc41M |
-| hero-cutout-v.webp (also in og.png) | Noman Khan | https://unsplash.com/photos/V4_wB6EywfE |
-| lecturer-desk.webp, chip-lecturer-desk.webp | Fotos | https://unsplash.com/photos/O-1eWnY5_xk |
-| student-waving.webp | Windows | https://unsplash.com/photos/6G6akT8biLg |
-| face-light-*.webp (home hero, light theme; cut out, black and white) | Hamid Moayyedi | https://unsplash.com/photos/YzP8nF-a86k |
-| face-dark-*.webp (home hero, dark theme; cut out, black and white) | Payton Tuttle | https://unsplash.com/photos/RFFR1JjkJx8 |
-| about-desk-*.webp (home, who we are; black and white) | Vitaly Gariev | https://unsplash.com/photos/VjQ1FQQXgo8 |
-| video-cover-*.webp (home, video banner; black and white) | Amit Ranjan | https://unsplash.com/photos/3S0Ucv4BDCk |
+| File | Where | Photographer | Source |
+|------|-------|--------------|--------|
+| face-light-*.webp | Home hero, light theme (cut out) | Amirhadi Manavi Moghadam | https://unsplash.com/photos/QY93A05t3zI |
+| face-dark-*.webp | Home hero, dark theme (cut out) | Payton Tuttle | https://unsplash.com/photos/RFFR1JjkJx8 |
+| about-student-*.webp | Home, who we are | Unsplash user "x" | https://unsplash.com/photos/7d4LREDSPyQ |
+| video-cover-*.webp | Home, video banner | Amit Ranjan | https://unsplash.com/photos/3S0Ucv4BDCk |
+| auth-signin-*.webp | Sign-in page | Amit Ranjan | https://unsplash.com/photos/3S0Ucv4BDCk |
+| auth-signup-*.webp | Sign-up page | Derick McKinney | https://unsplash.com/photos/kfN-BBbWTWo |
+| grades-student-*.webp, overview-student-*.webp | Student grades and overview | Amirhadi Manavi Moghadam | https://unsplash.com/photos/QY93A05t3zI |
+| exam-student-*.webp | Exam room | Unsplash user "x" | https://unsplash.com/photos/7d4LREDSPyQ |
 
-The newer photos share one light warm colour grade so the set reads as one.
-The explainer video (`/media/oraliq-demo.mp4`) is a screen recording of the app with demo data; the student's face in it is the chip-smile photo.
+The face mesh drawn over the hero portraits is MediaPipe FaceMesh (refineLandmarks, 478 points) run on those photos,
+the same model the exam room uses (`src/components/home/faceMesh.ts`). The two hero portraits are cut out with
+MediaPipe Selfie Segmentation and placed on the hero's own colour.
 
-The face mesh drawn over the hero portraits is MediaPipe FaceMesh (refineLandmarks, 478 points) run on those photos, the same model the exam room uses (`src/components/home/faceMesh.ts`).
+The explainer video (`/media/oraliq-demo.mp4`) is a screen recording of the app with demo data; the student's camera
+in it shows the face-light portrait.
