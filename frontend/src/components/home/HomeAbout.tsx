@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Building2, GraduationCap, Play, UserRoundCheck } from "lucide-react";
 import { useI18n } from "../../i18n";
-import { BTN, BTN_GHOST, Eyebrow, H2 } from "./ui";
+import { BTN, BTN_GHOST, Eyebrow, H2, Section } from "./ui";
 
 /** 2. Who we are, then what we offer: the about text beside a photo, and three cards. */
 export function HomeAbout({ startHref }: { startHref: string }) {
@@ -17,7 +17,7 @@ export function HomeAbout({ startHref }: { startHref: string }) {
     ];
 
     return (
-        <section id="about" className="scroll-mt-20 bg-home-bg text-home-ink">
+        <Section id="about" tone="b">
             <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 pb-20 pt-24 sm:px-6 lg:grid-cols-2 lg:gap-20 lg:pb-28 lg:pt-32">
                 <figure className="overflow-hidden rounded-2xl">
                     <img src="/photos/about-student-960.webp" srcSet="/photos/about-student-480.webp 480w, /photos/about-student-720.webp 720w, /photos/about-student-960.webp 960w, /photos/about-student-1280.webp 1280w"
@@ -57,6 +57,6 @@ export function HomeAbout({ startHref }: { startHref: string }) {
                     ))}
                 </ul>
             </div>
-        </section>
+        </Section>
     );
 }

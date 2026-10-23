@@ -1,5 +1,5 @@
 import { useI18n } from "../../i18n";
-import { H2 } from "./ui";
+import { H2, Section } from "./ui";
 
 /** 4. The four steps, as a stack of cards beside the title (where the reference had its quotes). */
 export function HomeSteps() {
@@ -11,7 +11,7 @@ export function HomeSteps() {
         { title: l("راجع وانشر", "Review and publish"), body: l("الدرجات بتوصلك جاهزة ومعاها التفاصيل، وتنشرها بضغطة.", "Grades arrive ready with the details; publish them in one click.") },
     ];
     return (
-        <section id="how" className="scroll-mt-20 border-t border-home-line bg-home-bg text-home-ink">
+        <Section id="how" tone="b">
             <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2 lg:gap-20 lg:py-32">
                 <div className="lg:sticky lg:top-28 lg:self-start">
                     <h2 className={H2}>{l("أربع خطوات، وامتحانك الشفوي جاهز.", "Four steps, and your oral exam is ready.")}</h2>
@@ -30,6 +30,6 @@ export function HomeSteps() {
                     ))}
                 </ol>
             </div>
-        </section>
+        </Section>
     );
 }

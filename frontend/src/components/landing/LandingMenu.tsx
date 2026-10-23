@@ -44,7 +44,7 @@ export function LandingMenu({ sections, loggedIn, className }: { sections: { hre
                 {open && (
                     <div className="flex h-full flex-col gap-6 p-5">
                         <div className="flex items-center justify-between">
-                            <Logo size={28} />
+                            <Logo height={20} />
                             <button type="button" onClick={() => setOpen(false)} aria-label={l("إغلاق القائمة", "Close menu")} className="flex size-10 items-center justify-center rounded-full hover:bg-sheet-2">
                                 <X className="size-5" aria-hidden />
                             </button>

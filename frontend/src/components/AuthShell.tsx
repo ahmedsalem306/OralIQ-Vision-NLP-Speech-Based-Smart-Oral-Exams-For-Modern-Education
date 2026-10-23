@@ -28,11 +28,11 @@ export function AuthShell({ children, scene = "signin" }: { children: React.Reac
             {/* Form side */}
             <div className="flex flex-col px-5 py-6 sm:px-10 md:px-8 lg:px-10">
                 <header className="flex items-center justify-between">
-                    <Link to="/" aria-label="OralIQ"><Logo size={30} /></Link>
+                    <Link to="/" aria-label="OralIQ" className="flex h-11 items-center"><Logo height={22} /></Link>
                     <div className="flex items-center gap-1"><LanguageToggle compact /><ThemeToggle /></div>
                 </header>
                 <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">{children}</main>
-                <footer className="text-center text-xs text-ink-3">© 2026 {COMPANY.name}</footer>
+                <footer className="text-center text-xs text-ink-3">© 2026 {COMPANY.name} — {l("منتج من", "a product by")} {COMPANY.maker}</footer>
             </div>
 
             {/* Brand side — a real moment (student answering), with the product floating on top. From tablet

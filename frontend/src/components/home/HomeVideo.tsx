@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, X } from "lucide-react";
 import { useI18n } from "../../i18n";
-import { H2 } from "./ui";
+import { H2, Section } from "./ui";
 
 /** Replace these two files to swap in a new walkthrough; nothing else needs to change. */
 const VIDEO = { src: "/media/oraliq-demo.mp4", poster: "/media/oraliq-demo-poster.webp" };
@@ -23,7 +23,7 @@ export function HomeVideo() {
     }, [open]);
 
     return (
-        <section id="video" className="scroll-mt-20 bg-home-bg px-4 pb-24 text-home-ink sm:px-6 lg:pb-32">
+        <Section id="video" tone="a" className="px-4 pb-16 pt-24 sm:px-6 lg:pt-32">
             <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] bg-black">
                 {/* The student fills the end side; the words have the black start side to themselves.
                     On phones the photo sits on top and the words below it. */}
@@ -62,6 +62,6 @@ export function HomeVideo() {
                     </div>
                 )}
             </dialog>
-        </section>
+        </Section>
     );
 }

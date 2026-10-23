@@ -43,9 +43,9 @@ export function ColumnChart({ data, title, valueLabel, labelKeys, height = 180, 
     const labeled = new Set(labelKeys ?? (tallest && tallest.value > 0 ? [tallest.key] : []));
 
     return (
-        <figure aria-labelledby={`${id}-cap`}>
+        <figure aria-labelledby={`${id}-cap`} className="min-w-0">
             <figcaption id={`${id}-cap`} className="sr-only">{title}</figcaption>
-            <div className="flex gap-3">
+            <div className="flex min-w-0 gap-3">
                 {/* Y axis */}
                 <div className="relative w-8 shrink-0 text-xs text-ink-3 tabular" style={{ height }} aria-hidden>
                     {ticks.map((t) => (
@@ -55,8 +55,10 @@ export function ColumnChart({ data, title, valueLabel, labelKeys, height = 180, 
                     ))}
                 </div>
 
-                <div className="min-w-0 flex-1">
-                    <div className="relative" style={{ height }}>
+                {/* Below ~24px a column is too small to point at, so the plot scrolls instead of
+                    squeezing: 14 days on a phone would leave 19px columns. */}
+                <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+                    <div className="relative" style={{ height, minWidth: data.length * 26 }}>
                         {/* Grid */}
                         {ticks.map((t) => (
                             <div key={t} className="absolute inset-x-0 border-t border-rule" style={{ bottom: `${(t / max) * 100}%` }} aria-hidden />
@@ -98,7 +100,7 @@ export function ColumnChart({ data, title, valueLabel, labelKeys, height = 180, 
                         </div>
                     </div>
                     {/* X labels */}
-                    <div className="mt-2 flex text-xs text-ink-3" aria-hidden>
+                    <div className="mt-2 flex text-xs text-ink-3" style={{ minWidth: data.length * 26 }} aria-hidden>
                         {data.map((d, i) => (
                             <span key={d.key} className="flex-1 truncate text-center">
                                 {data.length > 8 && i % 2 === 1 ? "" : d.label}

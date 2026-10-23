@@ -4,6 +4,7 @@ import { ThemeProvider } from "./lib/theme";
 import { ToastProvider } from "./components/ui/toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ServerStatus } from "./components/ServerStatus";
+import { BrandSprite } from "./components/Logo";
 
 /** Everything around the router; shared by the browser entry and the build-time render of the home page. */
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                 <ThemeProvider>
                     <I18nProvider>
                         <ToastProvider>
+                            <BrandSprite />
                             <ServerStatus />
                             {children}
                         </ToastProvider>

@@ -189,10 +189,8 @@
   --color-navy-ink: var(--navy-ink);
   --color-navy-muted: var(--navy-muted);
   --color-overlay: var(--overlay);
-  --color-home-hero: var(--home-hero);
-  --color-home-hero-ink: var(--home-hero-ink);
-  --color-home-hero-muted: var(--home-hero-muted);
-  --color-home-hero-line: var(--home-hero-line);
+  --color-home-a-bg: var(--home-a-bg);
+  --color-home-b-bg: var(--home-b-bg);
   --color-home-bg: var(--home-bg);
   --color-home-card: var(--home-card);
   --color-home-line: var(--home-line);
@@ -288,20 +286,43 @@
 }
 
 /* ── Home page: black and white (the owner's reference, 2026-10-22) ──────
-   Light theme: a light first screen over a black page. Dark theme: black throughout. */
+   The page alternates two surfaces, A and B, section by section. In the light theme A is the
+   off-white and B is the black; in the dark theme both are dark, B a shade up, so the same
+   rhythm survives. Neither is pure white or pure black: on a full-page surface that glares.
+
+   `.home-a` / `.home-b` redefine the --home-* variables, so every `bg-home-card`,
+   `text-home-muted`, `border-home-line` inside a section follows that section's surface. */
 :root {
-  --home-hero: #E4E4E4; --home-hero-ink: #0D0D0D; --home-hero-muted: #55565A; --home-hero-line: #C5C5C0;
-  --home-bg: #0D0D0D; --home-card: #171717; --home-line: #2B2B2B; --home-ink: #F3F3F1; --home-muted: #A3A3A0;
+  /* A neutral grey, not warm: the cut-out hero portrait is a greyscale image, so its own
+     background has to match this exactly. Cards lift to white. */
+  --home-a-bg: #EAEAEA; --home-a-ink: #0D0D0D; --home-a-muted: #54545A; --home-a-line: #D2D2D0; --home-a-card: #FFFFFF;
+  --home-b-bg: #0D0D0D; --home-b-ink: #EFEFED; --home-b-muted: #9C9C98; --home-b-line: #272727; --home-b-card: #171717;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --home-hero: #0D0D0D; --home-hero-ink: #F3F3F1; --home-hero-muted: #A3A3A0; --home-hero-line: #2B2B2B; }
+  :root:not([data-theme="light"]) {
+    --home-a-bg: #0D0D0D; --home-a-ink: #EFEFED; --home-a-muted: #9C9C98; --home-a-line: #242424; --home-a-card: #161616;
+    --home-b-bg: #141414; --home-b-ink: #EFEFED; --home-b-muted: #A2A29E; --home-b-line: #2C2C2C; --home-b-card: #1E1E1E;
+  }
   :root:not([data-theme="light"]) .home-light-only { display: none; }
   :root:not([data-theme="light"]) .home-dark-only { display: block; }
 }
-:root[data-theme="dark"] { --home-hero: #0D0D0D; --home-hero-ink: #F3F3F1; --home-hero-muted: #A3A3A0; --home-hero-line: #2B2B2B; }
+:root[data-theme="dark"] {
+  --home-a-bg: #0D0D0D; --home-a-ink: #EFEFED; --home-a-muted: #9C9C98; --home-a-line: #242424; --home-a-card: #161616;
+  --home-b-bg: #141414; --home-b-ink: #EFEFED; --home-b-muted: #A2A29E; --home-b-line: #2C2C2C; --home-b-card: #1E1E1E;
+}
 :root[data-theme="dark"] .home-light-only { display: none; }
 .home-dark-only { display: none; }
 :root[data-theme="dark"] .home-dark-only { display: block; }
+
+.home-a, .home-b { background: var(--home-bg); color: var(--home-ink); }
+.home-a {
+  --home-bg: var(--home-a-bg); --home-ink: var(--home-a-ink); --home-muted: var(--home-a-muted);
+  --home-line: var(--home-a-line); --home-card: var(--home-a-card);
+}
+.home-b {
+  --home-bg: var(--home-b-bg); --home-ink: var(--home-b-ink); --home-muted: var(--home-b-muted);
+  --home-line: var(--home-b-line); --home-card: var(--home-b-card);
+}
 
 /* The hero's face scan: the mesh is drawn top to bottom once, then a scan line passes now and then */
 @keyframes home-mesh-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }

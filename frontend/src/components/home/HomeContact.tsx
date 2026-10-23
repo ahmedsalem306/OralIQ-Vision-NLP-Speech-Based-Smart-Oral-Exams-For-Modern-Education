@@ -4,9 +4,9 @@ import { useI18n } from "../../i18n";
 import { cn } from "../../lib/utils";
 import { COMPANY, telHref } from "../../content/company";
 import { useFieldErrors } from "../../lib/useFieldErrors";
-import { BTN, H2 } from "./ui";
+import { BTN, H2, Section } from "./ui";
 
-const FIELD = "block w-full rounded-lg border border-home-line bg-home-card px-4 py-3 text-home-ink placeholder:text-home-muted/70 focus:border-home-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-home-ink/40";
+const FIELD = "block w-full rounded-lg border border-home-line bg-home-bg px-4 py-3 text-home-ink placeholder:text-home-muted focus:border-home-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-home-ink/40";
 
 /**
  * 7. Contact. There is no form backend yet, so sending opens the visitor's email app with the
@@ -39,7 +39,7 @@ export function HomeContact() {
     );
 
     return (
-        <section id="contact" className="scroll-mt-20 border-t border-home-line bg-home-bg text-home-ink">
+        <Section id="contact" tone="a">
             <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20 lg:py-32">
                 <div>
                     <h2 className={H2}>{l("تواصل معنا", "Contact us")}</h2>
@@ -67,9 +67,9 @@ export function HomeContact() {
                     </ul>
                 </div>
 
-                <form onSubmit={submit} className="grid gap-5 rounded-2xl bg-home-card/60 p-6 sm:p-9" noValidate>
+                <form onSubmit={submit} className="grid gap-5 rounded-2xl border border-home-line bg-home-card p-6 sm:p-9" noValidate>
                     {field("c-name", l("الاسم", "Name"),
-                        <input id="c-name" name="name" required autoComplete="name" aria-invalid={!!errors["c-name"] || undefined} aria-describedby={errors["c-name"] ? "c-name-error" : undefined} onChange={() => clear("c-name")} className={FIELD} />)}
+                        <input id="c-name" name="name" required autoComplete="name" placeholder={l("اسمك", "Your name")} aria-invalid={!!errors["c-name"] || undefined} aria-describedby={errors["c-name"] ? "c-name-error" : undefined} onChange={() => clear("c-name")} className={FIELD} />)}
                     {field("c-email", l("البريد الإلكتروني", "Email"),
                         <input id="c-email" name="email" type="email" required autoComplete="email" dir="ltr" placeholder="name@school.edu" aria-invalid={!!errors["c-email"] || undefined} aria-describedby={errors["c-email"] ? "c-email-error" : undefined} onChange={() => clear("c-email")} className={cn(FIELD, "text-start")} />)}
                     {field("c-message", l("الرسالة", "Message"),
@@ -84,6 +84,6 @@ export function HomeContact() {
                     </div>
                 </form>
             </div>
-        </section>
+        </Section>
     );
 }

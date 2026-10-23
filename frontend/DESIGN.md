@@ -12,7 +12,8 @@ colors:
   mark: "#C62A39"      # grader's red pen: grades and real errors only
   sun: "#A44F0C"       # warm encouragement (student-facing), amber notices
   navy: "#0D0D0D"      # deep surfaces (now black)
-  home-hero: "#E4E4E4" # the home page's light first screen (black in dark)
+  home-a-bg: "#EAEAEA" # home page, surface A (black in the dark theme)
+  home-b-bg: "#0D0D0D" # home page, surface B (#141414 in the dark theme)
   pass: "#11784C"      # success / excellent
   warn: "#93580D"      # attention, never alarm
 typography:
@@ -42,7 +43,7 @@ OralIQ replaces the oral exam panel: a student answers a spoken question on a ph
 
 The look is black and white (the owner's choice on 2026-10-22, from a reference they sent): white and near-black surfaces, large light headings, black actions in light mode and white ones in dark. Colour stays only where it carries meaning: the grader's red pen on a grade, pass green, warning amber. For students the product must still lower stress: plain surfaces, encouraging copy, amber instead of red for anything that needs their attention.
 
-**Signature detail:** on the home page, the face mesh over the hero portrait (`FaceScan`): the 478 points the exam room actually tracks, computed with MediaPipe on that photo. In the app, the hand-drawn red loop round a grade (`ScoreMark`). Do not invent a third.
+**Signature detail:** the brand's own Q, whose tail loops into an infinity sign. On the home page, the face mesh over the hero portrait (`FaceScan`): the 478 points the exam room actually tracks, computed with MediaPipe on that photo. In the app, the hand-drawn red loop round a grade (`ScoreMark`). Do not invent a fourth.
 
 ## Colors
 
@@ -73,7 +74,8 @@ Dark mode redefines every token; components only reference tokens.
 - Every page is checked at 320 / 360 / 414 / 768 / 1024 / 1280 / 1920 in both languages and both themes; nothing may be clipped by `overflow-x-clip` (the landing header drops the wordmark below 360px).
 - Widths follow the section's role: the hero is a full-width stage (max 1400px); reading sections (steps, comparison) sit at `max-w-6xl`; the FAQ is narrow (`max-w-3xl`); product shots and feature grids use `max-w-7xl`.
 - Home page order (the owner's, fixed): 1 hero, 2 who we are + what we offer, then how a grade is made and the four steps, 3 explainer video, 4 our clients, 5 we join your platform, 6 contact, then the footer.
-- The home page follows the owner's reference (2026-10-22): light theme is a light first screen (`home-hero`) stepping down into a black page; dark theme is black throughout. Sections are large light titles (`H2` in `components/home/ui.tsx`), dark cards, hairline rules. The reference's quotes are the four steps (no invented testimonials), its figure is the real 478 face points, and its logo rows are "عملاؤنا" (hidden until real clients exist).
+- The home page alternates two surfaces band by band — A (off-white), B (black), A, B … — so it has a rhythm and the black footer closes it. In the dark theme both are dark, B one shade up, so the rhythm survives. `.home-a` / `.home-b` (index.css) redefine the `--home-*` variables, so `bg-home-card`, `text-home-muted` and `border-home-line` inside a band follow that band: wrap a band in the `Section` component rather than setting a background by hand. Neither surface is pure white or pure black; on a full page that glares. The hero's foot steps down into the band below, and its portrait is cut out onto #EAEAEA, so surface A must stay exactly that grey.
+- Section titles are large and light (`H2` in `components/home/ui.tsx`); cards lift off their surface; rules are hairlines. The reference's quotes are the four steps (no invented testimonials), its figure is the real 478 face points, and its logo rows are "عملاؤنا" (hidden until real clients exist).
 - Every person in a photo is a young man (the owner's request), and all of them are one photo series of the same person with one shared black-and-white tone, so the site reads as one piece. Crops avoid printed text on clothing. Credits and the edits made are in `public/photos/CREDITS.md`.
 - The hero: the headline, "ابدأ الآن" and "شوف الفيديو", the 478 points with the one-paragraph pitch, and a cut-out portrait with the face mesh (one portrait per theme, cut out onto that theme's hero colour). The mesh draws once and a scan line passes now and then; reduced motion shows it still.
 - References from the owner (e.g. their Pinterest board of websites) are read as a whole for taste: light, airy, rounded, real product and real people. Never clone one design.
@@ -134,6 +136,12 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 - Do reuse the tokens, nav, footer and primitives above on every page, unchanged.
 - Do add a token to `index.css` and to this file before a page needs a new colour or size.
 - Do keep student-facing language encouraging and specific ("رجّع عينك للشاشة", not "نظرت لليسار").
-- Don't change: Alexandria (light weights for large headings) + IBM Plex Sans Arabic, the black-and-white palette with colour only for meaning, the home section order.
+- Don't change: the ORALIQ wordmark artwork, Alexandria (light weights for large headings) + IBM Plex Sans Arabic, the black-and-white palette with colour only for meaning, the home section order.
 - The explainer video is `public/media/oraliq-demo.mp4` with `oraliq-demo-poster.webp`; it is a screen recording of the app with demo data. Replace both files to update it.
 - Don't use: decorative blurred blobs behind sections; trust strips of three checkmarks under the hero; icons in tinted circles beside contact details; purple-to-blue gradients or gradient headline text; one accented word in a headline (SD5); eyebrow labels with hairlines above every heading (SD4); middle-dot meta strings (SD4d); decorative 01 / 02 / 03 numbering outside real sequences (SD6); fake browser chrome around screenshots (SD7); icons in tinted rounded squares as the default feature treatment (K6); mouse-following spotlights and 3D tilt cards (K10); count-up animations outside live dashboard figures (M5); cream with terracotta or near-black with acid green as an "escape" palette (SD1, SD2).
+
+## Brand
+
+- OralIQ is the product; **GhatTech** is the company behind it. Both, with the contact email and phone, come from `src/content/company.ts` — never hard-code them.
+- The wordmark and the Q mark are traced vectors in `src/components/brand.ts`. `BrandSprite` (rendered once by `AppProviders`) holds the wordmark and `Logo` points at it with `<use>`: inlining the path per copy would add ~14KB of markup each to the pre-rendered home page. `LogoMark` draws its own path, since the pages that use it are not pre-rendered.
+- `Logo` takes a `height` (cap height in px) and fills with `currentColor`, so it needs no light or dark variant: the surface's own ink colours it.

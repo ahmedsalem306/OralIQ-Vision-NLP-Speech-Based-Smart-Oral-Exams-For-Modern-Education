@@ -19,9 +19,12 @@ import { HomeContact } from "../components/home/HomeContact";
 import { HomeFooter } from "../components/home/HomeFooter";
 
 /**
- * Home page, black and white after the owner's reference (2026-10-22), in the owner's order:
- * 1 hero, 2 who we are + what we offer (with how a grade is made and the four steps),
- * 3 explainer video, 4 our clients, 5 we join your platform, 6 contact.
+ * Home page, black and white after the owner's reference, in the owner's order: 1 hero,
+ * 2 who we are + what we offer (with how a grade is made and the four steps), 3 explainer video,
+ * 4 our clients, 5 we join your platform, 6 contact.
+ *
+ * The bands alternate between the two surfaces — A (off-white), B (black), A, B … — so the page
+ * has a rhythm rather than one long dark scroll, and the black footer closes it.
  */
 export default function LandingPage() {
     const { l } = useI18n();
@@ -51,7 +54,7 @@ export default function LandingPage() {
 
     return (
         <MotionConfig reducedMotion="user">
-            <div className="home min-h-dvh overflow-x-clip bg-home-bg text-home-ink">
+            <div className="home home-a min-h-dvh overflow-x-clip">
                 <a
                     href="#main"
                     onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}
@@ -63,10 +66,12 @@ export default function LandingPage() {
                 {/* Sticky bar over scrolling content: the one place glass belongs. avoid-ai-design-ignore: K3 */}
                 <header className={cn(
                     "sticky top-0 z-40 border-b backdrop-blur-xl transition-[background-color,border-color,color] duration-300",
-                    overDark ? "border-home-line bg-home-bg/85 text-home-ink" : cn("text-home-hero-ink", scrolled ? "border-home-hero-line bg-home-hero/85" : "border-transparent bg-home-hero"),
+                    // Over the hero the bar wears the hero's own surface; past it, the black bar
+                    // reads clearly over every section below, light or dark
+                    overDark ? "home-b border-home-line bg-home-bg/85" : cn("home-a", scrolled ? "border-home-line bg-home-bg/85" : "border-transparent bg-home-bg"),
                 )}>
                     <nav className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-3 px-4 sm:gap-8 sm:px-6" aria-label={l("الرئيسية", "Main")}>
-                        <Link to="/" aria-label="OralIQ"><Logo size={30} light={overDark} textClassName={cn("max-[359px]:hidden", !overDark && "text-current")} /></Link>
+                        <Link to="/" aria-label="OralIQ" className="flex h-11 items-center"><Logo height={22} /></Link>
                         <ul className="hidden items-center gap-7 text-[0.9375rem] lg:flex">
                             {sections.map((s) => (
                                 <li key={s.href}><a href={s.href} className="inline-flex h-10 items-center opacity-75 transition-opacity hover:opacity-100">{s.label}</a></li>
@@ -75,11 +80,11 @@ export default function LandingPage() {
                         <div className="ms-auto flex items-center gap-1">
                             <span className="hidden items-center gap-1 lg:flex"><LanguageToggle compact className={ghost} /><ThemeToggle className={ghost} /></span>
                             {loggedIn ? (
-                                <Link to="/dashboard" className={cn("ms-2 inline-flex h-10 items-center whitespace-nowrap rounded-lg px-5 text-sm font-semibold", overDark ? "bg-home-ink text-home-bg" : "bg-home-hero-ink text-home-hero")}>{l("لوحة التحكم", "Dashboard")}</Link>
+                                <Link to="/dashboard" className="ms-2 inline-flex h-10 items-center whitespace-nowrap rounded-lg bg-home-ink px-5 text-sm font-semibold text-home-bg">{l("لوحة التحكم", "Dashboard")}</Link>
                             ) : (
                                 <>
                                     <Link to="/login" viewTransition className="hidden h-10 items-center rounded-lg px-4 text-sm font-semibold opacity-80 hover:opacity-100 sm:inline-flex">{l("تسجيل الدخول", "Sign in")}</Link>
-                                    <Link to="/register" viewTransition className={cn("ms-1 inline-flex h-10 items-center whitespace-nowrap rounded-lg px-4 text-sm font-semibold sm:px-5", overDark ? "bg-home-ink text-home-bg" : "bg-home-hero-ink text-home-hero")}>{l("أنشئ حساب", "Create account")}</Link>
+                                    <Link to="/register" viewTransition className="ms-1 inline-flex h-10 items-center whitespace-nowrap rounded-lg bg-home-ink px-4 text-sm font-semibold text-home-bg sm:px-5">{l("أنشئ حساب", "Create account")}</Link>
                                 </>
                             )}
                             <LandingMenu sections={sections} loggedIn={loggedIn} className={ghost} />

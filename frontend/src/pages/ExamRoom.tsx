@@ -1046,8 +1046,8 @@ export default function ExamRoom() {
             {/* Sticky bar over scrolling content. avoid-ai-design-ignore: K3 */}
             <header className="sticky top-0 z-20 border-b border-rule bg-sheet/90 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-                    <Logo size={26} showText={false} className="sm:hidden" />
-                    <Logo size={26} className="hidden sm:inline-flex" />
+                    <LogoMark size={26} className="sm:hidden" />
+                    <Logo height={20} className="max-sm:hidden" title="OralIQ" />
                     {multi && (
                         <ol className="flex items-center gap-1.5" aria-label={l(`سؤال ${currentQIndex + 1} من ${allQuestions.length}`, `Question ${currentQIndex + 1} of ${allQuestions.length}`)}>
                             {allQuestions.map((q, i) => (
@@ -1195,7 +1195,7 @@ function Sheet({ children, wide = false, size }: { children: React.ReactNode; wi
         <div className="relative isolate flex min-h-dvh flex-col bg-paper">
             <CalmBackdrop />
             <header className="flex h-16 items-center justify-between px-5 sm:px-8">
-                <Logo size={28} />
+                <Logo height={22} title="OralIQ" />
                 <div className="flex items-center gap-1"><LanguageToggle compact /><ThemeToggle /></div>
             </header>
             <main className={cn("mx-auto flex w-full flex-1 flex-col justify-center px-4 pb-16", size === "xl" ? "max-w-4xl" : wide ? "max-w-xl" : "max-w-md")}>

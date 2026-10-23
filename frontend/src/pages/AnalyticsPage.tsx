@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
                         ]}
                     />
 
-                    <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
                         <Panel>
                             <PanelHeader title={l("توزيع الدرجات", "Score distribution")} description={l("عدد الطلاب في كل تقدير", "Students per grade band")} />
                             <div className="p-5">

@@ -9,7 +9,7 @@ export default function NotFound() {
     const loggedIn = (() => { try { return !!localStorage.getItem("token"); } catch { return false; } })();
     return (
         <main className="flex min-h-dvh flex-col items-center justify-center bg-paper px-6 text-center">
-            <Logo size={34} className="mb-10" />
+            <Logo height={26} className="mb-10" title="OralIQ" />
             <p className="relative flex h-28 w-52 items-center justify-center">
                 <svg viewBox="-6 -4 132 88" preserveAspectRatio="none" className="absolute inset-0 h-full w-full -rotate-3 overflow-visible text-pen" aria-hidden>
                     <path d="M92 10C113 17 121 44 102 62C82 80 33 80 14 63C-3 48 6 19 33 9C53 2 80 3 98 15" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />

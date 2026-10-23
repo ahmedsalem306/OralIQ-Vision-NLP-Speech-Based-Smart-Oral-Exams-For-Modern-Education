@@ -1,13 +1,15 @@
 /**
- * Company and contact details, shown in the contact section, the footer and the auth pages.
+ * Product and company details, shown in the contact section, the footer and the auth pages.
  * Change them here only. Leave `phone` or `location` empty ("") to hide that line.
  *
- * Still provisional: the final company name, email and phone are being set up.
+ * OralIQ is the product; GhatTech is the company that makes it (owner, 2026-10-23).
  */
 export const COMPANY = {
-    /** Shown in the copyright line. */
+    /** The product, and the name in the copyright line. */
     name: "OralIQ",
-    email: "ahmedsalem250500@gmail.com",
+    /** The company behind it. */
+    maker: "GhatTech",
+    email: "ghartech1@gmail.com",
     /** International format; the page builds the tel: link from it. */
     phone: "+20 106 540 7502",
     location: { ar: "المنصورة، مصر", en: "Mansoura, Egypt" },

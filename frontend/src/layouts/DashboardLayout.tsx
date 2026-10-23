@@ -141,7 +141,7 @@ export function DashboardLayout() {
                 aria-label={l("القائمة الرئيسية", "Main menu")}
             >
                 <div className="flex h-[4.5rem] shrink-0 items-center justify-between px-5">
-                    <Link to="/dashboard" aria-label="OralIQ"><Logo size={32} /></Link>
+                    <Link to="/dashboard" aria-label="OralIQ" className="flex h-11 items-center"><Logo height={22} /></Link>
                     <button
                         ref={closeButton}
                         type="button"
@@ -223,7 +223,7 @@ export function DashboardLayout() {
                     >
                         <Menu className="size-5" aria-hidden />
                     </button>
-                    <Logo size={26} />
+                    <Logo height={20} title="OralIQ" />
                     <Avatar name={user?.full_name} src={profilePic} size="sm" />
                 </header>
 

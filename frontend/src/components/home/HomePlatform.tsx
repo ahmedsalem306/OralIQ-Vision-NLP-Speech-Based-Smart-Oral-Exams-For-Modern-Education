@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { useI18n } from "../../i18n";
-import { Eyebrow, H2 } from "./ui";
+import { Eyebrow, H2, Section } from "./ui";
 
 /** 6. We join your platform: the four kinds of place, as ruled rows beside the offer. */
 export function HomePlatform() {
@@ -12,7 +12,7 @@ export function HomePlatform() {
         { title: l("المنصات التعليمية", "Learning platforms"), body: l("ميزة امتحان شفوي جاهزة جوّه منصتك، بشكلها وتحت اسمك.", "A ready oral-exam feature inside your platform, in its look and under your name.") },
     ];
     return (
-        <section id="integrate" className="scroll-mt-20 bg-home-bg text-home-ink">
+        <Section id="integrate" tone="b">
             <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2 lg:gap-20 lg:py-32">
                 <div>
                     <Eyebrow>{l("لمنصتك", "For your platform")}</Eyebrow>
@@ -34,6 +34,6 @@ export function HomePlatform() {
                     ))}
                 </ul>
             </div>
-        </section>
+        </Section>
     );
 }

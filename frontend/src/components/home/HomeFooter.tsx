@@ -8,10 +8,10 @@ export function HomeFooter({ sections }: { sections: { href: string; label: stri
     const { l } = useI18n();
     const head = "mb-4 text-sm font-semibold text-home-ink";
     return (
-        <footer className="border-t border-home-line bg-home-bg text-home-muted">
+        <footer className="home-b border-t border-home-line text-home-muted">
             <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 py-16 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
                 <div className="col-span-2 md:col-span-1">
-                    <Logo size={30} light />
+                    <Logo height={24} className="text-home-ink" title="OralIQ" />
                     <p className="mt-5 max-w-xs leading-relaxed">{l("أول منصة عربية للامتحانات الشفوية أونلاين: الطالب بيجاوب بصوته، والدرجة بتوصلك جاهزة.", "The first Arabic platform for online oral exams: students answer out loud, and the grade reaches you ready.")}</p>
                 </div>
                 <div>
@@ -37,7 +37,10 @@ export function HomeFooter({ sections }: { sections: { href: string; label: stri
                 </nav>
             </div>
             <div className="border-t border-home-line">
-                <p className="mx-auto max-w-7xl px-4 py-6 text-sm sm:px-6">© 2026 {COMPANY.name}</p>
+                <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm sm:px-6">
+                    <p>© 2026 {COMPANY.name}</p>
+                    <p>{l("منتج من", "A product by")} <span className="text-home-ink">{COMPANY.maker}</span></p>
+                </div>
             </div>
         </footer>
     );

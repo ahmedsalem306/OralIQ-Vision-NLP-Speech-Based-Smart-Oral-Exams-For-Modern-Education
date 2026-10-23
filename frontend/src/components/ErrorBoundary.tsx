@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
         try { ar = localStorage.getItem("oraliq_lang") !== "en"; } catch { /* default Arabic */ }
         return (
             <main dir={ar ? "rtl" : "ltr"} className="flex min-h-dvh flex-col items-center justify-center bg-paper px-6 text-center text-ink">
-                <Logo size={34} className="mb-10" />
+                <Logo height={26} className="mb-10" title="OralIQ" />
                 <h1 className="text-2xl font-bold">{ar ? "حصلت مشكلة في عرض الصفحة" : "Something went wrong showing this page"}</h1>
                 <p className="mt-2 max-w-md text-ink-2">
                     {ar

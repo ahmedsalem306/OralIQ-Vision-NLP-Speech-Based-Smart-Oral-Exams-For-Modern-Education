@@ -1,5 +1,6 @@
 import { useI18n } from "../../i18n";
 import { CLIENTS, type Client } from "../../content/clients";
+import { Section } from "./ui";
 
 /** Placeholder count for the development preview: shows the layout without inventing names. */
 const SLOTS = 6;
@@ -22,8 +23,9 @@ export function HomeClients() {
     };
 
     return (
-        <section id="clients" aria-labelledby="clients-title" className="scroll-mt-20 border-y border-home-line bg-home-bg py-14 text-home-ink">
-            <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-6 lg:flex-row lg:items-center">
+        <Section id="clients" tone="a" className="px-4 sm:px-6">
+            <div className="mx-auto max-w-7xl border-t border-home-line py-14">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
                 <h2 id="clients-title" className="shrink-0 font-display text-2xl font-light">{l("عملاؤنا", "Our clients")}</h2>
                 <ul className="flex flex-1 flex-wrap items-center gap-x-12 gap-y-6 lg:justify-end">
                     {preview
@@ -34,10 +36,11 @@ export function HomeClients() {
                 </ul>
             </div>
             {preview && (
-                <p className="mx-auto mt-6 max-w-7xl px-4 text-sm text-home-muted sm:px-6">
+                <p className="mt-6 text-sm text-home-muted">
                     {l("معاينة على جهاز التطوير بس: ضيف العملاء في src/content/clients.ts والقسم هيظهر على الموقع.", "Development preview only: add clients to src/content/clients.ts and the section appears on the live site.")}
                 </p>
             )}
-        </section>
+            </div>
+        </Section>
     );
 }

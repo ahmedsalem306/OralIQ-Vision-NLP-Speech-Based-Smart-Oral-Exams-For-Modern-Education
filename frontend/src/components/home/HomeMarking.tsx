@@ -1,7 +1,21 @@
 import { useRef, useState } from "react";
 import { useI18n } from "../../i18n";
 import { cn } from "../../lib/utils";
-import { H2 } from "./ui";
+import { H2, Section } from "./ui";
+
+/** The lecturer's results page as the visitor's theme shows it. */
+function ResultsShot({ l, theme }: { l: (ar: string, en: string) => string; theme: "light" | "dark" }) {
+    const base = theme === "light" ? "/screens/results" : "/screens/results-dark";
+    return (
+        <picture>
+            <source media="(max-width: 639px)" srcSet={`${base}-drawer.webp`} width={894} height={1200} />
+            <img src={`${base}-1280.webp`} srcSet={`${base}-720.webp 720w, ${base}-1280.webp 1280w, ${base}.webp 1920w`}
+                sizes="(min-width: 1024px) 40vw, 100vw" width={1280} height={800} loading="lazy" decoding="async"
+                alt={l("صفحة نتائج المحاضر: درجة الطالب وتفاصيلها في المحتوى والطلاقة والنزاهة، ونص إجابته", "The lecturer's results page: the student's grade, its breakdown into content, fluency and integrity, and the answer's transcript")}
+                className="block h-auto w-full" />
+        </picture>
+    );
+}
 
 /**
  * 3. How a grade is made: the real weights (80 content, 10 fluency, 10 integrity) as tabs beside
@@ -32,7 +46,7 @@ export function HomeMarking() {
     };
 
     return (
-        <section id="marking" className="scroll-mt-20 border-t border-home-line bg-home-bg text-home-ink">
+        <Section id="marking" tone="a">
             <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:py-32">
                 <h2 className={cn(H2, "max-w-3xl")}>{l("درجة عادلة لكل طالب، بنفس المقياس كل مرة.", "A fair grade for every student, on the same scale every time.")}</h2>
                 <p className="mt-5 max-w-2xl text-lg leading-[1.8] text-home-muted">{l("أول طالب وآخر طالب بيتصححوا بنفس الطريقة، من غير تعب آخر اليوم.", "The first student and the last are marked the same way, with no end-of-day fatigue.")}</p>
@@ -58,14 +72,11 @@ export function HomeMarking() {
                         ))}
                     </div>
 
+                    {/* The real screen, in the visitor's own theme: a white screenshot would glare
+                        in the dark one. A phone gets the answer sheet alone, which stays readable. */}
                     <figure className="overflow-hidden rounded-2xl border border-home-line">
-                        {/* A phone gets the answer sheet alone: the whole screen would be too small to read */}
-                        <picture>
-                            <source media="(max-width: 639px)" srcSet="/screens/results-drawer.webp" width={894} height={1200} />
-                            <img src="/screens/results-1280.webp" srcSet="/screens/results-720.webp 720w, /screens/results-1280.webp 1280w, /screens/results.webp 1920w" sizes="(min-width: 1024px) 40vw, 100vw" width={1280} height={800} loading="lazy" decoding="async"
-                                alt={l("صفحة نتائج المحاضر: درجة الطالب وتفاصيلها في المحتوى والطلاقة والنزاهة، ونص إجابته", "The lecturer's results page: the student's grade, its breakdown into content, fluency and integrity, and the answer's transcript")}
-                                className="block h-auto w-full grayscale" />
-                        </picture>
+                        <div className="home-light-only"><ResultsShot l={l} theme="light" /></div>
+                        <div className="home-dark-only"><ResultsShot l={l} theme="dark" /></div>
                     </figure>
 
                     <div role="tabpanel" id="mark-panel" aria-labelledby={`mark-tab-${active}`}>
@@ -80,6 +91,6 @@ export function HomeMarking() {
                     </div>
                 </div>
             </div>
-        </section>
+        </Section>
     );
 }

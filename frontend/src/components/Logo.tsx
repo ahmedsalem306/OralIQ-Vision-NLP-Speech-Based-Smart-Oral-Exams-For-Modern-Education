@@ -1,39 +1,58 @@
 import { cn } from "../lib/utils";
+import { MARK, WORDMARK } from "./brand";
 
-/** The mark: a voice waveform in ballpoint blue, circled in the grader's red pen. */
-export function LogoMark({ size = 32, className, light = false }: { size?: number; className?: string; light?: boolean }) {
+const WORD_ID = "oraliq-wordmark";
+
+/**
+ * The wordmark, defined once per document. It appears in the header, the footer and the sidebar;
+ * inlining its path each time would add ~14KB of markup per copy to the pre-rendered home page,
+ * so the shape lives here and every logo points at it.
+ */
+export function BrandSprite() {
     return (
-        <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className} aria-hidden>
-            <path
-                d="M33.5 9.5C46 9.8 55 19 54.6 31.6 54.2 44.6 44 54.4 31.2 54.2 18.6 54 9.6 44.6 9.8 32 10 19.6 19.4 9.6 32.6 9.6c4 .1 7.8 1.2 10.8 3"
-                stroke="var(--mark)" strokeWidth="3.6" strokeLinecap="round"
-            />
-            <g stroke={light ? "#F3F3F1" : "var(--pen)"} strokeWidth="4.4" strokeLinecap="round">
-                <path d="M22 28v8" /><path d="M29 21v22" /><path d="M36 25v14" /><path d="M43 29v6" />
-            </g>
+        <svg width={0} height={0} aria-hidden focusable="false" style={{ position: "absolute" }}>
+            <symbol id={WORD_ID} viewBox={WORDMARK.viewBox}><path fill="currentColor" fillRule="evenodd" d={WORDMARK.d} /></symbol>
+        </svg>
+    );
+}
+
+/**
+ * The Q with its infinity tail: the brand mark on its own, for square places. It draws its own
+ * path rather than joining the sprite, because the pages that use it are not the pre-rendered one.
+ */
+export function LogoMark({ size = 32, className }: { size?: number; className?: string }) {
+    return (
+        <svg width={size} height={size} viewBox={MARK.viewBox} className={cn("shrink-0", className)} aria-hidden focusable="false">
+            <path fill="currentColor" fillRule="evenodd" d={MARK.d} />
         </svg>
     );
 }
 
 interface LogoProps {
-    size?: number;
-    showText?: boolean;
+    /** Cap height of the wordmark in px; its width follows. */
+    height?: number;
     className?: string;
-    /** For navy / photo backgrounds. */
-    light?: boolean;
-    /** Extra classes for the wordmark, e.g. to drop it on the narrowest screens. */
-    textClassName?: string;
+    /** Give the logo an accessible name — only where it is not already inside a labelled link. */
+    title?: string;
 }
 
-export default function Logo({ size = 32, showText = true, className, light = false, textClassName }: LogoProps) {
+/**
+ * The OralIQ wordmark. It inherits `currentColor`, so a parent that sets a text colour (or the
+ * page's own ink) colours it: black on the light surfaces, white on the black ones.
+ */
+export default function Logo({ height = 22, className, title }: LogoProps) {
     return (
-        <span className={cn("inline-flex shrink-0 items-center gap-2", className)} dir="ltr">
-            <LogoMark size={size} light={light} />
-            {showText && (
-                <span className={cn("font-display font-bold tracking-tight", light ? "text-white" : "text-ink", textClassName)} style={{ fontSize: size * 0.62 }}>
-                    Oral<span className={light ? "text-white/70" : "text-ink-3"}>IQ</span>
-                </span>
-            )}
-        </span>
+        <svg
+            height={height}
+            width={Math.round(height * WORDMARK.ratio)}
+            viewBox={WORDMARK.viewBox}
+            className={cn("block shrink-0", className)}
+            role={title ? "img" : undefined}
+            aria-label={title}
+            aria-hidden={title ? undefined : true}
+            focusable="false"
+        >
+            <use href={`#${WORD_ID}`} />
+        </svg>
     );
 }
