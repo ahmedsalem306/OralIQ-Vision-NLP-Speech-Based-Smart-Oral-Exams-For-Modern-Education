@@ -1,3 +1,15 @@
+# Secrets — never commit these. `.env` alone would miss .env.production and friends.
+.env*
+# These two hold only the API URL the build points at — no secrets, and they are in the repo.
+# Scoped to frontend/ on purpose: a backend .env.production would hold the real credentials.
+!frontend/.env.development
+!frontend/.env.production
+*.env
+!local.env.example
+.secret_key
+*.sqlite
+*.sqlite3
+
 # Python
 __pycache__/
 *.py[cod]
