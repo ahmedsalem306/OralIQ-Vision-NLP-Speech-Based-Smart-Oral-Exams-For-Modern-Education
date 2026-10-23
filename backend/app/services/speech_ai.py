@@ -12,10 +12,27 @@ Why faster-whisper instead of openai-whisper?
 
 import os
 import re
+import threading
 import time
 import traceback
 import warnings
 warnings.filterwarnings("ignore")
+
+
+def _cpu_threads() -> int:
+    """
+    Cores per transcription. Several answers are graded at once, so each job gets a share of the
+    machine rather than all of it: left unset, CTranslate2 takes every core for every job and
+    parallel jobs end up fighting each other. Read together with MAX_CONCURRENT_GRADING, which
+    decides how many jobs there are.
+    """
+    explicit = os.environ.get("WHISPER_CPU_THREADS", "").strip()
+    if explicit.isdigit() and int(explicit) > 0:
+        return int(explicit)
+    cores = os.cpu_count() or 2
+    slots = os.environ.get("MAX_CONCURRENT_GRADING", "").strip()
+    jobs = int(slots) if slots.isdigit() and int(slots) > 0 else max(1, cores // 4)
+    return max(1, cores // jobs)
 
 # Make ffmpeg available (needed by faster-whisper to decode audio)
 try:
@@ -51,39 +68,53 @@ class SpeechAnalyzer:
         requested_model = "medium"
     MODEL_SIZE = requested_model
 
+    CPU_THREADS = _cpu_threads()
+
     def __init__(self):
         self._model = None
         self._load_failed = False
+        self._lock = threading.Lock()
         self.filler_prompt = "اه يعني اممم طيب بصراحة خلاص كدة تمام ممم إه"
 
     @property
     def model(self):
+        # Submissions are graded in parallel worker threads, so two of them can reach an unloaded
+        # model at the same moment. Without the lock both would load their own copy of Whisper —
+        # two gigabytes each — and the second would quietly replace the first.
         if self._model is None:
-            for attempt in range(1, self.MAX_RETRIES + 1):
-                try:
-                    print(f"[SpeechAI] Loading faster-whisper '{self.MODEL_SIZE}' (int8, attempt {attempt}/{self.MAX_RETRIES})...")
-                    from faster_whisper import WhisperModel
-                    # int8 = smaller memory + faster CPU inference, same accuracy as fp16.
-                    self._model = WhisperModel(
-                        self.MODEL_SIZE,
-                        device="cpu",
-                        compute_type="int8",
-                    )
-                    self._load_failed = False
-                    print(f"[SpeechAI] faster-whisper '{self.MODEL_SIZE}' loaded.")
-                    break
-                except Exception as e:
-                    print(f"[SpeechAI] Load failed (attempt {attempt}): {e}")
-                    traceback.print_exc()
-                    if attempt < self.MAX_RETRIES:
-                        print(f"[SpeechAI] Retrying in {self.RETRY_DELAY}s...")
-                        time.sleep(self.RETRY_DELAY)
-                    else:
-                        self._load_failed = True
-                        raise RuntimeError(
-                            f"Failed to load faster-whisper after {self.MAX_RETRIES} attempts"
-                        ) from e
+            with self._lock:
+                if self._model is None:
+                    self._load_model()
         return self._model
+
+    def _load_model(self):
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            try:
+                print(f"[SpeechAI] Loading faster-whisper '{self.MODEL_SIZE}' (int8, attempt {attempt}/{self.MAX_RETRIES})...")
+                from faster_whisper import WhisperModel
+                # int8 = smaller memory + faster CPU inference, same accuracy as fp16.
+                # cpu_threads is capped so parallel jobs share the cores instead of each
+                # claiming all of them and thrashing: left at 0, every job takes every core.
+                self._model = WhisperModel(
+                    self.MODEL_SIZE,
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=self.CPU_THREADS,
+                )
+                self._load_failed = False
+                print(f"[SpeechAI] faster-whisper '{self.MODEL_SIZE}' loaded ({self.CPU_THREADS} threads).")
+                break
+            except Exception as e:
+                print(f"[SpeechAI] Load failed (attempt {attempt}): {e}")
+                traceback.print_exc()
+                if attempt < self.MAX_RETRIES:
+                    print(f"[SpeechAI] Retrying in {self.RETRY_DELAY}s...")
+                    time.sleep(self.RETRY_DELAY)
+                else:
+                    self._load_failed = True
+                    raise RuntimeError(
+                        f"Failed to load faster-whisper after {self.MAX_RETRIES} attempts"
+                    ) from e
 
     def is_ready(self) -> bool:
         return self._model is not None

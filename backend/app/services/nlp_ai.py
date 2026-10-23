@@ -1,6 +1,7 @@
+import re
+import threading
 import time
 import traceback
-import re
 
 
 class NLPAnalyzer:
@@ -24,27 +25,35 @@ class NLPAnalyzer:
     def __init__(self):
         self._model = None
         self._load_failed = False
+        self._lock = threading.Lock()
 
     @property
     def model(self):
+        # Answers are graded in parallel worker threads; without the lock two of them could each
+        # load their own copy of SBERT on the first request after startup.
         if self._model is None:
-            for attempt in range(1, self.MAX_RETRIES + 1):
-                try:
-                    print(f"[NLP-AI] Loading SBERT model (attempt {attempt}/{self.MAX_RETRIES})...")
-                    from sentence_transformers import SentenceTransformer
-                    self._model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-                    self._load_failed = False
-                    print("[NLP-AI] SBERT loaded successfully.")
-                    break
-                except Exception as e:
-                    print(f"[NLP-AI] Load failed (attempt {attempt}): {e}")
-                    traceback.print_exc()
-                    if attempt < self.MAX_RETRIES:
-                        time.sleep(self.RETRY_DELAY)
-                    else:
-                        self._load_failed = True
-                        raise RuntimeError(f"Failed to load SBERT after {self.MAX_RETRIES} attempts") from e
+            with self._lock:
+                if self._model is None:
+                    self._load_model()
         return self._model
+
+    def _load_model(self):
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            try:
+                print(f"[NLP-AI] Loading SBERT model (attempt {attempt}/{self.MAX_RETRIES})...")
+                from sentence_transformers import SentenceTransformer
+                self._model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+                self._load_failed = False
+                print("[NLP-AI] SBERT loaded successfully.")
+                break
+            except Exception as e:
+                print(f"[NLP-AI] Load failed (attempt {attempt}): {e}")
+                traceback.print_exc()
+                if attempt < self.MAX_RETRIES:
+                    time.sleep(self.RETRY_DELAY)
+                else:
+                    self._load_failed = True
+                    raise RuntimeError(f"Failed to load SBERT after {self.MAX_RETRIES} attempts") from e
 
     def is_ready(self) -> bool:
         return self._model is not None

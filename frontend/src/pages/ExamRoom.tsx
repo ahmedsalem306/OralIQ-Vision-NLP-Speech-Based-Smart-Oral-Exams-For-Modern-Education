@@ -29,6 +29,14 @@ import { aggregateFaceScores, buildFaceVerifyForm } from "../lib/faceBiometrics"
 
 type Phase = "loading" | "voice_required" | "info" | "preview" | "recording" | "processing" | "done" | "failed";
 
+/** A fresh id for one recording. randomUUID is missing on older Safari and Chrome, hence the fallback. */
+function newSubmissionKey(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 interface ExamQuestion {
     id: number;
     text: string;
@@ -74,6 +82,10 @@ export default function ExamRoom() {
     const recorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const startedAtRef = useRef("");
+    // One id per recording, sent with every attempt to submit it. Grading can outlast the request
+    // timeout below, so without it a retry of a submission that actually succeeded would be graded
+    // again and the lecturer would see the same answer twice.
+    const submissionKeyRef = useRef("");
     const phaseRef = useRef<Phase>("loading");
 
     // anti-cheat (exact names from original OralIQ repo)
@@ -719,6 +731,7 @@ export default function ExamRoom() {
                 return;
             }
             setPhase("processing");
+            submissionKeyRef.current = newSubmissionKey();
             await submitToBackend(blob);
         };
         rec.stop();
@@ -759,6 +772,7 @@ export default function ExamRoom() {
         }
         fd.append("started_at", startedAtRef.current);
         fd.append("finished_at", finishedAt);
+        if (submissionKeyRef.current) fd.append("submission_key", submissionKeyRef.current);
 
         try {
             const res = await api.post("/exams/submit", fd, {

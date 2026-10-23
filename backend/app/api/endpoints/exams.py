@@ -1,5 +1,7 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
+import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import tempfile, os, json, traceback
@@ -13,6 +15,98 @@ from app.schemas.exam_submission import ExamSubmissionCreate, ExamSubmissionOut
 from app.schemas.exam_assignment import ExamAssignmentCreate, AssignedExamOut
 
 router = APIRouter()
+
+
+# ── Grading concurrency ───────────────────────────────────────────────────────
+# Whisper is the expensive part of a submission: a two-minute answer is roughly a minute of solid
+# CPU. Two limits keep that from taking the server down with it.
+#
+# The semaphore caps how many answers are graded at once. Each job wants several cores and about
+# two gigabytes, so letting a whole class in at once would exhaust memory and leave every job
+# slower than if they had queued. Requests past the cap wait their turn, which is the behaviour
+# we want: a student sees a slower result, not an error.
+#
+# The grading itself then runs in a worker thread, because it is synchronous CPU work. Called
+# directly from the async endpoint it blocked the event loop, so one submission froze the whole
+# API — other students could not even load the next question until it finished.
+def _grading_slots() -> int:
+    explicit = os.environ.get("MAX_CONCURRENT_GRADING", "").strip()
+    if explicit.isdigit() and int(explicit) > 0:
+        return int(explicit)
+    return max(1, (os.cpu_count() or 2) // 4)
+
+
+GRADING_SLOTS = _grading_slots()
+_grading_limit = anyio.Semaphore(GRADING_SLOTS)
+
+
+def _run_ai_pipeline(
+    audio_path: Optional[str],
+    model_answer: str,
+    keywords: str,
+    anti_cheat_alerts: str,
+    voice_embedding: Optional[str],
+) -> Dict[str, Any]:
+    """
+    Transcribe, grade and score one answer. Synchronous and CPU-bound by nature: it takes plain
+    values rather than ORM objects so it can run in a worker thread with no database session of
+    its own, and it never raises — a model that fails leaves its scores as None and the
+    submission is still saved.
+    """
+    out: Dict[str, Any] = {
+        "transcript": None,
+        "nlp_score": None,
+        "speech_score": None,
+        "voice_score": None,
+        "facial_score": 100.0,
+        "cheat_report": None,
+        "fluency_report": None,
+    }
+
+    try:
+        # 1) Transcribe + Fluency analysis with Whisper & Voice Biometrics
+        if audio_path:
+            from app.services.speech_ai import speech_analyzer
+            from app.services.voice_ai import voice_service
+
+            fluency = speech_analyzer.analyze_fluency(audio_path, hint=model_answer or "")
+            out["transcript"] = fluency["transcript"]
+            out["speech_score"] = fluency["speech_score"]
+            out["fluency_report"] = fluency["fluency_report"]
+
+            # Voice print verification if user enrolled
+            if voice_embedding:
+                try:
+                    stored_emb = json.loads(voice_embedding)
+                    # Security-first threshold. 60–75% remains uncertain,
+                    # never displayed as a confirmed speaker match.
+                    voice_res = voice_service.verify_voice(audio_path, stored_emb, threshold=0.75)
+                    out["voice_score"] = voice_res["similarity_score"]
+                except Exception as ve:
+                    print(f"[Voice Verify Error] {ve}")
+
+        # 2) Grade answer with SBERT
+        if out["transcript"] and model_answer:
+            from app.services.nlp_ai import nlp_analyzer
+            result = nlp_analyzer.evaluate_answer(out["transcript"], model_answer, keywords or "")
+            out["nlp_score"] = result["score"]
+
+        # 3) Anti-cheat scoring
+        try:
+            alerts = json.loads(anti_cheat_alerts)
+            if alerts:
+                from app.services.face_ai import face_analyzer
+                cheat_result = face_analyzer.calculate_cheat_score(alerts)
+                out["facial_score"] = cheat_result["facial_score"]
+                out["cheat_report"] = cheat_result.get("report")
+        except (json.JSONDecodeError, Exception) as cheat_err:
+            print(f"[Anti-cheat Error] {cheat_err}")
+
+    except Exception:
+        print(f"[AI Pipeline Error] {traceback.format_exc()}")
+        # Still save the submission even if AI fails
+
+    return out
 
 # ── POST assign exam to student (lecturer) ────────────────────────────────────
 @router.post("/assign")
@@ -114,102 +208,81 @@ async def submit_exam(
     face_score: Optional[float] = Form(None),
     started_at: Optional[str] = Form(None),
     finished_at: Optional[str] = Form(None),
+    submission_key: Optional[str] = Form(None),
 ) -> Any:
     """
     Student submits exam — accepts audio file + anti-cheat alert JSON.
     Runs AI pipeline: Whisper transcribe → SBERT grade → cheat score.
+
+    `submission_key` identifies one recording. Sending it again returns the submission already
+    stored for it rather than grading the answer a second time, so a retry after a timeout cannot
+    leave the lecturer with two grades for the same answer.
     """
     question = db.query(Question).filter(Question.id == question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # Defaults — must be defined BEFORE the try block so they're always available
-    transcript = None
-    nlp_score = None
-    speech_score = None
-    voice_score = None
+    # A retry of a recording already graded: hand back what was stored, before spending a minute
+    # of CPU reaching the same answer and a second row the lecturer would have to resolve.
+    key = (submission_key or "").strip() or None
+    if key:
+        existing = db.query(ExamSubmission).filter(ExamSubmission.submission_key == key).first()
+        if existing:
+            print(f"[Submit] Key {key[:8]}… already graded as submission {existing.id}; returning it")
+            return existing
+
     face_id_score = face_score
-    facial_score = 100.0
-    cheat_report = None
-    fluency_report = None
     overall = None
-    # ---- AI Pipeline ----
+
+    # The upload is read here, on the event loop, and only the file path crosses into the worker
+    tmp_path = None
+    if audio and audio.filename:
+        suffix = os.path.splitext(audio.filename)[1] or ".webm"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(await audio.read())
+            tmp_path = tmp.name
+
     try:
-        # 1) Transcribe + Fluency analysis with Whisper & Voice Biometrics
-        if audio and audio.filename:
-            from app.services.speech_ai import speech_analyzer
-            from app.services.voice_ai import voice_service
-
-            suffix = os.path.splitext(audio.filename)[1] or ".webm"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                content = await audio.read()
-                tmp.write(content)
-                tmp_path = tmp.name
-
+        async with _grading_limit:
+            ai = await anyio.to_thread.run_sync(
+                _run_ai_pipeline,
+                tmp_path,
+                question.model_answer or "",
+                question.keywords or "",
+                anti_cheat_alerts,
+                current_user.voice_embedding,
+            )
+    finally:
+        if tmp_path:
             try:
-                fluency = speech_analyzer.analyze_fluency(
-                    tmp_path, hint=question.model_answer or ""
-                )
-                transcript = fluency["transcript"]
-                speech_score = fluency["speech_score"]
-                fluency_report = fluency["fluency_report"]
-
-                # Voice print verification if user enrolled
-                if current_user.voice_embedding:
-                    try:
-                        stored_emb = json.loads(current_user.voice_embedding)
-                        # Security-first threshold. 60–75% remains uncertain,
-                        # never displayed as a confirmed speaker match.
-                        voice_res = voice_service.verify_voice(tmp_path, stored_emb, threshold=0.75)
-                        voice_score = voice_res["similarity_score"]
-                    except Exception as ve:
-                        print(f"[Voice Verify Error] {ve}")
-
-            finally:
                 os.unlink(tmp_path)
+            except OSError:
+                pass
 
-        # 2) Grade answer with SBERT
-        if transcript and question.model_answer:
-            from app.services.nlp_ai import nlp_analyzer
-            result = nlp_analyzer.evaluate_answer(
-                transcript, question.model_answer, question.keywords or ""
+    transcript = ai["transcript"]
+    nlp_score = ai["nlp_score"]
+    speech_score = ai["speech_score"]
+    voice_score = ai["voice_score"]
+    facial_score = ai["facial_score"]
+    cheat_report = ai["cheat_report"]
+    fluency_report = ai["fluency_report"]
+
+    # Multi-factor identity: never confirm from one weak biometric.
+    face_verified = face_id_score is not None and face_id_score >= 55
+    voice_verified = voice_score is not None and voice_score >= 75
+    if current_user.face_embedding and face_id_score is not None:
+        if face_verified and voice_verified:
+            identity_msg = (
+                f"✅ Identity verified: Face {face_id_score:.1f}% + Voice {voice_score:.1f}%"
             )
-            nlp_score = result["score"]
-
-        # 3) Anti-cheat scoring
-        try:
-            alerts = json.loads(anti_cheat_alerts)
-            if alerts:
-                from app.services.face_ai import face_analyzer
-                cheat_result = face_analyzer.calculate_cheat_score(alerts)
-                facial_score = cheat_result["facial_score"]
-                face_report = cheat_result.get("report")
-                # Append to existing cheat_report (which may contain voice verification warnings)
-                if face_report:
-                    cheat_report = (cheat_report + " | " + face_report) if cheat_report else face_report
-        except (json.JSONDecodeError, Exception) as cheat_err:
-            print(f"[Anti-cheat Error] {cheat_err}")
-
-        # 4) Multi-factor identity: never confirm from one weak biometric.
-        face_verified = face_id_score is not None and face_id_score >= 55
-        voice_verified = voice_score is not None and voice_score >= 75
-        if current_user.face_embedding and face_id_score is not None:
-            if face_verified and voice_verified:
-                identity_msg = (
-                    f"✅ Identity verified: Face {face_id_score:.1f}% + Voice {voice_score:.1f}%"
-                )
-            else:
-                identity_msg = (
-                    f"🚨 IDENTITY NOT VERIFIED: Face {face_id_score:.1f}% "
-                    f"(required 55%) + Voice {(voice_score or 0):.1f}% (required 75%)"
-                )
-            cheat_report = (
-                (cheat_report + " | " + identity_msg) if cheat_report else identity_msg
+        else:
+            identity_msg = (
+                f"🚨 IDENTITY NOT VERIFIED: Face {face_id_score:.1f}% "
+                f"(required 55%) + Voice {(voice_score or 0):.1f}% (required 75%)"
             )
-
-    except Exception as e:
-        print(f"[AI Pipeline Error] {traceback.format_exc()}")
-        # Still save the submission even if AI fails
+        cheat_report = (
+            (cheat_report + " | " + identity_msg) if cheat_report else identity_msg
+        )
 
     # ---- Calculate overall score ----
     # 🆕 Weighted Logic: 80% Content (NLP) + 10% Delivery (Fluency) + 10% Integrity (Facial)
@@ -259,6 +332,7 @@ async def submit_exam(
     submission = ExamSubmission(
         question_id=question_id,
         student_id=current_user.id,
+        submission_key=key,
         student_name=student_name,
         student_number=student_number,
         transcript=transcript,
@@ -275,7 +349,18 @@ async def submit_exam(
         submitted_at=datetime.now(timezone.utc),
     )
     db.add(submission)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two retries of the same recording were graded at once and this one lost the race for
+        # the unique key. The other row holds the same answer, so return it: the student sees a
+        # result either way, and the lecturer still sees exactly one grade.
+        db.rollback()
+        winner = db.query(ExamSubmission).filter(ExamSubmission.submission_key == key).first()
+        if winner:
+            print(f"[Submit] Key {key[:8]}… raced; returning submission {winner.id}")
+            return winner
+        raise
     db.refresh(submission)
 
     # Mark assignment as completed

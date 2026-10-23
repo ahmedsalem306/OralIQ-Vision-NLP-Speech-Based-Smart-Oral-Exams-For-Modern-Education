@@ -130,8 +130,18 @@ def run_migrations():
         if "exam_submissions" in insp.get_table_names():
             if is_pg:
                 _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN IF NOT EXISTS face_score DOUBLE PRECISION")
+                _add_column("exam_submissions", "submission_key", "ALTER TABLE exam_submissions ADD COLUMN IF NOT EXISTS submission_key VARCHAR")
             else:
                 _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT")
+                _add_column("exam_submissions", "submission_key", "ALTER TABLE exam_submissions ADD COLUMN submission_key VARCHAR")
+
+            # The index is what actually stops a duplicate grade: two retries racing each other
+            # both finish grading, and the database refuses the second row. NULLs stay allowed,
+            # so rows written before this release are untouched.
+            _exec_ddl(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_exam_submissions_submission_key "
+                "ON exam_submissions (submission_key)"
+            )
 
         print("[DB Migration] All patches applied successfully")
         return {"ok": True, "face_embedding": _column_exists("users", "face_embedding")}

@@ -11,6 +11,12 @@ class ExamSubmission(Base):
     question_id = Column(Integer, ForeignKey("questions.id"))
     student_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+    # The browser's id for one recording, sent with every attempt to submit it. Grading an answer
+    # can outlast the client's timeout, so a retry of a request that actually succeeded used to
+    # add a second graded row and the lecturer saw the same answer twice. The unique index makes
+    # that impossible; the endpoint returns the original row instead of grading again.
+    submission_key = Column(String, unique=True, index=True, nullable=True)
+
     # Student info (filled in check-in form)
     student_name = Column(String)
     student_number = Column(String)

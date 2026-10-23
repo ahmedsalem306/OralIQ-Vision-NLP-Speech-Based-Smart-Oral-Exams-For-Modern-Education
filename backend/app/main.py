@@ -6,6 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.api_router import api_router
 from app.core.database import engine, Base, ensure_migrations, _column_exists
 from app.models.user import User  # noqa: F401 — ensures all models are registered
+import hashlib
 import os
 import time
 import threading
@@ -22,9 +23,20 @@ class RateLimiter:
         self.limit = limit
         self.window = window
         self._hits: dict[str, list[float]] = defaultdict(list)
+        self._last_prune = 0.0
+
+    def _prune(self, now: float) -> None:
+        """Drop buckets nobody has touched for a window. Without this the dict keeps one entry
+        per key forever, which for a public site is an unbounded leak."""
+        if now - self._last_prune < self.window:
+            return
+        self._last_prune = now
+        for key in [k for k, hits in self._hits.items() if not hits or now - hits[-1] >= self.window]:
+            del self._hits[key]
 
     def is_allowed(self, key: str) -> bool:
         now = time.time()
+        self._prune(now)
         hits = self._hits[key]
         # Remove expired entries
         self._hits[key] = [t for t in hits if now - t < self.window]
@@ -34,7 +46,13 @@ class RateLimiter:
         return True
 
 
-rate_limiter = RateLimiter(limit=120, window=60)  # 120 req/min per IP
+# Per session, not per server: see RateLimitMiddleware for why the key is not just the IP.
+RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MIN", "240"))
+rate_limiter = RateLimiter(limit=RATE_LIMIT, window=60)
+
+# Only honour X-Forwarded-For when a proxy we run is known to set it. Left off, any caller could
+# claim any IP and walk around the limit; switched on without a proxy in front, the same trick works.
+TRUST_PROXY = os.environ.get("TRUST_PROXY", "").strip().lower() in ("1", "true", "yes")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -55,14 +73,38 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # ══════════════════════════════════════════════════════════════════════════════
 # Rate Limit Middleware
 # ══════════════════════════════════════════════════════════════════════════════
+def _rate_limit_key(request: Request) -> str:
+    """
+    One bucket per signed-in session, falling back to the client IP for anonymous calls.
+
+    Keying on the IP alone breaks the main way this product is used: a whole class sits behind
+    one school NAT, so thirty students taking an exam share a single bucket and the slowest ones
+    get 429s. Worse, behind a reverse proxy every request arrives from 127.0.0.1, which turns a
+    per-client limit into one global limit for the entire platform.
+    """
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        token = auth[7:].strip()
+        if token:
+            # A hash, so the bucket name can never carry the token itself into a log
+            return "s:" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]
+
+    if TRUST_PROXY:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            # Left-most entry is the original client; the rest are the proxies it passed through
+            return "ip:" + forwarded.split(",")[0].strip()
+
+    return "ip:" + (request.client.host if request.client else "unknown")
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health/debug endpoints
         if request.url.path in ("/", "/health", "/debug"):
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
-        if not rate_limiter.is_allowed(client_ip):
+        if not rate_limiter.is_allowed(_rate_limit_key(request)):
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Too many requests. Please slow down."},
@@ -157,11 +199,38 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
 
-# ── CORS ──
-# Set ALLOWED_ORIGINS to the real site(s) in production, comma separated. The app authenticates
-# with a Bearer token in a header, not with cookies, so credentials stay off: a wildcard origin
-# together with credentials is rejected by browsers anyway, and would be unsafe if it were not.
-ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+def _allowed_origins() -> list[str]:
+    """
+    The sites allowed to call this API, comma separated in ALLOWED_ORIGINS.
+
+    Production requires real origins. `*` lets any page on the internet drive the API with a
+    token it has got hold of, and it is the kind of default that ships by accident and is never
+    noticed, so the process refuses to start on it instead.
+    """
+    raw = os.environ.get("ALLOWED_ORIGINS", "").strip()
+    is_dev = os.environ.get("ENV", "dev") == "dev"
+
+    if not raw:
+        if is_dev:
+            return ["*"]
+        raise RuntimeError(
+            "ALLOWED_ORIGINS is not set. List the sites that may call this API, comma separated:\n"
+            '  ALLOWED_ORIGINS="https://oraliq.com,https://www.oraliq.com"'
+        )
+
+    origins = [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
+    if "*" in origins and not is_dev:
+        raise RuntimeError(
+            'ALLOWED_ORIGINS is "*", which allows every site on the internet. '
+            "Name the real origins instead."
+        )
+    return origins
+
+
+# The app authenticates with a Bearer token in a header, not with cookies, so credentials stay
+# off: a wildcard origin together with credentials is rejected by browsers anyway, and would be
+# unsafe if it were not.
+ALLOWED_ORIGINS = _allowed_origins()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

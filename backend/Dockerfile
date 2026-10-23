@@ -2,17 +2,22 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# HF Spaces run on shared CPU; "medium" gives better Arabic/English accuracy.
+# "medium" gives better Arabic/English accuracy than "small" on oral answers.
 ENV WHISPER_MODEL=medium
 ENV ACCESS_TOKEN_EXPIRE_MINUTES=10080
-ENV HF_HOME=/tmp/huggingface
-ENV TRANSFORMERS_CACHE=/tmp/huggingface/transformers
-ENV INSIGHTFACE_HOME=/data/insightface
-ENV INSIGHTFACE_MODEL=buffalo_sc
-ENV GAZE_MODEL_DIR=/data/gaze_models
 
-# Install system dependencies (ffmpeg is needed for Whisper)
-RUN apt-get update && apt-get install -y \
+# Model caches live under /models, which is meant to be a mounted volume. Pointed at /tmp they
+# were lost on every restart, and the container then spent the first few minutes of its life
+# re-downloading about 1.3GB of weights while the first students waited.
+ENV HF_HOME=/models/huggingface
+ENV TRANSFORMERS_CACHE=/models/huggingface/transformers
+ENV INSIGHTFACE_HOME=/models/insightface
+ENV INSIGHTFACE_MODEL=buffalo_sc
+ENV GAZE_MODEL_DIR=/models/gaze
+ENV TORCH_HOME=/models/torch
+
+# Install system dependencies (ffmpeg is needed by faster-whisper to decode audio)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
     libxext6 \
@@ -21,17 +26,25 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# torch from the default index pulls the CUDA build: about 2.5GB of GPU libraries that never run,
+# since every model here is configured for the CPU. The CPU wheel index keeps the image small
+# enough to pull and rebuild on a modest VPS.
+RUN pip install --no-cache-dir \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r requirements.txt
 
-# Copy the entire backend
 COPY . .
 
-# Expose port 7860 (required by Hugging Face Spaces)
-EXPOSE 7860
+RUN mkdir -p /models /data
 
-# Run FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# 8000 for a normal server; Hugging Face Spaces expects 7860, so PORT overrides it there.
+ENV PORT=8000
+EXPOSE 8000
+
+# One worker on purpose. Answers are graded in a thread pool whose size MAX_CONCURRENT_GRADING
+# caps, and that cap — like the rate limiter — counts per process, so several workers would each
+# run their own full set of grading jobs and their own copy of every model. Raise
+# MAX_CONCURRENT_GRADING to use more cores, not the worker count.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1 --timeout-keep-alive 75"]
