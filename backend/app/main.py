@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -158,11 +158,14 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
 
 # ── CORS ──
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+# Set ALLOWED_ORIGINS to the real site(s) in production, comma separated. The app authenticates
+# with a Bearer token in a header, not with cookies, so credentials stay off: a wildcard origin
+# together with credentials is rejected by browsers anyway, and would be unsafe if it were not.
+ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     max_age=600,  # cache preflight for 10min
@@ -179,7 +182,13 @@ def read_root():
 
 @app.get("/debug")
 def debug_info():
-    """Debug endpoint — shows database and environment info."""
+    """
+    Developer view of the running instance. Off outside development: it describes internals, and
+    the database URL it used to report carries the database password. Use /health in production.
+    """
+    if os.environ.get("ENV", "dev") != "dev":
+        raise HTTPException(status_code=404, detail="Not Found")
+
     from sqlalchemy import text
     from app.core.database import SessionLocal
 
@@ -201,8 +210,10 @@ def debug_info():
         stt_ready = "error"
         nlp_ready = "error"
 
+    # The kind of database, never the URL: it holds the password
+    url = os.environ.get("DATABASE_URL")
     return {
-        "database_url": os.environ.get("DATABASE_URL", "sqlite (local)"),
+        "database": (url.split("://", 1)[0] if url and "://" in url else "sqlite (local)"),
         "db_writable": db_writable,
         "stt_ready": stt_ready,
         "nlp_ready": nlp_ready,
