@@ -142,6 +142,6 @@ Shared primitives live in `src/components/ui/` (button, input, panel, feedback, 
 
 ## Brand
 
-- OralIQ is the product; **GhatTech** is the company behind it. Both, with the contact email and phone, come from `src/content/company.ts` — never hard-code them.
+- OralIQ is the product; **GharTech** is the company behind it. Both, with the contact email and phone, come from `src/content/company.ts` — never hard-code them.
 - The wordmark and the Q mark are traced vectors in `src/components/brand.ts`. `BrandSprite` (rendered once by `AppProviders`) holds the wordmark and `Logo` points at it with `<use>`: inlining the path per copy would add ~14KB of markup each to the pre-rendered home page. `LogoMark` draws its own path, since the pages that use it are not pre-rendered.
 - `Logo` takes a `height` (cap height in px) and fills with `currentColor`, so it needs no light or dark variant: the surface's own ink colours it.
