@@ -8,9 +8,9 @@ import { BTN, BTN_GHOST } from "./ui";
 
 /**
  * 0. Hero Section:
- * - Stage background is calibrated to #0C0A06 (matching the warm dark tone of /media/hero-face-mesh.mp4)
- *   with a soft radial feather so the large portrait character emerges directly from the Hero background
- *   with zero shadow, zero frame, and zero text overlap.
+ * - Stage background is calibrated to exact solid #0E0804 (matching the background-removed
+ *   /media/hero-face-mesh.mp4 pixel-for-pixel) so the character looks like an integral part
+ *   of the Hero box itself with zero background rectangle or shadow.
  */
 export function HomeHero({ startHref }: { startHref: string }) {
     const { l, lang } = useI18n();
@@ -69,16 +69,15 @@ export function HomeHero({ startHref }: { startHref: string }) {
             ref={root}
             className="home-a relative px-2.5 pt-21 pb-8 sm:px-5 sm:pt-24 lg:px-7"
         >
-            {/* Rounded Hero Stage — Warm Dark Espresso Base Matching the Video Background */}
+            {/* Rounded Hero Stage — Unified #0E0804 Base Matching the Processed Video Background 1:1 */}
             <div
                 ref={stageRef}
                 style={{
-                    background:
-                        "radial-gradient(circle at 46% 48%, rgba(22, 18, 10, 0.95) 0%, #0A0805 58%), #0A0805",
+                    backgroundColor: "#0E0804",
                 }}
                 className="relative isolate mx-auto flex min-h-[calc(100dvh-7.5rem)] max-w-[94rem] flex-col justify-between overflow-hidden rounded-[24px] sm:rounded-[28px] border border-[#FAF6F0]/12 text-[#FAF6F0] shadow-[0_30px_80px_-24px_rgba(20,14,10,0.5)]"
             >
-                {/* DESKTOP SEAMLESS CENTERPIECE VIDEO — Large, centered between right text & left card, zero shadow */}
+                {/* DESKTOP SEAMLESS CENTERPIECE VIDEO — Integral part of the Hero box, zero background rectangle */}
                 <div
                     aria-hidden
                     className="pointer-events-none hidden lg:flex absolute inset-y-0 left-[46.5%] -translate-x-1/2 z-0 w-[39rem] xl:w-[44rem] items-end justify-center pt-2"
@@ -88,7 +87,7 @@ export function HomeHero({ startHref }: { startHref: string }) {
 
                 {/* FOREGROUND CONTENT: 3-Column Layout (Headline on Right | Open Center for Character | 478 Card on Left) */}
                 <div className="relative z-10 mx-auto grid w-full max-w-[90rem] flex-1 grid-cols-1 items-center gap-6 px-5 pt-7 pb-0 sm:px-10 sm:pt-9 lg:grid-cols-12 lg:gap-6 lg:px-12 lg:py-12">
-                    {/* Start Column (Right in RTL): Headline & Actions (4 cols so text never overlaps character) */}
+                    {/* Start Column (Right in RTL): Headline & Actions (4 cols) */}
                     <div data-hero-title-wrap className="order-1 lg:order-none lg:col-span-4">
                         <h1 className="ar-heading font-display text-[clamp(2.15rem,3.8vw,3.95rem)] font-bold leading-[1.15] text-[#FAF6F0]">
                             <span data-hero-line className="block">
