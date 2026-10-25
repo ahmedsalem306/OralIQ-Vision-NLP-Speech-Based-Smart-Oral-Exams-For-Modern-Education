@@ -1,14 +1,14 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpLeft, Check, Cpu, Crown, Layers, ShieldCheck, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowUpLeft, Check, Crown, Layers, Users, Zap } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { gsap, useGSAP, withMotion } from "../../lib/gsap";
 import { Eyebrow, H2, Section } from "./ui";
 
 /**
- * Section (#pricing): Subscription Plans & Computing Capacity Architecture
+ * Section (#pricing): Subscription Plans
  * - Built around generous Exam Quotas + UNLIMITED Students per Exam + AI Priority Queue.
- * - Affordable teacher-first pricing (0 EGP / 199 EGP / 399 EGP / 699 EGP).
+ * - Ultra-accessible teacher-first pricing (0 EGP / 99 EGP / 249 EGP / 499 EGP).
  * - Matches the Warm Espresso Brown (#6F4E37 / #1E140F), Warm Off-White (#FAF6F0), and Caramel Gold (#E3A458) identity.
  */
 export function HomePricing({ startHref }: { startHref: string }) {
@@ -67,11 +67,11 @@ export function HomePricing({ startHref }: { startHref: string }) {
             badge: l("في متناول كل مدرس", "Best for Teachers"),
             name: l("باقة المدرس الأساسية", "Teacher Plan"),
             desc: l(
-                "مصممة للمدرسين والمعيدين والمحاضرين لعمل كويز شفوي يومي لكل مجموعاتهم بسعر رمزي.",
+                "مصممة للمدرسين والمعيدين والمحاضرين لعمل كويز شفوي دوري لكل مجموعاتهم بسعر رمزي.",
                 "Designed for teachers and lecturers running regular oral quizzes across all their groups.",
             ),
-            priceEgp: 199,
-            priceUsd: 4,
+            priceEgp: 99,
+            priceUsd: 2,
             maxExams: l("30 امتحان / شهرياً", "30 Exams / month"),
             maxStudents: l("غير محدود (مفتوح لكل طلابك)", "Unlimited Students"),
             maxDuration: l("5 دقائق / سؤال", "5 min / question"),
@@ -93,8 +93,8 @@ export function HomePricing({ startHref }: { startHref: string }) {
                 "للمدرسين أصحاب المجموعات الكبيرة، المحاضرين الجامعيين، والسناتر التعليمية.",
                 "For high-volume teachers, university professors, and educational centers.",
             ),
-            priceEgp: 399,
-            priceUsd: 8,
+            priceEgp: 249,
+            priceUsd: 5,
             maxExams: l("100 امتحان / شهرياً", "100 Exams / month"),
             maxStudents: l("غير محدود (مفتوح لكل الدفعات)", "Unlimited Students"),
             maxDuration: l("10 دقائق / سؤال", "10 min / question"),
@@ -116,8 +116,8 @@ export function HomePricing({ startHref }: { startHref: string }) {
                 "امتحانات مفتوحة بلا حدود مع معالجة فورية مخصصة وإمكانية الربط داخل منصتك التعليمية.",
                 "Unlimited oral exams with dedicated instant AI grading and optional LMS/API integration.",
             ),
-            priceEgp: 699,
-            priceUsd: 14,
+            priceEgp: 499,
+            priceUsd: 10,
             maxExams: l("غير محدود (امتحانات مفتوحة)", "Unlimited Exams"),
             maxStudents: l("غير محدود (مفتوح لكل الطلاب)", "Unlimited Students"),
             maxDuration: l("15 دقيقة / سؤال", "15 min / question"),
@@ -335,40 +335,6 @@ export function HomePricing({ startHref }: { startHref: string }) {
                             </div>
                         </article>
                     ))}
-                </div>
-
-                {/* Computing Capacity & Priority Queue Architecture Explainer Bar */}
-                <div className="mt-10 rounded-[24px] border border-rule bg-sheet p-6 sm:p-8 shadow-card">
-                    <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
-                        <div className="lg:col-span-8">
-                            <div className="inline-flex items-center gap-2 text-xs font-extrabold text-pen">
-                                <Cpu className="size-4" aria-hidden />
-                                <span>{l("إدارة ذكية للموارد الحوسبية بدون تقييد عدد الطلاب", "Smart AI Capacity Management With Unlimited Students")}</span>
-                            </div>
-                            <h3 className="ar-heading mt-2 font-display text-lg sm:text-xl font-bold text-ink">
-                                {l(
-                                    "إزاي بنسمح بعدد طلاب غير محدود في الامتحان من غير ما السيرفر يقع؟",
-                                    "How we support unlimited students per exam with zero server overload:",
-                                )}
-                            </h3>
-                            <p className="ar-body mt-2 text-sm leading-relaxed text-ink-2">
-                                {l(
-                                    "رؤية الكمبيوتر وتتبُّع الـ 478 نقطة بيتم معالجتها بالكامل على جهاز الطالب أثناء الامتحان، بينما إجابات الصوت بتدخل في طابور ذكي (Priority AI Queue) بيحفظ كل إجابة فوراً ويصححها بالترتيب مع إعطاء أولوية فورية للباقات المدفوعة وقت الذروة.",
-                                    "478-point facial mesh tracking runs 100% on the student's device, while spoken answers enter our Priority AI Queue that saves every submission immediately and prioritizes paid plans during peak hours.",
-                                )}
-                            </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 lg:col-span-4">
-                            <div className="flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet-2 px-4 py-3 text-xs font-bold text-ink">
-                                <Sparkles className="size-4 shrink-0 text-[#6F4E37]" aria-hidden />
-                                <span>{l("عدد طلاب مفتوح في كل الباقات حتى الباقة المجانية", "Unlimited students per exam across all tiers including Free")}</span>
-                            </div>
-                            <div className="flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet-2 px-4 py-3 text-xs font-bold text-ink">
-                                <ShieldCheck className="size-4 shrink-0 text-[#6F4E37]" aria-hidden />
-                                <span>{l("حفظ تلقائي لإجابات جميع الطلاب حتى في أوقات الذروة", "Guaranteed zero-loss submission queuing under peak load")}</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </Section>

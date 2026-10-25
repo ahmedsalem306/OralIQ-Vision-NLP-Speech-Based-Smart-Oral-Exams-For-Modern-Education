@@ -41,6 +41,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
     const [data, setData] = useState<BillingStatusResponse | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<string>("pro");
+    const [currency, setCurrency] = useState<"EGP" | "USD">("EGP");
     const [paymentMethod, setPaymentMethod] = useState<"card" | "instapay" | "invoice">("card");
     const [upgrading, setUpgrading] = useState(false);
     const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -75,10 +76,15 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
         setUpgrading(true);
         setToastMsg(null);
         try {
-            const res = await api.post<BillingStatusResponse & { message: string }>("/billing/upgrade", {
+            const res = await api.post<BillingStatusResponse & { message: string; checkout_url?: string | null }>("/billing/upgrade", {
                 plan_id: selectedPlan,
+                currency,
                 payment_method: paymentMethod,
             });
+            if (res.data.checkout_url) {
+                window.location.href = res.data.checkout_url;
+                return;
+            }
             setData(res.data);
             setToastMsg(
                 lang === "ar"
@@ -205,24 +211,46 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                     aria-modal="true"
                 >
                     <div className="relative max-h-[92dvh] w-full max-w-4xl overflow-y-auto rounded-[26px] border border-rule bg-paper p-5 sm:p-8 text-ink shadow-float">
-                        <div className="flex items-start justify-between gap-4 border-b border-rule pb-4">
+                        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-rule pb-4">
                             <div>
                                 <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-pen">
                                     <Crown className="size-4 text-[#E3A458]" aria-hidden />
-                                    {l("إدارة الاشتراك وسعة الحوسبة", "Subscription & Computing Capacity")}
+                                    {l("إدارة الاشتراك وترقية الباقة", "Subscription & Plan Upgrade")}
                                 </span>
                                 <h2 className="ar-heading mt-1 font-display text-xl sm:text-2xl font-bold text-ink">
-                                    {l("اختر الباقة المناسبة لعدد امتحاناتك وطلابك", "Select the plan that matches your exam & student volume")}
+                                    {l("اختر الباقة المناسبة لعدد امتحاناتك الشهرية", "Select the plan that matches your monthly exam volume")}
                                 </h2>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setModalOpen(false)}
-                                className="flex size-9 items-center justify-center rounded-full border border-rule bg-sheet text-ink-2 hover:bg-sheet-2 hover:text-ink"
-                                aria-label={l("إغلاق", "Close")}
-                            >
-                                <X className="size-4" />
-                            </button>
+                            <div className="flex items-center gap-2.5">
+                                <div className="inline-flex items-center rounded-full border border-rule bg-sheet p-1 shadow-xs">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrency("EGP")}
+                                        className={`wb-num rounded-full px-3 py-1.5 text-xs font-extrabold transition-all ${
+                                            currency === "EGP" ? "bg-[#6F4E37] text-[#FAF6F0]" : "text-ink-2 hover:text-ink"
+                                        }`}
+                                    >
+                                        EGP (ج.م)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrency("USD")}
+                                        className={`wb-num rounded-full px-3 py-1.5 text-xs font-extrabold transition-all ${
+                                            currency === "USD" ? "bg-[#6F4E37] text-[#FAF6F0]" : "text-ink-2 hover:text-ink"
+                                        }`}
+                                    >
+                                        USD ($)
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setModalOpen(false)}
+                                    className="flex size-9 items-center justify-center rounded-full border border-rule bg-sheet text-ink-2 hover:bg-sheet-2 hover:text-ink"
+                                    aria-label={l("إغلاق", "Close")}
+                                >
+                                    <X className="size-4" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Plans Selector Grid */}
@@ -258,7 +286,9 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                             <p className="wb-num mt-2 text-2xl font-extrabold">
                                                 {p.price_egp === 0
                                                     ? l("مجاناً", "Free")
-                                                    : `${p.price_egp.toLocaleString()} ${l("ج.م", "EGP")}`}
+                                                    : currency === "EGP"
+                                                      ? `${p.price_egp.toLocaleString()} ${l("ج.م", "EGP")}`
+                                                      : `$${p.price_usd}`}
                                                 {p.price_egp > 0 && (
                                                     <span className="text-xs font-normal opacity-75"> / {l("شهر", "mo")}</span>
                                                 )}
@@ -302,14 +332,23 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                         {/* Payment Method Selector */}
                         <div className="mt-6 rounded-[20px] border border-rule bg-sheet p-4 sm:p-5">
                             <p className="text-xs font-extrabold text-ink-2">
-                                {l("وسيلة الدفع والتفعيل الفوري:", "Payment & Instant Activation Method:")}
+                                {currency === "EGP"
+                                    ? l("وسيلة الدفع بالجنيه المصري (Paymob / InstaPay):", "EGP Payment Method (Paymob / InstaPay):")
+                                    : l("وسيلة الدفع بالدولار (Stripe / Global Checkout):", "USD Payment Method (Stripe / Global Checkout):")}
                             </p>
                             <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                                {[
-                                    { id: "card" as const, icon: CreditCard, label: l("بطاقة بنكية (Visa / Mastercard)", "Credit / Debit Card") },
-                                    { id: "instapay" as const, icon: Wallet, label: l("إنستا باي / فودافون كاش", "InstaPay / Mobile Wallet") },
-                                    { id: "invoice" as const, icon: ShieldCheck, label: l("تعاقد مؤسسي (كليات ومدارس)", "Institutional Invoice") },
-                                ].map((pm) => (
+                                {(currency === "EGP"
+                                    ? [
+                                          { id: "card" as const, icon: CreditCard, label: l("بطاقة بنكية محلية / ميزة (Paymob)", "Local Card / Meeza (Paymob)") },
+                                          { id: "instapay" as const, icon: Wallet, label: l("إنستا باي / فودافون كاش", "InstaPay / Vodafone Cash") },
+                                          { id: "invoice" as const, icon: ShieldCheck, label: l("كود فوري / تعاقد مؤسسي", "Fawry Code / Institutional") },
+                                      ]
+                                    : [
+                                          { id: "card" as const, icon: CreditCard, label: l("بطاقة دولية (Visa / Mastercard)", "International Card (Stripe)") },
+                                          { id: "instapay" as const, icon: Wallet, label: l("Apple Pay / Google Pay / PayPal", "Apple Pay / Google Pay / PayPal") },
+                                          { id: "invoice" as const, icon: ShieldCheck, label: l("تعاقد مؤسسي (جامعات ومدارس)", "Institutional Invoice") },
+                                      ]
+                                ).map((pm) => (
                                     <button
                                         key={pm.id}
                                         type="button"

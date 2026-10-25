@@ -1,10 +1,10 @@
 """
 Subscription Plans & Computing Capacity Controls for OralIQ.
 - Teacher-friendly pricing & generous exam quotas:
-  * Free:       0 EGP   | 5 Exams          | Unlimited Students | 10 Q/exam | 3 min | Standard Queue (3)
-  * Pro:        199 EGP | 30 Exams/month   | Unlimited Students | 20 Q/exam | 5 min | Fast Queue (2)
-  * Campus:     399 EGP | 100 Exams/month  | Unlimited Students | 35 Q/exam | 10 min| VIP Turbo Queue (1)
-  * Enterprise: 699 EGP | Unlimited (9999) | Unlimited Students | 50 Q/exam | 15 min| Instant Queue (0)
+  * Free:       0 EGP ($0)    | 5 Exams          | Unlimited Students | 10 Q/exam | 3 min | Standard Queue (3)
+  * Pro:        99 EGP ($2)   | 30 Exams/month   | Unlimited Students | 20 Q/exam | 5 min | Fast Queue (2)
+  * Campus:     249 EGP ($5)  | 100 Exams/month  | Unlimited Students | 35 Q/exam | 10 min| VIP Turbo Queue (1)
+  * Enterprise: 499 EGP ($10) | Unlimited (9999) | Unlimited Students | 50 Q/exam | 15 min| Instant Queue (0)
 - Zero limit on student count per exam (even on the Free plan, 100+ or 1000+ students can take any exam).
 - Computing capacity is protected via PriorityGradingLimiter (priority queue) + question audio duration cap.
 """
@@ -29,8 +29,8 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "id": "pro",
         "name_ar": "باقة المدرس الأساسية",
         "name_en": "Teacher Plan",
-        "price_usd": 4,
-        "price_egp": 199,
+        "price_usd": 2,
+        "price_egp": 99,
         "max_exams": 30,
         "max_questions_per_exam": 20,
         "max_students_per_exam": 0,  # 0 = Unlimited students
@@ -43,8 +43,8 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "id": "campus",
         "name_ar": "باقة المحاضر والسناتر",
         "name_en": "Pro Lecturer & Centers",
-        "price_usd": 8,
-        "price_egp": 399,
+        "price_usd": 5,
+        "price_egp": 249,
         "max_exams": 100,
         "max_questions_per_exam": 35,
         "max_students_per_exam": 0,  # 0 = Unlimited students
@@ -57,8 +57,8 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "id": "enterprise",
         "name_ar": "باقة بلا حدود (مدارس وجامعات)",
         "name_en": "Unlimited & Campus",
-        "price_usd": 14,
-        "price_egp": 699,
+        "price_usd": 10,
+        "price_egp": 499,
         "max_exams": 9999,
         "max_questions_per_exam": 50,
         "max_students_per_exam": 0,  # 0 = Unlimited students
