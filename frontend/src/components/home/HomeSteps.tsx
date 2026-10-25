@@ -138,8 +138,8 @@ export function HomeSteps() {
                     </p>
 
                     {/* Scrubbed Progress Spine Indicator */}
-                    <div className="mt-10 hidden items-center gap-4 lg:flex">
-                        <div className="h-28 w-1.5 overflow-hidden rounded-full bg-white/15">
+                    <div className="mt-6 lg:mt-10 flex items-center gap-4">
+                        <div className="h-16 lg:h-28 w-1.5 overflow-hidden rounded-full bg-white/15">
                             <div
                                 data-steps-line
                                 className="h-full w-full rounded-full bg-gradient-to-b from-[#E3A458] to-[#FAF6F0]"
@@ -152,14 +152,14 @@ export function HomeSteps() {
                     </div>
                 </div>
 
-                {/* Method Cards Column — Clean stack on Mobile/Tablet, Sticky Stack on Desktop */}
+                {/* Method Cards Column — Sticky Stacking on Mobile, Tablet & Desktop */}
                 <div data-steps-track className="relative lg:col-span-7">
                     <ol className="relative space-y-5 sm:space-y-7">
                         {steps.map((s, idx) => (
                             <li
                                 key={s.num}
-                                style={{ top: `${104 + idx * 18}px` }}
-                                className="lg:sticky"
+                                style={{ top: `${78 + idx * 14}px` }}
+                                className="sticky"
                             >
                                 <div
                                     data-step-card

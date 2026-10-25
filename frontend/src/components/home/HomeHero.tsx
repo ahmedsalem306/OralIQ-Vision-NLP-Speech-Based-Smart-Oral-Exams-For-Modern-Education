@@ -11,6 +11,8 @@ import { BTN, BTN_GHOST } from "./ui";
  * - Stage background is calibrated to exact solid #0E0804 (matching the background-removed
  *   /media/hero-face-mesh.mp4 pixel-for-pixel) so the character looks like an integral part
  *   of the Hero box itself with zero background rectangle or shadow.
+ * - Uses a SINGLE <FaceScan /> video element across Mobile, Tablet, and Desktop so mobile
+ *   browsers never abort duplicate video streams and always play the animation smoothly.
  */
 export function HomeHero({ startHref }: { startHref: string }) {
     const { l, lang } = useI18n();
@@ -20,10 +22,11 @@ export function HomeHero({ startHref }: { startHref: string }) {
     useGSAP(() => {
         withMotion(() => {
             const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-            tl.fromTo("[data-hero-line]", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, stagger: 0.1 })
-                .fromTo("[data-hero-fade]", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.08 }, "-=0.5")
-                .fromTo("[data-hero-card]", { y: 30, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.75, ease: "back.out(1.2)" }, "-=0.5")
-                .fromTo("[data-hero-bento]", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.09 }, "-=0.4");
+            tl.fromTo("[data-hero-line]", { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.1 })
+                .fromTo("[data-hero-fade]", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, stagger: 0.08 }, "-=0.45")
+                .fromTo("[data-hero-video]", { scale: 0.94, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: "power2.out" }, "-=0.55")
+                .fromTo("[data-hero-card]", { y: 26, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.2)" }, "-=0.5")
+                .fromTo("[data-hero-bento]", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, stagger: 0.08 }, "-=0.4");
 
             gsap.to("[data-hero-title-wrap]", {
                 yPercent: -5,
@@ -36,7 +39,6 @@ export function HomeHero({ startHref }: { startHref: string }) {
                 },
             });
         });
-        delete document.documentElement.dataset.prerender;
     }, { scope: root, dependencies: [lang] });
 
     const lowerPanels = [
@@ -67,7 +69,7 @@ export function HomeHero({ startHref }: { startHref: string }) {
     return (
         <section
             ref={root}
-            className="home-a relative px-2.5 pt-21 pb-8 sm:px-5 sm:pt-24 lg:px-7"
+            className="home-a relative px-2.5 pt-20 pb-6 sm:px-5 sm:pt-24 sm:pb-8 lg:px-7"
         >
             {/* Rounded Hero Stage — Unified #0E0804 Base Matching the Processed Video Background 1:1 */}
             <div
@@ -77,19 +79,11 @@ export function HomeHero({ startHref }: { startHref: string }) {
                 }}
                 className="relative isolate mx-auto flex min-h-[calc(100dvh-7.5rem)] max-w-[94rem] flex-col justify-between overflow-hidden rounded-[24px] sm:rounded-[28px] border border-[#FAF6F0]/12 text-[#FAF6F0] shadow-[0_30px_80px_-24px_rgba(20,14,10,0.5)]"
             >
-                {/* DESKTOP SEAMLESS CENTERPIECE VIDEO — Integral part of the Hero box, zero background rectangle */}
-                <div
-                    aria-hidden
-                    className="pointer-events-none hidden lg:flex absolute inset-y-0 left-[46.5%] -translate-x-1/2 z-0 w-[39rem] xl:w-[44rem] items-end justify-center pt-2"
-                >
-                    <FaceScan priority className="h-full w-full" />
-                </div>
-
-                {/* FOREGROUND CONTENT: 3-Column Layout (Headline on Right | Open Center for Character | 478 Card on Left) */}
-                <div className="relative z-10 mx-auto grid w-full max-w-[90rem] flex-1 grid-cols-1 items-center gap-6 px-5 pt-7 pb-0 sm:px-10 sm:pt-9 lg:grid-cols-12 lg:gap-6 lg:px-12 lg:py-12">
-                    {/* Start Column (Right in RTL): Headline & Actions (4 cols) */}
-                    <div data-hero-title-wrap className="order-1 lg:order-none lg:col-span-4">
-                        <h1 className="ar-heading font-display text-[clamp(2.15rem,3.8vw,3.95rem)] font-bold leading-[1.15] text-[#FAF6F0]">
+                {/* FOREGROUND CONTENT: 3-Column Layout on Desktop, Clean Stacked Flow on Mobile */}
+                <div className="relative z-10 mx-auto grid w-full max-w-[90rem] flex-1 grid-cols-1 items-center gap-5 px-4 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-8 lg:grid-cols-12 lg:gap-6 lg:px-12 lg:py-12">
+                    {/* 1. Headline & Actions (Right in RTL on Desktop, Top on Mobile) */}
+                    <div data-hero-title-wrap className="order-1 lg:order-none lg:col-span-4 relative z-10">
+                        <h1 className="ar-heading font-display text-[clamp(1.95rem,5.5vw,3.95rem)] font-bold leading-[1.16] text-[#FAF6F0]">
                             <span data-hero-line className="block">
                                 {l("أول منصة عربية", "The First Arabic Platform")}
                             </span>
@@ -101,14 +95,14 @@ export function HomeHero({ startHref }: { startHref: string }) {
                             </span>
                         </h1>
 
-                        <p data-hero-fade className="ar-body mt-4 sm:mt-5 max-w-[26rem] text-base font-medium leading-[1.82] text-[#FAF6F0]/82 sm:text-[1.05rem]">
+                        <p data-hero-fade className="ar-body mt-3.5 sm:mt-5 max-w-[28rem] text-[0.95rem] font-medium leading-[1.8] text-[#FAF6F0]/82 sm:text-[1.05rem]">
                             {l(
                                 "حولنا الامتحان الشفوي لكويز أونلاين ذكي زي أي كويز إلكتروني: الطالب بيجاوب بصوته، و3 موديلات ذكاء اصطناعي بتصحح الإجابة بالمعنى وبتراقب حركة العين وبصمة الوجه والصوت عشان مستحيل يغش.",
                                 "Turn oral exams into an effortless online quiz: students answer by voice while 3 AI models grade meaning and track eye gaze, face mesh, and voiceprint so cheating is impossible.",
                             )}
                         </p>
 
-                        <div data-hero-fade className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3">
+                        <div data-hero-fade className="mt-5 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3">
                             <Link to={startHref} viewTransition className={`${BTN} w-full sm:w-auto justify-center ps-6 pe-2.5`}>
                                 <span>{l("ابدأ الآن مجاناً", "Start now for free")}</span>
                                 <span className="flex size-8 items-center justify-center rounded-full bg-white/15 text-white">
@@ -122,25 +116,29 @@ export function HomeHero({ startHref }: { startHref: string }) {
                         </div>
                     </div>
 
-                    {/* Center Spacer on Desktop (5 cols) / Large Seamless Video on Mobile & Tablet */}
-                    <div className="order-3 lg:order-none lg:col-span-5">
-                        <div className="relative mx-auto h-[23rem] w-full max-w-[26rem] sm:h-[29rem] sm:max-w-[32rem] lg:hidden">
-                            <FaceScan priority className="size-full" />
-                        </div>
+                    {/* 2. SINGLE Seamless Centerpiece Video — Middle on Mobile (order-2), Absolute Centerpiece on Desktop */}
+                    <div
+                        data-hero-video
+                        className="order-2 lg:order-none lg:col-span-5 flex items-end justify-center -my-2 sm:my-0 lg:pointer-events-none lg:absolute lg:inset-y-0 lg:left-[46.5%] lg:-translate-x-1/2 lg:z-0 lg:w-[39rem] xl:w-[44rem] lg:pt-2"
+                    >
+                        <FaceScan
+                            priority
+                            className="h-[20.5rem] w-full max-w-[22rem] sm:h-[27rem] sm:max-w-[30rem] lg:h-full lg:max-w-none"
+                        />
                     </div>
 
-                    {/* End Column (Left in RTL): Warm Off-White 478 Points Biometric Anti-Cheating Card (3 cols) */}
-                    <div className="order-2 lg:order-none lg:col-span-3">
+                    {/* 3. Warm Off-White 478 Points Biometric Anti-Cheating Card */}
+                    <div className="order-3 lg:order-none lg:col-span-3 relative z-10">
                         <div
                             data-hero-card
-                            className="rounded-[23px] border border-[#FAF6F0]/20 bg-[#FAF6F0] p-5 sm:p-6 text-[#1C1410] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.55)]"
+                            className="rounded-[22px] sm:rounded-[23px] border border-[#FAF6F0]/20 bg-[#FAF6F0] p-4.5 sm:p-6 text-[#1C1410] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.55)]"
                         >
-                            <div className="flex items-center gap-3 border-b border-[#1C1410]/12 pb-4">
-                                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#6F4E37] text-[#FAF6F0] shadow-md">
-                                    <ScanFace className="size-6" aria-hidden />
+                            <div className="flex items-center gap-3 border-b border-[#1C1410]/12 pb-3.5 sm:pb-4">
+                                <span className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-2xl bg-[#6F4E37] text-[#FAF6F0] shadow-md">
+                                    <ScanFace className="size-5 sm:size-6" aria-hidden />
                                 </span>
                                 <div>
-                                    <span className="wb-num block text-3xl font-extrabold leading-none text-[#1C1410]">
+                                    <span className="wb-num block text-2xl sm:text-3xl font-extrabold leading-none text-[#1C1410]">
                                         478
                                     </span>
                                     <span className="mt-1 block text-xs font-bold text-[#6F4E37]">
@@ -149,14 +147,14 @@ export function HomeHero({ startHref }: { startHref: string }) {
                                 </div>
                             </div>
 
-                            <p className="ar-body mt-4 text-sm font-medium leading-[1.78] text-[#1C1410]/85">
+                            <p className="ar-body mt-3.5 sm:mt-4 text-xs sm:text-sm font-medium leading-[1.78] text-[#1C1410]/85">
                                 {l(
                                     "الطالب مش هيعرف يغش: الكاميرا بترسم 478 نقطة على الوجه وبتتابع حركة العين لحظة بلحظة، مع مطابقة بصمة الصوت وتصحيح الإجابة بالمعنى تلقائياً.",
                                     "Cheating is impossible: the camera maps 478 facial landmarks and tracks eye movement in real time, matching voiceprints and grading answers semantically.",
                                 )}
                             </p>
 
-                            <div className="mt-4 flex items-center gap-2 border-t border-[#1C1410]/10 pt-3 text-xs font-bold text-[#6F4E37]">
+                            <div className="mt-3.5 sm:mt-4 flex items-center gap-2 border-t border-[#1C1410]/10 pt-3 text-xs font-bold text-[#6F4E37]">
                                 <ShieldCheck className="size-4 shrink-0" aria-hidden />
                                 <span>{l("مراقبة حيوية لحظية بدون تدخل بشري", "Real-time autonomous proctoring")}</span>
                             </div>
@@ -166,22 +164,22 @@ export function HomeHero({ startHref }: { startHref: string }) {
             </div>
 
             {/* Lower Hero Bento Panels — Responsive on Mobile, Tablet & Desktop */}
-            <div className="mx-auto mt-4 grid max-w-[94rem] grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mx-auto mt-3.5 sm:mt-4 grid max-w-[94rem] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {lowerPanels.map((p, idx) => (
                     <div
                         key={p.index}
                         data-hero-bento
-                        className={`flex items-center justify-between gap-4 rounded-[22px] border p-5 sm:p-6 shadow-card ${p.tone} ${idx === 2 ? "sm:col-span-2 lg:col-span-1" : ""}`}
+                        className={`flex items-center justify-between gap-4 rounded-[20px] sm:rounded-[22px] border p-4.5 sm:p-6 shadow-card ${p.tone} ${idx === 2 ? "sm:col-span-2 lg:col-span-1" : ""}`}
                     >
                         <div className="min-w-0">
                             <span className={`inline-block text-xs font-bold ${p.dark ? "text-[#E3A458]" : "text-pen"}`}>
                                 {p.badge}
                             </span>
-                            <p className={`ar-heading mt-1 text-base sm:text-lg font-bold leading-snug ${p.dark ? "text-[#FAF6F0]" : "text-ink"}`}>
+                            <p className={`ar-heading mt-1 text-[0.95rem] sm:text-lg font-bold leading-snug ${p.dark ? "text-[#FAF6F0]" : "text-ink"}`}>
                                 {p.title}
                             </p>
                         </div>
-                        <span className={`wb-num shrink-0 text-3xl sm:text-4xl font-extrabold ${p.dark ? "text-[#E3A458]" : "text-ink"}`}>
+                        <span className={`wb-num shrink-0 text-2xl sm:text-4xl font-extrabold ${p.dark ? "text-[#E3A458]" : "text-ink"}`}>
                             {p.metric}
                         </span>
                     </div>

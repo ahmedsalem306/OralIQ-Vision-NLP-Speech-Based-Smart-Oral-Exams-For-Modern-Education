@@ -24,13 +24,13 @@ function TestimonialCard({ name, role, institution, initials, body, tone }: Revi
         <Card
             className={
                 isMocha
-                    ? "w-64 sm:w-72 wb-mocha-stage border-[#FAF6F0]/20 text-[#FAF6F0] shadow-float"
+                    ? "w-[13.25rem] sm:w-64 lg:w-72 wb-mocha-stage border-[#FAF6F0]/20 text-[#FAF6F0] shadow-float"
                     : isCream
-                        ? "w-64 sm:w-72 bg-[#EFE7DE] border-[#6F4E37]/20 text-[#1C1410] shadow-card"
-                        : "w-64 sm:w-72 bg-[#FAF6F0] border-[#6F4E37]/15 text-[#1C1410] shadow-card"
+                        ? "w-[13.25rem] sm:w-64 lg:w-72 bg-[#EFE7DE] border-[#6F4E37]/20 text-[#1C1410] shadow-card"
+                        : "w-[13.25rem] sm:w-64 lg:w-72 bg-[#FAF6F0] border-[#6F4E37]/15 text-[#1C1410] shadow-card"
             }
         >
-            <CardContent className="p-5">
+            <CardContent className="p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-0.5 text-[#E3A458]" aria-hidden>
                         <Star className="size-3.5 fill-current" />
@@ -227,9 +227,9 @@ export function HomeTestimonials() {
 
     return (
         <Section id="testimonials" tone="a" className="py-16 sm:py-24 lg:py-28">
-            <div ref={root} data-testi-wrap className="mx-auto max-w-[92rem] px-5 sm:px-10 lg:px-16">
+            <div ref={root} className="mx-auto max-w-[92rem] px-4 sm:px-10 lg:px-16">
                 {/* Section Header */}
-                <div className="mx-auto max-w-3xl text-center mb-10 sm:mb-14">
+                <div data-testi-wrap className="mx-auto max-w-3xl text-center mb-10 sm:mb-14">
                     <div data-testi-head>
                         <Eyebrow className="text-pen">
                             {l("آراء عملائنا وتجارب الأساتذة", "Client Reviews & Faculty Testimonials")}
@@ -249,7 +249,7 @@ export function HomeTestimonials() {
                     </p>
                 </div>
 
-                {/* 3D Vertical Marquee Stage (Styled in Warm Espresso & Off-White) */}
+                {/* 3D Vertical Marquee Stage (Styled in Warm Espresso & Off-White, Responsive on Mobile & Desktop) */}
                 <div
                     data-testi-stage
                     dir="ltr"
@@ -257,14 +257,10 @@ export function HomeTestimonials() {
                         background:
                             "radial-gradient(ellipse at 50% 45%, rgba(111, 78, 55, 0.34) 0%, transparent 68%), linear-gradient(180deg, #1E140F 0%, #140E0A 100%)",
                     }}
-                    className="relative mx-auto flex h-[28rem] sm:h-[34rem] w-full max-w-[84rem] flex-row items-center justify-center overflow-hidden rounded-[24px] sm:rounded-[30px] border border-[#FAF6F0]/15 shadow-float gap-2 [perspective:360px]"
+                    className="relative mx-auto flex h-[28rem] sm:h-[34rem] w-full max-w-[84rem] flex-row items-center justify-center overflow-hidden rounded-[22px] sm:rounded-[30px] border border-[#FAF6F0]/15 shadow-float gap-2 [perspective:420px]"
                 >
                     <div
-                        className="flex flex-row items-center gap-4 sm:gap-5"
-                        style={{
-                            transform:
-                                "translateX(-60px) translateY(0px) translateZ(-80px) rotateX(18deg) rotateY(-10deg) rotateZ(16deg)",
-                        }}
+                        className="flex h-[36rem] sm:h-[42rem] flex-row items-center justify-center gap-2.5 sm:gap-5 [transform:translateX(0px)_translateY(0px)_translateZ(-45px)_rotateX(14deg)_rotateY(-7deg)_rotateZ(9deg)] sm:[transform:translateX(-40px)_translateY(0px)_translateZ(-80px)_rotateX(18deg)_rotateY(-10deg)_rotateZ(16deg)]"
                     >
                         {/* Vertical Marquee 1 (downwards) */}
                         <Marquee vertical pauseOnHover repeat={3} className="[--duration:38s] [--gap:1.1rem]">

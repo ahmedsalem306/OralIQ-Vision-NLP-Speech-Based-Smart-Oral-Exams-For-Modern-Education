@@ -4,8 +4,8 @@ import { DashboardLayout } from "./layouts/DashboardLayout";
 import PrivateRoute from "./components/PrivateRoute";
 import { PageLoader } from "./components/PageLoader";
 import { SmoothScroll } from "./components/SmoothScroll";
+import LandingPage from "./pages/LandingPage";
 
-const LandingPage = lazy(() => import("./pages/LandingPage"));
 const LoginPage = lazy(() => import("./pages/Login"));
 const RegisterPage = lazy(() => import("./pages/Register"));
 const ExamInvite = lazy(() => import("./pages/ExamInvite"));
@@ -42,7 +42,6 @@ function App() {
                     <Route element={<DashboardLayout />}>
                         <Route path="/dashboard" element={<Suspense fallback={<PageLoader />}><Overview /></Suspense>} />
                         <Route path="/dashboard/questions" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-                        {/* Legacy interview room (never linked; called a missing endpoint) */}
                         <Route path="/dashboard/interview/:questionId" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard/results" element={<Suspense fallback={<PageLoader />}><LecturerResults /></Suspense>} />
                         <Route path="/dashboard/students" element={<Suspense fallback={<PageLoader />}><StudentsPage /></Suspense>} />

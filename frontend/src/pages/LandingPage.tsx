@@ -37,7 +37,7 @@ export default function LandingPage() {
     const ghost = "text-ink hover:bg-sheet-2 hover:text-ink";
 
     return (
-        <MotionConfig reducedMotion="user">
+        <MotionConfig reducedMotion="never">
             <div className="home min-h-dvh overflow-x-clip bg-paper text-ink transition-colors duration-300">
                 <a
                     href="#main"
@@ -71,7 +71,7 @@ export default function LandingPage() {
                         </ul>
 
                         <div className="ms-auto lg:ms-0 flex items-center gap-1 sm:gap-1.5">
-                            <LanguageToggle compact className={ghost} />
+                            <LanguageToggle compact className={ghost} labelClassName="hidden sm:inline" />
                             <ThemeToggle className={ghost} />
                             {loggedIn ? (
                                 <Link

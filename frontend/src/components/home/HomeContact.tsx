@@ -73,9 +73,12 @@ export function HomeContact() {
         >
             <div
                 ref={root}
-                data-contact-wrap
-                className="mx-auto grid max-w-[92rem] grid-cols-1 gap-10 px-5 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16 lg:px-14"
+                className="mx-auto max-w-[92rem] px-5 sm:px-10 lg:px-14"
             >
+                <div
+                    data-contact-wrap
+                    className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16"
+                >
                 {/* Info & Contact Cards */}
                 <div>
                     <Eyebrow className="text-[#E3A458]">{l("تواصل معنا", "Contact Us")}</Eyebrow>
@@ -240,6 +243,7 @@ export function HomeContact() {
                         </p>
                     </div>
                 </form>
+                </div>
             </div>
         </Section>
     );
