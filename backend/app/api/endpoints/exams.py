@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager
+import heapq
 from typing import Any, Dict, List, Optional
 import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -7,6 +10,7 @@ from datetime import datetime, timezone
 import tempfile, os, json, traceback
 
 from app.api import deps
+from app.core.plans import get_plan
 from app.models.exam_submission import ExamSubmission
 from app.models.exam_assignment import ExamAssignment
 from app.models.question import Question
@@ -26,7 +30,7 @@ def _safe_audio_suffix(filename: Optional[str]) -> str:
     return raw_ext if raw_ext in ALLOWED_AUDIO_EXTS else ".webm"
 
 
-# ── Grading concurrency ───────────────────────────────────────────────────────
+# ── Priority AI Grading Concurrency Queue ─────────────────────────────────────
 def _grading_slots() -> int:
     explicit = os.environ.get("MAX_CONCURRENT_GRADING", "").strip()
     if explicit.isdigit() and int(explicit) > 0:
@@ -34,8 +38,41 @@ def _grading_slots() -> int:
     return max(1, (os.cpu_count() or 2) // 4)
 
 
+class PriorityGradingLimiter:
+    """
+    Priority-aware concurrency limiter for AI grading (Whisper + SBERT + Biometrics).
+    Paid tiers (Enterprise=0, Campus=1, Pro=2) jump ahead of Free (3) when slots are full.
+    """
+    def __init__(self, max_slots: int):
+        self.max_slots = max_slots
+        self.active = 0
+        self._seq = 0
+        self._waiters: list[tuple[int, int, asyncio.Future]] = []
+
+    @asynccontextmanager
+    async def slot(self, priority: int = 3):
+        loop = asyncio.get_running_loop()
+        if self.active < self.max_slots and not self._waiters:
+            self.active += 1
+        else:
+            fut = loop.create_future()
+            self._seq += 1
+            heapq.heappush(self._waiters, (priority, self._seq, fut))
+            await fut
+        try:
+            yield
+        finally:
+            while self._waiters:
+                _, _, next_fut = heapq.heappop(self._waiters)
+                if not next_fut.done():
+                    next_fut.set_result(True)
+                    break
+            else:
+                self.active -= 1
+
+
 GRADING_SLOTS = _grading_slots()
-_grading_limit = anyio.Semaphore(GRADING_SLOTS)
+_priority_grading_limiter = PriorityGradingLimiter(GRADING_SLOTS)
 
 
 def _run_ai_pipeline(
@@ -56,7 +93,6 @@ def _run_ai_pipeline(
     }
 
     try:
-        # 1) Transcribe + Fluency analysis with Whisper & Voice Biometrics
         if audio_path:
             from app.services.speech_ai import speech_analyzer
             from app.services.voice_ai import voice_service
@@ -74,13 +110,11 @@ def _run_ai_pipeline(
                 except Exception as ve:
                     print(f"[Voice Verify Error] {ve}")
 
-        # 2) Grade answer with SBERT
         if out["transcript"] and model_answer:
             from app.services.nlp_ai import nlp_analyzer
             result = nlp_analyzer.evaluate_answer(out["transcript"], model_answer, keywords or "")
             out["nlp_score"] = result["score"]
 
-        # 3) Anti-cheat scoring
         try:
             alerts = json.loads(anti_cheat_alerts)
             if alerts and isinstance(alerts, dict):
@@ -191,7 +225,7 @@ def get_students(
     } for s in students]
 
 
-# ── POST submit exam WITH audio + AI grading ──────────────────────────────────
+# ── POST submit exam WITH audio + AI grading + Plan Capacity & Priority Queue ──
 @router.post("/submit", response_model=ExamSubmissionOut)
 async def submit_exam(
     *,
@@ -217,6 +251,35 @@ async def submit_exam(
         if existing:
             return existing
 
+    # Look up lecturer's subscription plan to enforce max_students_per_exam & priority queue
+    creator = db.query(User).filter(User.id == question.creator_id).first() if question.creator_id else None
+    plan = get_plan(getattr(creator, "plan_tier", "free") if creator else "free")
+    priority = int(plan.get("queue_priority", 3))
+
+    # Enforce max_students_per_exam across all questions in this exam group BEFORE spending CPU
+    group_tok = question.group_token or question.exam_token
+    group_q_ids = [
+        q.id for q in db.query(Question.id).filter(Question.group_token == group_tok).all()
+    ] or [question.id]
+    existing_subs = (
+        db.query(ExamSubmission.student_id, ExamSubmission.student_number)
+        .filter(ExamSubmission.question_id.in_(group_q_ids))
+        .all()
+    )
+    distinct_students = {
+        f"u:{s.student_id}" if s.student_id else f"n:{s.student_number}"
+        for s in existing_subs
+    }
+    this_student_ident = f"u:{current_user.id}"
+    if this_student_ident not in distinct_students and len(distinct_students) >= plan["max_students_per_exam"]:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"وصل هذا الامتحان للحد الأقصى للطلاب المسموح به في باقة المحاضر الحالية "
+                f"({plan['max_students_per_exam']} طالب). يرجى التواصل مع محاضرك لترقية الباقة."
+            ),
+        )
+
     face_id_score = max(0.0, min(100.0, float(face_score))) if face_score is not None else None
     student_name = (student_name or "").strip()[:120]
     student_number = (student_number or "").strip()[:64]
@@ -232,7 +295,7 @@ async def submit_exam(
             tmp_path = tmp.name
 
     try:
-        async with _grading_limit:
+        async with _priority_grading_limiter.slot(priority=priority):
             ai = await anyio.to_thread.run_sync(
                 _run_ai_pipeline,
                 tmp_path,

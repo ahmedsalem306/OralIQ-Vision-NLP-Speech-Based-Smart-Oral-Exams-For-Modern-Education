@@ -19,6 +19,7 @@ import {
     isLecturerRole, needsReview,
     type Assignment, type BiometricStatus, type Me, type Question, type Submission,
 } from "../lib/types";
+import { SubscriptionQuotaBar } from "../components/SubscriptionModal";
 
 export default function Overview() {
     const { l, lang } = useI18n();
@@ -133,6 +134,8 @@ export default function Overview() {
                         </div>
                     )}
                 />
+
+                <SubscriptionQuotaBar refreshTrigger={questions.length} />
 
                 {results.length === 0 && (
                     <Panel className="mb-8">

@@ -12,6 +12,7 @@ import { HomeSteps } from "../components/home/HomeSteps";
 import { HomeVideo } from "../components/home/HomeVideo";
 import { HomeClients } from "../components/home/HomeClients";
 import { HomePlatform } from "../components/home/HomePlatform";
+import { HomePricing } from "../components/home/HomePricing";
 import { HomeTestimonials } from "../components/home/HomeTestimonials";
 import { HomeContact } from "../components/home/HomeContact";
 import { HomeFooter } from "../components/home/HomeFooter";
@@ -29,6 +30,7 @@ export default function LandingPage() {
         { href: "#video", label: l("الفيديو التعريفي", "Intro Video") },
         { href: "#clients", label: l("عملاؤنا", "Our Clients") },
         { href: "#integrate", label: l("انضم كـ فيتشر", "Embed Feature") },
+        { href: "#pricing", label: l("الباقات", "Pricing") },
         { href: "#testimonials", label: l("آراء العملاء", "Testimonials") },
         { href: "#contact", label: l("تواصل معنا", "Contact Us") },
     ];
@@ -114,6 +116,7 @@ export default function LandingPage() {
                     <HomeVideo />
                     <HomeClients />
                     <HomePlatform />
+                    <HomePricing startHref={startHref} />
                     <HomeTestimonials />
                     <HomeContact />
                 </main>

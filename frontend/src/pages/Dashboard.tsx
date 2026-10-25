@@ -16,6 +16,7 @@ import { getApiErrorMessage } from "../lib/apiErrors";
 import type { Question, StudentRow } from "../lib/types";
 import { useToast } from "../components/ui/toast";
 import { useFieldErrors } from "../lib/useFieldErrors";
+import { SubscriptionQuotaBar } from "../components/SubscriptionModal";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -214,6 +215,8 @@ export default function Dashboard() {
                     </Button>
                 }
             />
+
+            <SubscriptionQuotaBar refreshTrigger={questions.length} />
 
             {pageError && (
                 <Alert

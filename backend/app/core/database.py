@@ -110,11 +110,15 @@ def run_migrations():
             _add_column("users", "voice_reenroll_allowed", "ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_reenroll_allowed BOOLEAN DEFAULT FALSE")
             _add_column("users", "face_embedding", "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_embedding TEXT")
             _add_column("users", "face_locked", "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_locked BOOLEAN DEFAULT FALSE")
+            _add_column("users", "plan_tier", "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_tier VARCHAR DEFAULT 'free'")
+            _add_column("users", "plan_updated_at", "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_updated_at VARCHAR")
         else:
             _add_column("users", "voice_locked", f"ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT {bool_false}")
             _add_column("users", "voice_reenroll_allowed", f"ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT {bool_false}")
             _add_column("users", "face_embedding", "ALTER TABLE users ADD COLUMN face_embedding TEXT")
             _add_column("users", "face_locked", f"ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT {bool_false}")
+            _add_column("users", "plan_tier", "ALTER TABLE users ADD COLUMN plan_tier VARCHAR DEFAULT 'free'")
+            _add_column("users", "plan_updated_at", "ALTER TABLE users ADD COLUMN plan_updated_at VARCHAR")
 
         with engine.begin() as conn:
             conn.execute(text(
@@ -126,6 +130,9 @@ def run_migrations():
                 f"UPDATE users SET face_locked = {bool_true} "
                 f"WHERE face_embedding IS NOT NULL AND {len_fn}(face_embedding) > 10 "
                 f"AND (face_locked IS NULL OR face_locked = {bool_false})"
+            ))
+            conn.execute(text(
+                "UPDATE users SET plan_tier = 'free' WHERE plan_tier IS NULL OR plan_tier = ''"
             ))
 
         _exec_ddl("CREATE INDEX IF NOT EXISTS ix_users_role ON users (role)")
