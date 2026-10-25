@@ -36,6 +36,87 @@ export interface BillingStatusResponse {
     all_plans: PlanInfo[];
 }
 
+const CANONICAL_PLANS: Record<string, PlanInfo> = {
+    free: {
+        id: "free",
+        name_ar: "الباقة المجانية",
+        name_en: "Free Starter",
+        price_usd: 0,
+        price_egp: 0,
+        max_exams: 5,
+        max_questions_per_exam: 10,
+        max_students_per_exam: 0,
+        max_duration_minutes: 3,
+        queue_priority: 3,
+        queue_label_ar: "طابور معالجة قياسي (Standard)",
+        queue_label_en: "Standard AI Queue",
+    },
+    pro: {
+        id: "pro",
+        name_ar: "باقة المدرس الأساسية",
+        name_en: "Teacher Plan",
+        price_usd: 2,
+        price_egp: 99,
+        max_exams: 30,
+        max_questions_per_exam: 20,
+        max_students_per_exam: 0,
+        max_duration_minutes: 5,
+        queue_priority: 2,
+        queue_label_ar: "أولوية معالجة سريعة (Fast Queue)",
+        queue_label_en: "Fast Priority AI Queue",
+    },
+    campus: {
+        id: "campus",
+        name_ar: "باقة المحاضر والسناتر",
+        name_en: "Pro Lecturer & Centers",
+        price_usd: 5,
+        price_egp: 249,
+        max_exams: 100,
+        max_questions_per_exam: 35,
+        max_students_per_exam: 0,
+        max_duration_minutes: 10,
+        queue_priority: 1,
+        queue_label_ar: "أولوية قصوى وقت الذروة (VIP Turbo)",
+        queue_label_en: "VIP Turbo AI Queue",
+    },
+    enterprise: {
+        id: "enterprise",
+        name_ar: "باقة بلا حدود (مدارس وجامعات)",
+        name_en: "Unlimited & Campus",
+        price_usd: 10,
+        price_egp: 499,
+        max_exams: 9999,
+        max_questions_per_exam: 50,
+        max_students_per_exam: 0,
+        max_duration_minutes: 15,
+        queue_priority: 0,
+        queue_label_ar: "معالجة فورية بلا حدود (Instant AI)",
+        queue_label_en: "Dedicated Instant AI Queue",
+    },
+};
+
+function normalizeBillingStatus(raw: BillingStatusResponse): BillingStatusResponse {
+    const tier = (raw.plan_tier || raw.plan?.id || "free").toLowerCase();
+    const canonicalPlan = CANONICAL_PLANS[tier] || CANONICAL_PLANS.free;
+    const examsUsed = raw.usage?.exams_used ?? 0;
+    const examsLimit = canonicalPlan.max_exams;
+    return {
+        ...raw,
+        plan: canonicalPlan,
+        plan_tier: canonicalPlan.id,
+        usage: {
+            ...raw.usage,
+            exams_used: examsUsed,
+            exams_limit: examsLimit,
+            exams_remaining: Math.max(0, examsLimit - examsUsed),
+            max_students_per_exam: 0,
+            max_questions_per_exam: canonicalPlan.max_questions_per_exam,
+            max_duration_minutes: canonicalPlan.max_duration_minutes,
+        },
+        all_plans: Object.values(CANONICAL_PLANS),
+    };
+}
+
 export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
     const { l, lang } = useI18n();
     const [data, setData] = useState<BillingStatusResponse | null>(null);
@@ -49,12 +130,30 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
     const fetchStatus = async () => {
         try {
             const res = await api.get<BillingStatusResponse>("/billing/status");
-            setData(res.data);
-            if (res.data.plan_tier === "free") setSelectedPlan("pro");
-            else if (res.data.plan_tier === "pro") setSelectedPlan("campus");
+            const normalized = normalizeBillingStatus(res.data);
+            setData(normalized);
+            if (normalized.plan_tier === "free") setSelectedPlan("pro");
+            else if (normalized.plan_tier === "pro") setSelectedPlan("campus");
             else setSelectedPlan("enterprise");
         } catch {
-            /* ignore if offline */
+            setData(
+                normalizeBillingStatus({
+                    plan: CANONICAL_PLANS.free,
+                    plan_tier: "free",
+                    usage: {
+                        exams_used: 0,
+                        exams_limit: 5,
+                        exams_remaining: 5,
+                        max_students_per_exam: 0,
+                        max_questions_per_exam: 10,
+                        max_duration_minutes: 3,
+                        peak_students_in_single_exam: 0,
+                        total_submissions: 0,
+                        exam_student_counts: {},
+                    },
+                    all_plans: Object.values(CANONICAL_PLANS),
+                }),
+            );
         }
     };
 
@@ -85,11 +184,12 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                 window.location.href = res.data.checkout_url;
                 return;
             }
-            setData(res.data);
+            const normalized = normalizeBillingStatus(res.data);
+            setData(normalized);
             setToastMsg(
                 lang === "ar"
-                    ? res.data.message
-                    : `Successfully upgraded to ${res.data.plan.name_en}!`,
+                    ? `تم تفعيل ${normalized.plan.name_ar} بنجاح (${currency === "EGP" ? `${normalized.plan.price_egp} ج.م` : `$${normalized.plan.price_usd}`})!`
+                    : `Successfully upgraded to ${normalized.plan.name_en}!`,
             );
             setTimeout(() => {
                 setModalOpen(false);
