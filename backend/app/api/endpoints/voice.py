@@ -1,4 +1,5 @@
-from typing import Any, List
+from typing import Any, List, Optional
+import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 import tempfile, os, json, traceback
@@ -10,6 +11,15 @@ from app.services.voice_ai import voice_service
 from app.services.face_biometrics import EMBEDDING_DIM as FACE_DIM
 
 router = APIRouter()
+
+ALLOWED_AUDIO_EXTS = {".webm", ".wav", ".mp3", ".ogg", ".m4a", ".mp4"}
+
+
+def _safe_audio_suffix(filename: Optional[str]) -> str:
+    if not filename:
+        return ".webm"
+    raw_ext = os.path.splitext(os.path.basename(filename))[1].lower()
+    return raw_ext if raw_ext in ALLOWED_AUDIO_EXTS else ".webm"
 
 
 def _has_voiceprint(user: User) -> bool:
@@ -67,7 +77,7 @@ async def enroll_voice_print(
     current_user: User = Depends(deps.get_current_user),
     audio: UploadFile = File(...),
 ) -> Any:
-    """Enrolls a user's voice print from a single audio file (legacy support)."""
+    """Enrolls a user's voice print from a single audio file (offloaded to worker thread)."""
     if not _can_enroll(current_user):
         raise HTTPException(
             status_code=403,
@@ -77,14 +87,14 @@ async def enroll_voice_print(
     if not audio or not audio.filename:
         raise HTTPException(status_code=400, detail="Audio file is required")
 
-    suffix = os.path.splitext(audio.filename)[1] or ".webm"
+    suffix = _safe_audio_suffix(audio.filename)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         content = await audio.read()
         tmp.write(content)
         tmp_path = tmp.name
 
     try:
-        embedding = voice_service.extract_embedding(tmp_path)
+        embedding = await anyio.to_thread.run_sync(voice_service.extract_embedding, tmp_path)
         if not embedding or len(embedding) == 0:
             raise HTTPException(status_code=422, detail="Could not extract voice features from audio")
 
@@ -102,12 +112,15 @@ async def enroll_voice_print(
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         print(f"[Voice Enroll Error] {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to record voice print: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to record voice print")
     finally:
         if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 @router.post("/enroll-multi")
@@ -117,11 +130,6 @@ async def enroll_voice_print_multi(
     current_user: User = Depends(deps.get_current_user),
     audio_files: List[UploadFile] = File(...),
 ) -> Any:
-    """
-    Enrolls a user's voice print from multiple audio recordings.
-    Extracts an embedding from each file, then averages them for a more robust
-    voiceprint that captures different speaking patterns.
-    """
     if not _can_enroll(current_user):
         raise HTTPException(
             status_code=403,
@@ -130,6 +138,8 @@ async def enroll_voice_print_multi(
 
     if not audio_files or len(audio_files) == 0:
         raise HTTPException(status_code=400, detail="At least one audio file is required")
+    if len(audio_files) > 10:
+        raise HTTPException(status_code=422, detail="Maximum 10 audio files allowed")
 
     embeddings: list[list[float]] = []
     tmp_paths: list[str] = []
@@ -139,19 +149,16 @@ async def enroll_voice_print_multi(
             if not audio or not audio.filename:
                 continue
 
-            suffix = os.path.splitext(audio.filename)[1] or ".webm"
+            suffix = _safe_audio_suffix(audio.filename)
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 content = await audio.read()
                 tmp.write(content)
                 tmp_paths.append(tmp.name)
 
             try:
-                emb = voice_service.extract_embedding(tmp_paths[-1])
+                emb = await anyio.to_thread.run_sync(voice_service.extract_embedding, tmp_paths[-1])
                 if emb and len(emb) > 0:
                     embeddings.append(emb)
-                    print(f"[Voice Enroll] Sample {i+1}/{len(audio_files)}: extracted {len(emb)}-dim embedding")
-                else:
-                    print(f"[Voice Enroll] Sample {i+1}: empty embedding, skipping")
             except Exception as e:
                 print(f"[Voice Enroll] Sample {i+1} extraction error: {e}")
 
@@ -165,7 +172,6 @@ async def enroll_voice_print_multi(
             avg_embedding = avg_embedding / norm
 
         final_embedding = avg_embedding.tolist()
-        print(f"[Voice Enroll] Final embedding: {len(final_embedding)}-dim from {len(embeddings)} samples")
 
         current_user.voice_embedding = json.dumps(final_embedding)
         current_user.voice_locked = True
@@ -185,9 +191,9 @@ async def enroll_voice_print_multi(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         print(f"[Voice Enroll Multi Error] {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to process voice samples: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process voice samples")
     finally:
         for p in tmp_paths:
             if os.path.exists(p):
@@ -202,7 +208,6 @@ def delete_voice_print(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """Resets voice print — only allowed when lecturer granted re-enroll permission."""
     if _has_voiceprint(current_user) and current_user.voice_locked and not current_user.voice_reenroll_allowed:
         raise HTTPException(
             status_code=403,
@@ -223,14 +228,13 @@ async def verify_voice_print(
     current_user: User = Depends(deps.get_current_user),
     audio: UploadFile = File(...),
 ) -> Any:
-    """Compare a short audio sample against the enrolled voiceprint (pre-question gate)."""
     if not _has_voiceprint(current_user):
         raise HTTPException(status_code=400, detail="لا توجد بصمة صوت مسجّلة لهذا الحساب")
 
     if not audio or not audio.filename:
         raise HTTPException(status_code=400, detail="ملف الصوت مطلوب")
 
-    suffix = os.path.splitext(audio.filename)[1] or ".webm"
+    suffix = _safe_audio_suffix(audio.filename)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         content = await audio.read()
         tmp.write(content)
@@ -238,7 +242,7 @@ async def verify_voice_print(
 
     try:
         stored_emb = json.loads(current_user.voice_embedding)
-        result = voice_service.verify_voice(tmp_path, stored_emb)
+        result = await anyio.to_thread.run_sync(voice_service.verify_voice, tmp_path, stored_emb)
         return {
             "ok": True,
             "is_match": bool(result.get("is_match")),
@@ -251,12 +255,15 @@ async def verify_voice_print(
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         print(f"[Voice Verify Error] {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"فشل التحقق من بصمة الصوت: {str(e)}")
+        raise HTTPException(status_code=500, detail="فشل التحقق من بصمة الصوت")
     finally:
         if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 @router.post("/allow-reenroll/{student_id}")
@@ -265,7 +272,6 @@ def allow_voice_reenroll(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """Lecturer temporarily allows a student to re-register their voiceprint."""
     if current_user.role not in ("lecturer", "hr", "admin"):
         raise HTTPException(status_code=403, detail="Lecturers only")
 
@@ -291,7 +297,6 @@ def revoke_voice_reenroll(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """Lecturer revokes re-enroll permission before student uses it."""
     if current_user.role not in ("lecturer", "hr", "admin"):
         raise HTTPException(status_code=403, detail="Lecturers only")
 

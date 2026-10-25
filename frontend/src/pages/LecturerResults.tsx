@@ -31,8 +31,7 @@ function downloadCsv(rows: Submission[], lang: "ar" | "en") {
         r.overall_score, r.nlp_score, r.speech_score, r.facial_score, r.face_score, r.voice_score,
         r.grade_visible ? "1" : "0",
     ].map(esc).join(","));
-    // BOM so Excel opens Arabic text correctly
-    const blob = new Blob(["﻿" + [head.map(esc).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\uFEFF" + [head.map(esc).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `oraliq-results-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -52,7 +51,6 @@ export default function LecturerResults() {
     const [actionError, setActionError] = useState("");
     const [confirmBulk, setConfirmBulk] = useState(false);
     const [bulkBusy, setBulkBusy] = useState(false);
-    // Render rows in pages so very large classes stay fast
     const PAGE = 40;
     const [shown, setShown] = useState(PAGE);
 
@@ -67,7 +65,6 @@ export default function LecturerResults() {
         setParams(next, { replace: true });
     };
 
-    // Back to the first page whenever the filter or search changes
     const pageKey = `${filter}|${query}`;
     if (pageKey !== pagingKey) {
         setPagingKey(pageKey);
@@ -83,7 +80,6 @@ export default function LecturerResults() {
             .finally(() => setLoading(false));
     }, [l]);
     useEffect(() => { load(); }, [load]);
-    // Figures, filters and export only mean something once there are answers to act on
     const hasData = !loading && !loadError && results.length > 0;
 
     const sorted = useMemo(
@@ -109,7 +105,6 @@ export default function LecturerResults() {
     const reviewCount = results.filter(needsReview).length;
     const bulkEligible = results.filter((r) => !r.grade_visible && r.overall_score != null && !needsReview(r));
 
-    // Optimistic: flip the state at once, roll back if the server says no.
     const setVisibility = async (id: number, visibleFlag: boolean) => {
         const flag = visibleFlag ? 1 : 0;
         setActionError("");
@@ -145,12 +140,10 @@ export default function LecturerResults() {
         setConfirmBulk(false);
     };
 
-    // Drawer navigation follows the current filtered order
     const openIndex = openId ? visible.findIndex((r) => r.id === openId) : -1;
     const current = openId ? results.find((r) => r.id === openId) ?? null : null;
     const goTo = (i: number) => { if (visible[i]) setParam("open", String(visible[i].id)); };
 
-    // Arrow keys move between submissions while the drawer is open
     useEffect(() => {
         if (!current) return;
         const onKey = (e: KeyboardEvent) => {
@@ -205,9 +198,9 @@ export default function LecturerResults() {
 
             {actionError && <Alert tone="error" className="mb-6">{actionError}</Alert>}
 
-            {hasData && <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {hasData && <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <Segmented label={l("تصفية النتائج", "Filter results")} value={filter} onChange={(v) => setParam("filter", v)} options={filters} className="max-w-full overflow-x-auto" />
-                <div className="relative lg:w-72">
+                <div className="relative lg:w-80">
                     <Input
                         icon={<Search />}
                         trailing={!!query}
@@ -218,7 +211,7 @@ export default function LecturerResults() {
                     />
                     {query && (
                         <button type="button" onClick={() => setQuery("")} aria-label={l("مسح البحث", "Clear search")}
-                            className="absolute inset-y-0 end-1 my-auto flex size-9 items-center justify-center rounded-md text-ink-3 hover:text-ink">
+                            className="absolute inset-y-0 end-1.5 my-auto flex size-9 items-center justify-center rounded-md text-ink-2 hover:text-ink">
                             <X className="size-4" aria-hidden />
                         </button>
                     )}
@@ -243,7 +236,7 @@ export default function LecturerResults() {
                     />
                 ) : (
                     <>
-                        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] gap-4 border-b border-rule bg-sheet-2 px-5 py-2.5 text-sm font-medium text-ink-2 @3xl:grid">
+                        <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] gap-4 border-b-2 border-rule bg-sheet-2 px-6 py-3.5 text-sm font-extrabold text-ink @3xl:grid">
                             <span>{l("الطالب", "Student")}</span>
                             <span>{l("السؤال", "Question")}</span>
                             <span>{l("التاريخ", "Date")}</span>
@@ -259,22 +252,21 @@ export default function LecturerResults() {
                                         <button
                                             type="button"
                                             onClick={() => setParam("open", String(r.id))}
-                                            className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-5 py-3.5 text-start @3xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] @3xl:gap-4"
+                                            className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 px-6 py-4 text-start @3xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.5fr)_7rem_5rem_11rem] @3xl:gap-4"
                                             aria-haspopup="dialog"
                                         >
                                             <span className="flex min-w-0 items-center gap-3 @max-3xl:contents">
                                                 <Avatar name={r.student_name} size="sm" />
                                                 <span className="min-w-0">
-                                                    <span className="block truncate font-semibold">{r.student_name}</span>
-                                                    <span className="block text-xs text-ink-3 tabular ltr">{r.student_number}</span>
+                                                    <span className="block truncate text-base font-extrabold text-ink">{r.student_name}</span>
+                                                    <span className="block text-xs font-bold text-ink-2 tabular ltr">{r.student_number}</span>
                                                 </span>
                                             </span>
-                                            <span className="truncate text-sm text-ink-2 @max-3xl:col-span-3 @max-3xl:col-start-2 @max-3xl:row-start-2">{r.question_text || "—"}</span>
-                                            <span className="hidden text-sm text-ink-2 @3xl:block">{formatDate(r.submitted_at, lang)}</span>
+                                            <span className="truncate text-sm font-bold text-ink-2 @max-3xl:col-span-3 @max-3xl:col-start-2 @max-3xl:row-start-2">{r.question_text || "—"}</span>
+                                            <span className="hidden text-sm font-bold text-ink-2 @3xl:block">{formatDate(r.submitted_at, lang)}</span>
                                             <span className="flex items-center gap-2 @max-3xl:col-start-3 @max-3xl:row-start-1">
                                                 <ScoreMark score={r.overall_score} size="sm" plain className="w-auto" />
                                             </span>
-                                            {/* Narrow panel: status under the question line */}
                                             <span className="col-span-2 col-start-2 row-start-3 flex flex-wrap gap-1.5 @3xl:hidden">
                                                 {flagged && <Badge tone="warn">{l("مراجعة", "Review")}</Badge>}
                                                 {g && !flagged && <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge>}
@@ -310,14 +302,14 @@ export default function LecturerResults() {
                     <div className="flex items-center gap-3">
                         <Avatar name={current.student_name} />
                         <div className="min-w-0 flex-1">
-                            <p className="truncate font-semibold">{current.student_name}</p>
-                            <p className="text-xs text-ink-3 tabular">{current.student_number}</p>
+                            <p className="truncate font-extrabold text-ink">{current.student_name}</p>
+                            <p className="text-xs font-bold text-ink-2 tabular">{current.student_number}</p>
                         </div>
                         <span className="hidden font-display font-bold print:inline">OralIQ</span>
                         {openIndex >= 0 && (
-                            <span className="hidden text-sm text-ink-3 tabular sm:inline print:hidden">{l(`${openIndex + 1} من ${visible.length}`, `${openIndex + 1} of ${visible.length}`)}</span>
+                            <span className="hidden text-sm font-bold text-ink-2 tabular sm:inline print:hidden">{l(`${openIndex + 1} من ${visible.length}`, `${openIndex + 1} of ${visible.length}`)}</span>
                         )}
-                        <div className="flex items-center print:hidden">
+                        <div className="flex items-center gap-1 print:hidden">
                             <Tooltip label={l("طباعة / PDF", "Print / PDF")}>
                                 <button type="button" className={buttonClasses("ghost", "icon-sm")} onClick={() => window.print()} aria-label={l("طباعة ورقة الإجابة", "Print answer sheet")}>
                                     <Printer className="size-[18px]" aria-hidden />
@@ -343,7 +335,7 @@ export default function LecturerResults() {
                 )}
                 footer={current && (
                     <>
-                        <p className="text-sm text-ink-2">
+                        <p className="text-sm font-bold text-ink-2">
                             {current.grade_visible
                                 ? l("الطالب يقدر يشوف الدرجة دي.", "The student can see this grade.")
                                 : l("الدرجة مخفية عن الطالب.", "This grade is hidden from the student.")}

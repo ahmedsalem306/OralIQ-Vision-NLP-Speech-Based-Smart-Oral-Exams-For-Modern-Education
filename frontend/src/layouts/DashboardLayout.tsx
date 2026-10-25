@@ -53,8 +53,6 @@ export function DashboardLayout() {
         return () => window.removeEventListener("keydown", onKey);
     }, [isOpen]);
 
-    // Focus moves into the drawer when it opens and back to the menu button when it closes;
-    // widening to the desktop layout closes it so the page behind never stays inert.
     const menuButton = useRef<HTMLButtonElement>(null);
     const closeButton = useRef<HTMLButtonElement>(null);
     const wasOpen = useRef(false);
@@ -111,10 +109,10 @@ export function DashboardLayout() {
     ];
 
     return (
-        <div className="min-h-dvh bg-paper text-ink md:flex">
+        <div className="min-h-dvh bg-paper text-ink md:flex transition-colors duration-300">
             <a
                 href="#main"
-                className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-pen focus:px-4 focus:py-2 focus:text-pen-ink"
+                className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-pen focus:px-4 focus:py-2 focus:font-bold focus:text-pen-ink"
             >
                 {l("تخطَّ إلى المحتوى", "Skip to content")}
             </a>
@@ -132,16 +130,16 @@ export function DashboardLayout() {
             <aside
                 id="sidebar"
                 className={cn(
-                    "fixed inset-y-0 start-0 z-50 flex w-[17rem] shrink-0 flex-col border-e border-rail-line bg-rail text-rail-ink",
+                    "fixed inset-y-0 start-0 z-50 flex w-[17.5rem] lg:w-[18.25rem] shrink-0 flex-col border-e-2 border-rail-line bg-rail text-rail-ink",
                     "duration-200 ease-out md:sticky md:top-0 md:h-dvh",
-                    // Closed on a phone: off screen and out of the tab order and the accessibility tree.
-                    // Opening shows it at once (so focus can land in it); closing hides it after the slide.
                     isOpen ? "transition-transform" : "transition-[transform,visibility] max-md:invisible max-md:ltr:-translate-x-full max-md:rtl:translate-x-full",
                 )}
                 aria-label={l("القائمة الرئيسية", "Main menu")}
             >
-                <div className="flex h-[4.5rem] shrink-0 items-center justify-between px-5">
-                    <Link to="/dashboard" aria-label="OralIQ" className="flex h-11 items-center"><Logo height={22} /></Link>
+                <div className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-rail-line px-5">
+                    <Link to="/dashboard" aria-label="OralIQ" className="flex h-11 items-center text-rail-ink">
+                        <Logo height={25} />
+                    </Link>
                     <button
                         ref={closeButton}
                         type="button"
@@ -153,20 +151,20 @@ export function DashboardLayout() {
                     </button>
                 </div>
 
-                <div className="px-3 pb-2">
+                <div className="px-3.5 pt-3.5 pb-2">
                     <button
                         type="button"
                         onClick={() => setPaletteOpen(true)}
-                        className="flex w-full items-center gap-2.5 rounded-[var(--radius-control)] border border-rail-line bg-rail-hover/60 px-3 py-2 text-sm text-rail-muted transition-colors hover:bg-rail-hover hover:text-rail-ink"
+                        className="flex w-full items-center gap-2.5 rounded-[var(--radius-control)] border-2 border-rail-line bg-rail-hover/65 px-3.5 py-2.5 text-sm font-bold text-rail-muted transition-colors hover:border-rule-strong hover:bg-rail-hover hover:text-rail-ink"
                     >
-                        <Search className="size-4" aria-hidden />
+                        <Search className="size-4 text-rail-ink" aria-hidden />
                         <span className="flex-1 text-start">{l("بحث سريع", "Quick search")}</span>
-                        <kbd className="rounded border border-rail-line bg-rail px-1.5 text-[0.6875rem] ltr pointer-coarse:hidden" dir="ltr">Ctrl K</kbd>
+                        <kbd className="rounded-md border border-rail-line bg-rail px-2 py-0.5 text-xs font-extrabold text-rail-ink ltr pointer-coarse:hidden" dir="ltr">Ctrl K</kbd>
                     </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto px-3 py-2">
-                    <ul role="list" className="space-y-0.5">
+                <nav className="flex-1 overflow-y-auto px-3.5 py-3">
+                    <ul role="list" className="space-y-1">
                         {(user ? navItems : []).map((item) => (
                             <li key={item.href}>
                                 <NavItem {...item} active={location.pathname === item.href} onNavigate={() => setIsOpen(false)} />
@@ -175,20 +173,20 @@ export function DashboardLayout() {
                     </ul>
                 </nav>
 
-                <div className="shrink-0 space-y-1 border-t border-rail-line px-3 py-3">
+                <div className="shrink-0 space-y-1.5 border-t border-rail-line px-3.5 py-3">
                     <NavItem icon={Settings} label={t("nav.settings")} href="/dashboard/settings" active={location.pathname === "/dashboard/settings"} onNavigate={() => setIsOpen(false)} />
-                    <div className="flex items-center gap-1 px-1 pt-1">
-                        <LanguageToggle compact className="text-rail-muted hover:bg-rail-hover hover:text-rail-ink" />
-                        <ThemeToggle className="text-rail-muted hover:bg-rail-hover hover:text-rail-ink" />
+                    <div className="flex items-center gap-1.5 px-1 pt-1">
+                        <LanguageToggle compact className="font-bold text-rail-ink hover:bg-rail-hover" />
+                        <ThemeToggle className="text-rail-ink hover:bg-rail-hover" />
                     </div>
                 </div>
 
                 {user && (
-                    <div className="m-3 mt-0 flex shrink-0 items-center gap-3 rounded-2xl bg-rail-hover px-3 py-3">
+                    <div className="m-3.5 mt-0 flex shrink-0 items-center gap-3 rounded-2xl border border-rail-line bg-rail-hover px-3.5 py-3">
                         <Avatar name={user.full_name} src={profilePic} />
                         <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold">{user.full_name}</p>
-                            <p className="truncate text-xs text-rail-muted">
+                            <p className="truncate text-sm font-extrabold text-rail-ink">{user.full_name}</p>
+                            <p className="truncate text-xs font-bold text-rail-muted">
                                 {isLecturer ? t("auth.role.lecturer") : t("auth.role.student")}
                             </p>
                         </div>
@@ -199,7 +197,7 @@ export function DashboardLayout() {
                             aria-label={t("nav.signOut")}
                             title={t("nav.signOut")}
                         >
-                            <LogOut className="size-[18px] rtl:-scale-x-100" aria-hidden />
+                            <LogOut className="size-5 rtl:-scale-x-100" aria-hidden />
                         </button>
                     </div>
                 )}
@@ -210,12 +208,11 @@ export function DashboardLayout() {
             {/* ── Main ── */}
             <div className="flex min-w-0 flex-1 flex-col" inert={isOpen}>
                 {/* Mobile top bar */}
-                {/* Sticky bar over scrolling content: the one place glass belongs. avoid-ai-design-ignore: K3 */}
-                <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-rule bg-paper/90 px-4 backdrop-blur md:hidden">
+                <header className="sticky top-0 z-30 flex h-15 items-center justify-between border-b-2 border-rule bg-paper/95 px-4 backdrop-blur md:hidden">
                     <button
                         ref={menuButton}
                         type="button"
-                        className={buttonClasses("ghost", "icon-sm")}
+                        className={buttonClasses("secondary", "icon-sm")}
                         onClick={() => setIsOpen(true)}
                         aria-label={l("فتح القائمة", "Open menu")}
                         aria-expanded={isOpen}
@@ -223,11 +220,16 @@ export function DashboardLayout() {
                     >
                         <Menu className="size-5" aria-hidden />
                     </button>
-                    <Logo height={20} title="OralIQ" />
-                    <Avatar name={user?.full_name} src={profilePic} size="sm" />
+                    <Link to="/dashboard" className="text-ink">
+                        <Logo height={20} title="OralIQ" />
+                    </Link>
+                    <div className="flex items-center gap-1">
+                        <ThemeToggle className="text-ink hover:bg-sheet-2" />
+                        <Avatar name={user?.full_name} src={profilePic} size="sm" />
+                    </div>
                 </header>
 
-                <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-8 sm:py-10">
+                <main id="main" className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 sm:px-8 sm:py-9 lg:px-12">
                     <MotionConfig reducedMotion="user">
                         <motion.div
                             key={location.pathname}
@@ -244,6 +246,8 @@ export function DashboardLayout() {
     );
 }
 
+export default DashboardLayout;
+
 interface NavItemProps {
     icon: typeof Users;
     label: string;
@@ -259,20 +263,19 @@ function NavItem({ icon: Icon, label, href, active, onNavigate }: NavItemProps) 
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-                "relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-[0.9375rem] transition-colors",
-                active ? "font-semibold text-rail-active-ink" : "text-rail-muted hover:bg-rail-hover hover:text-rail-ink",
+                "relative flex items-center gap-3.5 rounded-[var(--radius-control)] px-3.5 py-3 text-base transition-colors",
+                active ? "font-extrabold text-rail-active-ink" : "font-bold text-rail-muted hover:bg-rail-hover hover:text-rail-ink",
             )}
         >
-            {/* Active highlight glides to the selected page */}
             {active && (
                 <motion.span
                     layoutId="nav-active"
                     transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                    className="absolute inset-0 rounded-[var(--radius-control)] bg-rail-active before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-rail-indicator"
+                    className="absolute inset-0 rounded-[var(--radius-control)] bg-rail-active shadow-[inset_0_0_0_1.5px_var(--rule-strong)] before:absolute before:inset-y-2 before:start-0 before:w-1.5 before:rounded-full before:bg-rail-indicator"
                     aria-hidden
                 />
             )}
-            <Icon className="relative size-[18px] shrink-0" aria-hidden />
+            <Icon className="relative size-5 shrink-0" aria-hidden />
             <span className="relative truncate">{label}</span>
         </Link>
     );

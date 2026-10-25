@@ -174,7 +174,6 @@ export default function Dashboard() {
         }
     };
 
-    // Assigning the first question opens the whole exam for the student (ExamRoom loads by group).
     const assign = async (sid: number) => {
         const leader = assignFor?.questions[0];
         if (!leader) return;
@@ -208,10 +207,23 @@ export default function Dashboard() {
             <PageHeader
                 title={l("أسئلة الامتحانات", "Exam questions")}
                 description={l("كل امتحان له رابط واحد. الطالب بيجاوب على أسئلته بالترتيب.", "Each exam has one link. Students answer its questions in order.")}
-                actions={<Button onClick={() => openEditor(null)}><Plus className="size-4" aria-hidden />{l("امتحان جديد", "New exam")}</Button>}
+                actions={
+                    <Button size="lg" onClick={() => openEditor(null)}>
+                        <Plus className="size-5" aria-hidden />
+                        {l("امتحان جديد", "New exam")}
+                    </Button>
+                }
             />
 
-            {pageError && <Alert tone="error" className="mb-6" action={<button className="text-sm font-semibold text-pen" onClick={() => setPageError("")}>{l("إغلاق", "Dismiss")}</button>}>{pageError}</Alert>}
+            {pageError && (
+                <Alert
+                    tone="error"
+                    className="mb-6"
+                    action={<button className="text-sm font-extrabold text-pen" onClick={() => setPageError("")}>{l("إغلاق", "Dismiss")}</button>}
+                >
+                    {pageError}
+                </Alert>
+            )}
 
             {loading ? (
                 <Panel><ListSkeleton rows={4} /></Panel>
@@ -223,7 +235,12 @@ export default function Dashboard() {
                         icon={<ClipboardList />}
                         title={l("لسه مفيش امتحانات", "No exams yet")}
                         body={l("اكتب السؤال وإجابته النموذجية، والذكاء الاصطناعي هيصحح إجابات الطلاب على أساسها.", "Write a question and its model answer — the AI grades student answers against it.")}
-                        action={<Button onClick={() => openEditor(null)}><Plus className="size-4" aria-hidden />{l("أنشئ أول امتحان", "Create your first exam")}</Button>}
+                        action={
+                            <Button size="lg" onClick={() => openEditor(null)}>
+                                <Plus className="size-5" aria-hidden />
+                                {l("أنشئ أول امتحان", "Create your first exam")}
+                            </Button>
+                        }
                     />
                 </Panel>
             ) : (
@@ -233,27 +250,29 @@ export default function Dashboard() {
                         const category = g.questions[0]?.category;
                         return (
                             <Panel key={g.token} className="overflow-hidden">
-                                <header className="flex flex-col gap-4 border-b border-rule px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                                <header className="flex flex-col gap-4 border-b-2 border-rule bg-sheet-2/70 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
                                     <div className="min-w-0">
-                                        <h2 className="text-lg font-semibold">
+                                        <h2 className="text-xl font-extrabold text-ink sm:text-2xl">
                                             {category && category !== "general" ? category : l("امتحان شفوي", "Oral exam")}
                                         </h2>
-                                        <p className="mt-0.5 flex flex-wrap gap-x-4 text-sm text-ink-2">
-                                            <span>{countOf(lang, g.questions.length, NOUNS.question)}</span>
-                                            <span className="inline-flex items-center gap-1"><Clock className="size-3.5" aria-hidden />{countOf(lang, total, NOUNS.minute)}</span>
-                                            <span className="text-ink-3">{formatDate(g.createdAt, lang)}</span>
-                                        </p>
+                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold text-ink-2">
+                                            <Badge tone="pen">{countOf(lang, g.questions.length, NOUNS.question)}</Badge>
+                                            <Badge tone="neutral" icon={<Clock aria-hidden />}>{countOf(lang, total, NOUNS.minute)}</Badge>
+                                            <span className="px-1 font-bold text-ink-2">{formatDate(g.createdAt, lang)}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Button variant="secondary" size="sm" onClick={() => copyLink(g.token)} aria-live="polite">
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <Button variant="secondary" size="md" onClick={() => copyLink(g.token)} aria-live="polite">
                                             {copied === g.token ? <Check className="size-4 text-pass" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-                                            {copied === g.token ? l("اتنسخ", "Copied") : l("نسخ الرابط", "Copy link")}
+                                            {copied === g.token ? l("اتنسخ الرابط", "Copied") : l("نسخ الرابط", "Copy link")}
                                         </Button>
-                                        <Button variant="secondary" size="sm" onClick={() => openAssign(g)}>
-                                            <UserPlus className="size-4" aria-hidden />{l("إرسال لطالب", "Send to student")}
+                                        <Button variant="secondary" size="md" onClick={() => openAssign(g)}>
+                                            <UserPlus className="size-4" aria-hidden />
+                                            {l("إرسال لطالب", "Send to student")}
                                         </Button>
-                                        <Button variant="ghost" size="sm" onClick={() => openEditor(g)}>
-                                            <Plus className="size-4" aria-hidden />{l("سؤال", "Question")}
+                                        <Button variant="primary" size="md" onClick={() => openEditor(g)}>
+                                            <Plus className="size-4" aria-hidden />
+                                            {l("إضافة سؤال", "Add question")}
                                         </Button>
                                     </div>
                                 </header>
@@ -264,33 +283,46 @@ export default function Dashboard() {
                                         return (
                                             <li key={q.id} className="group/q">
                                                 <details className="[&[open]_.chev]:rotate-180">
-                                                    <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-4 hover:bg-sheet-2 [&::-webkit-details-marker]:hidden">
-                                                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-rule-strong font-display text-sm font-semibold tabular text-ink-2">{i + 1}</span>
+                                                    <summary className="flex cursor-pointer list-none items-start gap-4 px-6 py-5 transition-colors hover:bg-sheet-2/60 [&::-webkit-details-marker]:hidden">
+                                                        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-rule-strong bg-pen-wash font-display text-base font-extrabold tabular text-ink">
+                                                            {i + 1}
+                                                        </span>
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="font-medium leading-relaxed">{q.text}</p>
-                                                            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+                                                            <p className="text-base font-extrabold leading-relaxed text-ink sm:text-lg">{q.text}</p>
+                                                            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold text-ink-2">
                                                                 <Badge tone={diff.tone}>{diff.label}</Badge>
-                                                                <span>{countOf(lang, q.duration_minutes, NOUNS.minute)}</span>
+                                                                <span className="inline-flex items-center gap-1 rounded-full border border-rule-strong bg-sheet-2 px-3 py-0.5 text-xs font-extrabold text-ink">
+                                                                    <Clock className="size-3.5" aria-hidden />
+                                                                    {countOf(lang, q.duration_minutes, NOUNS.minute)}
+                                                                </span>
                                                             </p>
                                                         </div>
-                                                        <ChevronDown className="chev mt-1 size-5 shrink-0 text-ink-3 transition-transform" aria-hidden />
+                                                        <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-rule-strong bg-sheet-2 px-3 py-1.5 text-xs font-extrabold text-ink transition-colors group-hover/q:border-ink">
+                                                            <span className="hidden sm:inline">{l("الإجابة النموذجية", "Model answer")}</span>
+                                                            <ChevronDown className="chev size-4 shrink-0 text-ink transition-transform" aria-hidden />
+                                                        </span>
                                                     </summary>
-                                                    <div className="space-y-4 bg-sheet-2 px-5 pb-5 ps-16 pt-1">
+                                                    <div className="space-y-4 border-t border-rule bg-sheet-2 px-6 py-5 ps-18">
                                                         <div>
-                                                            <p className="text-sm font-semibold text-ink-2">{l("الإجابة النموذجية", "Model answer")}</p>
-                                                            <p className="mt-1 leading-relaxed">{q.model_answer}</p>
+                                                            <p className="text-sm font-extrabold text-ink-2">{l("الإجابة النموذجية", "Model answer")}</p>
+                                                            <p className="mt-1.5 rounded-xl border border-rule-strong bg-sheet p-4 text-base font-semibold leading-relaxed text-ink">
+                                                                {q.model_answer}
+                                                            </p>
                                                         </div>
                                                         {q.keywords && (
                                                             <div>
-                                                                <p className="text-sm font-semibold text-ink-2">{l("كلمات مفتاحية", "Keywords")}</p>
+                                                                <p className="text-sm font-extrabold text-ink-2">{l("كلمات مفتاحية", "Keywords")}</p>
                                                                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                                                                     {q.keywords.split(/[,،]/).map((k) => k.trim()).filter(Boolean).map((k) => <Badge key={k}>{k}</Badge>)}
                                                                 </div>
                                                             </div>
                                                         )}
-                                                        <Button variant="danger-ghost" size="sm" className="-ms-3" onClick={() => setToDelete(q)}>
-                                                            <Trash2 className="size-4" aria-hidden />{l("حذف السؤال", "Delete question")}
-                                                        </Button>
+                                                        <div>
+                                                            <Button variant="danger-ghost" size="sm" onClick={() => setToDelete(q)}>
+                                                                <Trash2 className="size-4" aria-hidden />
+                                                                {l("حذف السؤال", "Delete question")}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </details>
                                             </li>
@@ -350,8 +382,8 @@ export default function Dashboard() {
                             <Input id="q-category" list="q-categories" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} placeholder={l("مثال: تعلم الآلة", "e.g. Machine learning")} />
                             <datalist id="q-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
                         </Field>
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-sm font-semibold" id="q-diff-label">{l("الصعوبة", "Difficulty")}</span>
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[0.95rem] font-extrabold text-ink" id="q-diff-label">{l("الصعوبة", "Difficulty")}</span>
                             <Segmented label={l("الصعوبة", "Difficulty")} value={draft.difficulty} onChange={(v) => setDraft({ ...draft, difficulty: v })} options={difficulties} />
                         </div>
                         <Field label={l("الوقت (دقائق)", "Time (min)")} htmlFor="q-duration">
@@ -387,26 +419,25 @@ export default function Dashboard() {
             >
                 {assignError && <Alert tone="error" className="mb-4">{assignError}</Alert>}
                 <Input data-autofocus icon={<Search />} value={studentQuery} onChange={(e) => setStudentQuery(e.target.value)} placeholder={l("ابحث بالاسم أو البريد", "Search by name or email")} aria-label={l("بحث عن طالب", "Search students")} />
-                <div className="mt-4 max-h-[50vh] overflow-y-auto rounded-[var(--radius-control)] border border-rule">
+                <div className="mt-4 max-h-[50vh] overflow-y-auto rounded-[var(--radius-control)] border-2 border-rule-strong">
                     {students === null ? (
                         <ListSkeleton rows={3} />
                     ) : filteredStudents.length === 0 ? (
-                        <p className="px-4 py-10 text-center text-ink-2">{students.length ? l("مفيش طالب بالاسم ده.", "No student matches that search.") : l("لسه مفيش طلاب مسجلين.", "No students have signed up yet.")}</p>
+                        <p className="px-4 py-10 text-center font-bold text-ink-2">{students.length ? l("مفيش طالب بالاسم ده.", "No student matches that search.") : l("لسه مفيش طلاب مسجلين.", "No students have signed up yet.")}</p>
                     ) : (
                         <ul className="divide-y divide-rule">
                             {filteredStudents.map((s) => {
                                 const done = assigned.has(s.id);
                                 const bioReady = s.has_voiceprint && s.has_faceprint;
                                 return (
-                                    <li key={s.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                                    <li key={s.id} className="flex flex-wrap items-center gap-3 px-4 py-3.5">
                                         <Avatar name={s.full_name} size="sm" />
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate font-semibold">{s.full_name}</p>
-                                            <p className="truncate text-xs text-ink-3 ltr">{s.email}</p>
+                                            <p className="truncate font-extrabold text-ink">{s.full_name}</p>
+                                            <p className="truncate text-xs font-bold text-ink-2 ltr">{s.email}</p>
                                         </div>
-                                        {/* Identity permissions live on the Students page; this dialog is only about sending */}
                                         {!bioReady && <Badge tone="warn">{l("لم يسجل هويته", "No ID setup")}</Badge>}
-                                        <Button size="sm" variant="secondary" disabled={done} loading={busyStudent === s.id} onClick={() => assign(s.id)} className={cn(done && "text-pass")}>
+                                        <Button size="sm" variant="secondary" disabled={done} loading={busyStudent === s.id} onClick={() => assign(s.id)} className={cn(done && "border-pass text-pass")}>
                                             {done ? <><Check className="size-4" aria-hidden />{l("اتبعت", "Sent")}</> : l("إرسال", "Send")}
                                         </Button>
                                     </li>

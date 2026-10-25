@@ -7,25 +7,30 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "dang
 export type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 const variants: Record<ButtonVariant, string> = {
-    primary: "bg-pen text-pen-ink shadow-[0_8px_20px_-8px_color-mix(in_oklab,var(--pen)_70%,transparent)] hover:bg-pen-hover hover:shadow-[0_10px_24px_-8px_color-mix(in_oklab,var(--pen)_80%,transparent)]",
-    secondary: "bg-sheet text-ink border border-field/80 hover:border-ink-2 hover:bg-sheet-2",
-    ghost: "text-ink-2 hover:text-ink hover:bg-pen-wash",
-    danger: "bg-mark text-pen-ink hover:opacity-90",
-    "danger-ghost": "text-mark hover:bg-mark-wash",
+    primary:
+        "border border-pen bg-pen text-pen-ink shadow-[0_10px_24px_-8px_rgba(111,78,55,0.42)] hover:bg-pen-hover hover:border-pen-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
+    secondary:
+        "border border-rule-strong bg-sheet text-ink shadow-card hover:border-ink-3 hover:bg-sheet-2 active:scale-[0.98]",
+    ghost:
+        "border border-transparent text-ink hover:border-rule hover:bg-sheet-2",
+    danger:
+        "border border-mark bg-mark text-white shadow-sm hover:opacity-92",
+    "danger-ghost":
+        "border border-mark/30 bg-mark-wash text-mark hover:border-mark",
 };
 
 const sizes: Record<ButtonSize, string> = {
-    sm: "h-9 px-3 text-sm gap-1.5",
-    md: "h-11 px-4 text-[0.9375rem] gap-2",
-    lg: "h-12 px-6 text-base gap-2",
+    sm: "h-10 px-4 text-sm gap-2",
+    md: "h-11 px-5 text-base gap-2",
+    lg: "h-12 px-7 text-base gap-2.5",
     icon: "h-11 w-11",
-    "icon-sm": "h-9 w-9",
+    "icon-sm": "h-10 w-10",
 };
 
 export function buttonClasses(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
     return cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-[var(--radius-control)] font-semibold",
-        "transition-[background-color,border-color,color,opacity,box-shadow,transform] duration-150 active:translate-y-px",
+        "inline-flex items-center justify-center whitespace-nowrap rounded-[var(--radius-control)] font-bold",
+        "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
         "disabled:opacity-50 disabled:pointer-events-none",
         variants[variant],
         sizes[size],

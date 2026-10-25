@@ -9,21 +9,19 @@ from sqlalchemy.pool import QueuePool
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
-    # ── Production: PostgreSQL with connection pooling ──
+    # ── Production: PostgreSQL with high-concurrency connection pooling ──
     engine = create_engine(
         DATABASE_URL,
-        pool_size=20,            # 20 persistent connections
-        max_overflow=30,         # 30 extra connections under load (total: 50)
-        pool_timeout=30,         # wait 30s for a connection before error
-        pool_recycle=1800,       # recycle connections every 30min (avoids stale)
-        pool_pre_ping=True,      # test connection before using (auto-reconnect)
+        pool_size=int(os.environ.get("DB_POOL_SIZE", "30")),
+        max_overflow=int(os.environ.get("DB_MAX_OVERFLOW", "50")),
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
         poolclass=QueuePool,
         echo=False,
     )
 else:
-    # ── SQLite fallback ──
-    # HF Spaces: /tmp يتنظف مع كل Restart → الحسابات والأسئلة بتضيع.
-    # لو فعّلت Persistent Storage على الـ Space، المسار /data بيفضل.
+    # ── SQLite fallback with high-concurrency WAL + memory-mapped I/O ──
     if os.name == "nt":
         data_dir = Path(__file__).resolve().parents[2] / "data"
     else:
@@ -34,17 +32,21 @@ else:
     DATABASE_URL = f"sqlite:///{sqlite_file.as_posix()}"
     engine = create_engine(
         DATABASE_URL,
-        connect_args={"check_same_thread": False},
+        connect_args={"check_same_thread": False, "timeout": 15},
+        pool_size=20,
+        max_overflow=40,
         pool_pre_ping=True,
     )
 
-    # Enable WAL mode for SQLite (much better concurrent reads)
     @event.listens_for(engine, "connect")
     def _set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA busy_timeout=15000")
+        cursor.execute("PRAGMA cache_size=-64000")       # 64MB page cache in RAM
+        cursor.execute("PRAGMA temp_store=MEMORY")
+        cursor.execute("PRAGMA mmap_size=268435456")     # 256MB memory-mapped I/O
         cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -73,7 +75,6 @@ def _exec_ddl(ddl: str) -> None:
     from sqlalchemy import text
     mig_eng = _migration_engine()
     if mig_eng.dialect.name == "postgresql":
-        # Supabase pooler rejects DDL inside transactions — use autocommit
         with mig_eng.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
             conn.execute(text(ddl))
     else:
@@ -89,12 +90,13 @@ def _add_column(table: str, column: str, ddl: str) -> None:
 
 
 def run_migrations():
-    """Lightweight schema patches for SQLite / existing PostgreSQL databases."""
+    """Lightweight schema patches + high-scale index creation for SQLite / PostgreSQL."""
     from sqlalchemy import inspect, text
 
     try:
         insp = inspect(engine)
-        if "users" not in insp.get_table_names():
+        table_names = set(insp.get_table_names())
+        if "users" not in table_names:
             print("[DB Migration] users table not found — skipping patches")
             return
 
@@ -103,7 +105,6 @@ def run_migrations():
         bool_true = "TRUE" if is_pg else "1"
         len_fn = "char_length" if is_pg else "length"
 
-        # Each ALTER in its own transaction — one failure must not block the rest
         if is_pg:
             _add_column("users", "voice_locked", "ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_locked BOOLEAN DEFAULT FALSE")
             _add_column("users", "voice_reenroll_allowed", "ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_reenroll_allowed BOOLEAN DEFAULT FALSE")
@@ -127,7 +128,14 @@ def run_migrations():
                 f"AND (face_locked IS NULL OR face_locked = {bool_false})"
             ))
 
-        if "exam_submissions" in insp.get_table_names():
+        _exec_ddl("CREATE INDEX IF NOT EXISTS ix_users_role ON users (role)")
+
+        if "questions" in table_names:
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_questions_creator_id ON questions (creator_id)")
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_questions_exam_token ON questions (exam_token)")
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_questions_group_token ON questions (group_token, order_index)")
+
+        if "exam_submissions" in table_names:
             if is_pg:
                 _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN IF NOT EXISTS face_score DOUBLE PRECISION")
                 _add_column("exam_submissions", "submission_key", "ALTER TABLE exam_submissions ADD COLUMN IF NOT EXISTS submission_key VARCHAR")
@@ -135,15 +143,18 @@ def run_migrations():
                 _add_column("exam_submissions", "face_score", "ALTER TABLE exam_submissions ADD COLUMN face_score FLOAT")
                 _add_column("exam_submissions", "submission_key", "ALTER TABLE exam_submissions ADD COLUMN submission_key VARCHAR")
 
-            # The index is what actually stops a duplicate grade: two retries racing each other
-            # both finish grading, and the database refuses the second row. NULLs stay allowed,
-            # so rows written before this release are untouched.
             _exec_ddl(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_exam_submissions_submission_key "
                 "ON exam_submissions (submission_key)"
             )
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_submissions_question_id ON exam_submissions (question_id)")
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_submissions_student_id ON exam_submissions (student_id, grade_visible)")
 
-        print("[DB Migration] All patches applied successfully")
+        if "exam_assignments" in table_names:
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_assignments_student_status ON exam_assignments (student_id, status)")
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_assignments_question_id ON exam_assignments (question_id)")
+
+        print("[DB Migration] All patches and scalability indexes applied successfully")
         return {"ok": True, "face_embedding": _column_exists("users", "face_embedding")}
     except Exception as e:
         print(f"[DB Migration] ERROR: {e}")
@@ -156,14 +167,14 @@ _migrations_applied = False
 
 
 def ensure_migrations() -> dict:
-    """Run migrations once per process (startup + health + manual trigger)."""
+    """Run migrations once per process."""
     global _migrations_applied
-    if _migrations_applied and _column_exists("users", "face_embedding"):
+    if _migrations_applied:
         return {"ok": True, "cached": True}
     result = run_migrations()
     if result and result.get("ok"):
         _migrations_applied = True
-    return result or {"ok": _column_exists("users", "face_embedding")}
+    return result or {"ok": False}
 
 
 def get_db():

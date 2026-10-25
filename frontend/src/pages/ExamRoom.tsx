@@ -879,17 +879,7 @@ export default function ExamRoom() {
     );
 
     if (phase === "info") return (
-        <Sheet size="xl">
-            <div className="grid overflow-hidden rounded-[24px] border border-rule bg-sheet shadow-float md:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
-            <figure className="relative hidden md:block">
-                <img src="/photos/exam-student-960.webp" srcSet="/photos/exam-student-480.webp 480w, /photos/exam-student-960.webp 960w" sizes="420px" alt="" className="absolute inset-0 size-full object-cover object-[30%_center]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy/85 via-navy/10 to-transparent" aria-hidden />
-                <figcaption className="absolute inset-x-0 bottom-0 p-7 text-white">
-                    <p className="font-display text-xl font-semibold leading-snug">{l("اتكلم براحتك.", "Speak at your own pace.")}</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-white/80">{l("إحنا بنقيّم فهمك للموضوع، مش حفظك لكلام الكتاب.", "We assess your understanding, not whether you memorised the book.")}</p>
-                </figcaption>
-            </figure>
-            <div className="p-6 sm:p-8">
+        <Sheet wide><div className="overflow-hidden rounded-[24px] border border-rule bg-sheet shadow-float"><div className="p-6 sm:p-8">
                 <ol className="mb-6 flex items-center gap-2 text-xs font-medium text-ink-3" aria-label={l("خطوات الامتحان", "Exam steps")}>
                     {[l("بياناتك", "Your details"), l("الكاميرا", "Camera"), l("الإجابة", "Answer")].map((label, i) => (
                         <li key={label} aria-current={i === 0 ? "step" : undefined} className="flex items-center gap-2">

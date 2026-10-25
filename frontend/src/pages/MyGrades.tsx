@@ -60,7 +60,6 @@ export default function MyGrades() {
                 />
             )}
 
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
             <Panel className="overflow-hidden">
                 {loading ? (
                     <ListSkeleton rows={3} />
@@ -97,25 +96,6 @@ export default function MyGrades() {
                     </RuledList>
                 )}
             </Panel>
-
-            {/* A reminder of where all this is heading */}
-            <figure className="relative hidden overflow-hidden rounded-[var(--radius-panel)] shadow-card lg:block">
-                <img src="/photos/grades-student-800.webp" srcSet="/photos/grades-student-480.webp 480w, /photos/grades-student-800.webp 800w" sizes="(min-width: 1024px) 20rem, 90vw" alt="" className="aspect-[4/5] w-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/25 to-transparent" aria-hidden />
-                <figcaption className="absolute inset-x-0 bottom-0 p-5 text-white">
-                    <p className="font-display text-lg font-semibold leading-snug">
-                        {avg == null
-                            ? l("كل امتحان خطوة ناحية التخرج.", "Every exam is a step towards graduation.")
-                            : avg >= 85
-                                ? l("مستواك عالي. كمّل كده!", "You're doing brilliantly. Keep going!")
-                                : avg >= 65
-                                    ? l("ماشي كويس، وكل امتحان بيقرّبك أكتر.", "You're on track — each exam gets you closer.")
-                                    : l("كل امتحان بيعلّمك حاجة. خطوة خطوة.", "Every exam teaches you something. Step by step.")}
-                    </p>
-                    {avg != null && <p className="mt-1 text-sm text-white/75">{l("متوسطك", "Your average")}: <span className="font-semibold tabular" dir="ltr">{formatScore(avg)}%</span></p>}
-                </figcaption>
-            </figure>
-            </div>
 
             <Drawer
                 open={!!current}

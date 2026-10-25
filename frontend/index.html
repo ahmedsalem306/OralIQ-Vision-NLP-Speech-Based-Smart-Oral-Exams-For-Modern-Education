@@ -6,34 +6,29 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="OralIQ — أول منصة عربية للامتحانات الشفوية أونلاين: الطالب يجاوب بصوته، والإجابة بتتصحح تلقائياً مع التحقق من الهوية ومراقبة النزاهة." />
-  <meta name="theme-color" content="#F5F7FA" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0E1422" media="(prefers-color-scheme: dark)" />
-  <title>OralIQ — أول منصة عربية للامتحانات الشفوية أونلاين</title>
+  <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#09090B" media="(prefers-color-scheme: dark)" />
+  <title>OralIQ — أول منصة عربية للامتحانات الشفوية بالذكاء الاصطناعي</title>
   <!-- Link previews (WhatsApp, Facebook, Telegram, X) — exam links are mostly shared in class groups -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="OralIQ" />
   <meta property="og:locale" content="ar_EG" />
-  <meta property="og:title" content="OralIQ — أول منصة عربية للامتحانات الشفوية أونلاين" />
-  <meta property="og:description" content="الطالب يجاوب بصوته، والإجابة بتتصحح لوحدها مع التحقق من الهوية." />
+  <meta property="og:title" content="OralIQ — أول منصة عربية للامتحانات الشفوية بالذكاء الاصطناعي" />
+  <meta property="og:description" content="امتحانات شفوية أونلاين بدون تدخل الدكتور عبر 3 موديلات ذكاء اصطناعي، مع منع الغش تماماً ببصمة الوجه والصوت." />
   <meta property="og:image" content="https://oral-iq-vision-nlp-speech-based-sma.vercel.app/og.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="OralIQ — أول منصة عربية للامتحانات الشفوية أونلاين" />
+  <meta property="og:image:alt" content="OralIQ — أول منصة عربية للامتحانات الشفوية بالذكاء الاصطناعي" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://oral-iq-vision-nlp-speech-based-sma.vercel.app/og.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Google Fonts without blocking the first paint: fetched early, applied when it arrives -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" /></noscript>
+  <!-- Preload Arabic & Display fonts (Ahmed Sans + Ahmed Serif Display) -->
+  <link rel="preload" href="/fonts/ThmanyahSans-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/ThmanyahSans-Medium.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/ThmanyahSerifDisplay-Bold.woff2" as="font" type="font/woff2" crossorigin />
   <script>
     // Apply saved language + theme before first paint to avoid a flash.
     (function () {
       var de = document.documentElement;
-      // The built home page carries ready HTML (rendered Arabic, light, signed out). Adopt it only
-      // when this visit would render exactly the same; otherwise it is hidden before the first
-      // paint and the app draws the page from scratch (see src/main.tsx).
       de.dataset.prerender = "skip";
       try {
         var lang = localStorage.getItem("oraliq_lang") === "en" ? "en" : "ar";
@@ -45,12 +40,9 @@
         var still = matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (location.pathname === "/" && lang === "ar" && !dark && !still && !localStorage.getItem("token")) de.dataset.prerender = "hydrate";
       } catch (e) { }
-      // Home page: start the hero photo (the largest paint) with the HTML, not after the JS
       if (location.pathname === "/") {
         var link = document.createElement("link");
-        link.rel = "preload"; link.as = "image"; link.href = "/photos/face-light-960.webp";
-        link.setAttribute("imagesrcset", "/photos/face-light-480.webp 480w, /photos/face-light-720.webp 720w, /photos/face-light-960.webp 960w, /photos/face-light-1280.webp 1280w");
-        link.setAttribute("imagesizes", "(min-width: 1024px) 40vw, 90vw");
+        link.rel = "preload"; link.as = "image"; link.href = "/media/hero-face-dark-poster.webp";
         link.setAttribute("fetchpriority", "high");
         document.head.appendChild(link);
       }

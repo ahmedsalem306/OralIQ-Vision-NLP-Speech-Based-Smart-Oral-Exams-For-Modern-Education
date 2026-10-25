@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -8,19 +8,30 @@ from app.api import deps
 from app.core import security
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.user import UserCreate, UserOut, UserLogin
+from app.schemas.user import UserCreate, UserOut
 
 router = APIRouter()
 
+
 @router.post("/login/access-token")
 def login_access_token(
-    db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
+    db: Session = Depends(deps.get_db),
+    form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
-    user = db.query(User).filter(User.email == form_data.username).first()
+    email_norm = (form_data.username or "").strip().lower()
+    if len(email_norm) > 254 or len(form_data.password or "") > 128:
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+
+    user = db.query(User).filter(User.email == email_norm).first()
+    if not user:
+        # Fallback case-insensitive match for legacy records
+        user = db.query(User).filter(User.email == form_data.username).first()
+
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(
@@ -29,9 +40,11 @@ def login_access_token(
         "token_type": "bearer",
     }
 
+
 @router.get("/test-auth")
 def test_auth():
     return {"status": "auth module loaded"}
+
 
 @router.post("/register", response_model=UserOut)
 def register_user(
@@ -40,16 +53,17 @@ def register_user(
     user_in: UserCreate,
 ) -> Any:
     try:
-        user = db.query(User).filter(User.email == user_in.email).first()
+        email_norm = user_in.email.strip().lower()
+        user = db.query(User).filter(User.email == email_norm).first()
         if user:
             raise HTTPException(
                 status_code=400,
                 detail="The user with this email already exists in the system",
             )
         user = User(
-            email=user_in.email,
+            email=email_norm,
             hashed_password=security.get_password_hash(user_in.password),
-            full_name=user_in.full_name,
+            full_name=(user_in.full_name or "").strip()[:120] or None,
             role=user_in.role,
         )
         db.add(user)
@@ -58,10 +72,9 @@ def register_user(
         return user
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Registration failed: {str(e)}"
+            detail="Registration failed due to an internal error",
         )
-

@@ -1,90 +1,105 @@
-import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MotionConfig, useMotionValueEvent, useScroll } from "motion/react";
+import { ArrowUpLeft } from "lucide-react";
+import { MotionConfig } from "motion/react";
 import { useI18n } from "../i18n";
-import { cn } from "../lib/utils";
 import Logo from "../components/Logo";
 import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 import { usePageTitle } from "../lib/usePageTitle";
-import { CLIENTS } from "../content/clients";
 import { LandingMenu } from "../components/landing/LandingMenu";
 import { HomeHero } from "../components/home/HomeHero";
 import { HomeAbout } from "../components/home/HomeAbout";
-import { HomeMarking } from "../components/home/HomeMarking";
 import { HomeSteps } from "../components/home/HomeSteps";
 import { HomeVideo } from "../components/home/HomeVideo";
 import { HomeClients } from "../components/home/HomeClients";
 import { HomePlatform } from "../components/home/HomePlatform";
+import { HomeTestimonials } from "../components/home/HomeTestimonials";
 import { HomeContact } from "../components/home/HomeContact";
 import { HomeFooter } from "../components/home/HomeFooter";
 
-/**
- * Home page, black and white after the owner's reference, in the owner's order: 1 hero,
- * 2 who we are + what we offer (with how a grade is made and the four steps), 3 explainer video,
- * 4 our clients, 5 we join your platform, 6 contact.
- *
- * The bands alternate between the two surfaces — A (off-white), B (black), A, B … — so the page
- * has a rhythm rather than one long dark scroll, and the black footer closes it.
- */
 export default function LandingPage() {
     const { l } = useI18n();
-    usePageTitle(l("أول منصة عربية للامتحانات الشفوية أونلاين", "The first Arabic platform for online oral exams"));
+    usePageTitle(l("أول منصة عربية تقدم الامتحانات الشفوي أونلاين", "The first Arabic platform for online oral exams"));
     let loggedIn = false;
     try { loggedIn = !!localStorage.getItem("token"); } catch { /* ignore */ }
     const startHref = loggedIn ? "/dashboard" : "/register";
 
-    // The header takes the colours of what is under it: the light first screen, then the black page
-    const hero = useRef<HTMLDivElement>(null);
-    const { scrollY } = useScroll();
-    const [scrolled, setScrolled] = useState(false);
-    const [overDark, setOverDark] = useState(false);
-    useMotionValueEvent(scrollY, "change", (y) => {
-        setScrolled(y > 12);
-        setOverDark(y > (hero.current?.offsetHeight ?? Infinity) - 68);
-    });
-
     const sections = [
-        { href: "#about", label: l("من نحن", "About") },
-        { href: "#video", label: l("الفيديو", "Video") },
-        ...(CLIENTS.length ? [{ href: "#clients", label: l("عملاؤنا", "Clients") }] : []),
-        { href: "#integrate", label: l("لمنصتك", "For your platform") },
-        { href: "#contact", label: l("تواصل معنا", "Contact") },
+        { href: "#about", label: l("عن المنصة", "About Platform") },
+        { href: "#how", label: l("الخطوات", "Steps") },
+        { href: "#video", label: l("الفيديو التعريفي", "Intro Video") },
+        { href: "#clients", label: l("عملاؤنا", "Our Clients") },
+        { href: "#integrate", label: l("انضم كـ فيتشر", "Embed Feature") },
+        { href: "#testimonials", label: l("آراء العملاء", "Testimonials") },
+        { href: "#contact", label: l("تواصل معنا", "Contact Us") },
     ];
-    const ghost = "text-current hover:bg-current/10 hover:text-current";
+    const ghost = "text-ink hover:bg-sheet-2 hover:text-ink";
 
     return (
         <MotionConfig reducedMotion="user">
-            <div className="home home-a min-h-dvh overflow-x-clip">
+            <div className="home min-h-dvh overflow-x-clip bg-paper text-ink transition-colors duration-300">
                 <a
                     href="#main"
                     onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}
-                    className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-home-ink focus:px-4 focus:py-2 focus:text-home-bg"
+                    className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-[#6F4E37] focus:px-5 focus:py-2.5 focus:font-bold focus:text-white"
                 >
                     {l("تخطَّ إلى المحتوى", "Skip to content")}
                 </a>
 
-                {/* Sticky bar over scrolling content: the one place glass belongs. avoid-ai-design-ignore: K3 */}
-                <header className={cn(
-                    "sticky top-0 z-40 border-b backdrop-blur-xl transition-[background-color,border-color,color] duration-300",
-                    // Over the hero the bar wears the hero's own surface; past it, the black bar
-                    // reads clearly over every section below, light or dark
-                    overDark ? "home-b border-home-line bg-home-bg/85" : cn("home-a", scrolled ? "border-home-line bg-home-bg/85" : "border-transparent bg-home-bg"),
-                )}>
-                    <nav className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-3 px-4 sm:gap-8 sm:px-6" aria-label={l("الرئيسية", "Main")}>
-                        <Link to="/" aria-label="OralIQ" className="flex h-11 items-center"><Logo height={22} /></Link>
-                        <ul className="hidden items-center gap-7 text-[0.9375rem] lg:flex">
+                {/* Floating Editorial Notch Navbar — Responsive & Theme-Aware (Off-White <-> Espresso Brown) */}
+                <header className="fixed inset-x-0 top-2.5 sm:top-3.5 z-50 px-2.5 sm:px-6 pointer-events-none">
+                    <nav
+                        aria-label={l("الرئيسية", "Main")}
+                        className="pointer-events-auto mx-auto flex h-14 sm:h-16 max-w-[82rem] items-center gap-2 rounded-full border border-rule bg-sheet/92 px-3.5 text-ink shadow-float backdrop-blur-xl sm:gap-5 sm:px-7 transition-colors duration-300"
+                    >
+                        <Link to="/" aria-label="OralIQ" className="flex h-10 shrink-0 items-center text-ink">
+                            <Logo height={21} className="sm:h-[23px] w-auto" />
+                        </Link>
+
+                        <ul className="hidden items-center gap-1 mx-auto lg:flex">
                             {sections.map((s) => (
-                                <li key={s.href}><a href={s.href} className="inline-flex h-10 items-center opacity-75 transition-opacity hover:opacity-100">{s.label}</a></li>
+                                <li key={s.href}>
+                                    <a
+                                        href={s.href}
+                                        className="inline-flex h-10 items-center rounded-full px-3.5 text-[0.95rem] font-bold text-ink-2 transition-colors hover:bg-sheet-2 hover:text-ink"
+                                    >
+                                        {s.label}
+                                    </a>
+                                </li>
                             ))}
                         </ul>
-                        <div className="ms-auto flex items-center gap-1">
-                            <span className="hidden items-center gap-1 lg:flex"><LanguageToggle compact className={ghost} /><ThemeToggle className={ghost} /></span>
+
+                        <div className="ms-auto lg:ms-0 flex items-center gap-1 sm:gap-1.5">
+                            <LanguageToggle compact className={ghost} />
+                            <ThemeToggle className={ghost} />
                             {loggedIn ? (
-                                <Link to="/dashboard" className="ms-2 inline-flex h-10 items-center whitespace-nowrap rounded-lg bg-home-ink px-5 text-sm font-semibold text-home-bg">{l("لوحة التحكم", "Dashboard")}</Link>
+                                <Link
+                                    to="/dashboard"
+                                    className="oiq-btn-mint ms-0.5 inline-flex h-9 sm:h-11 items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-full ps-3.5 pe-1.5 sm:ps-5 sm:pe-2 text-xs sm:text-sm font-bold text-[#FAF6F0]"
+                                >
+                                    <span>{l("لوحة التحكم", "Dashboard")}</span>
+                                    <span className="flex size-6 sm:size-7 items-center justify-center rounded-full bg-white/15 text-white">
+                                        <ArrowUpLeft className="size-3.5 sm:size-4 ltr:rotate-90" aria-hidden />
+                                    </span>
+                                </Link>
                             ) : (
                                 <>
-                                    <Link to="/login" viewTransition className="hidden h-10 items-center rounded-lg px-4 text-sm font-semibold opacity-80 hover:opacity-100 sm:inline-flex">{l("تسجيل الدخول", "Sign in")}</Link>
-                                    <Link to="/register" viewTransition className="ms-1 inline-flex h-10 items-center whitespace-nowrap rounded-lg bg-home-ink px-4 text-sm font-semibold text-home-bg sm:px-5">{l("أنشئ حساب", "Create account")}</Link>
+                                    <Link
+                                        to="/login"
+                                        viewTransition
+                                        className="hidden h-10 items-center rounded-full px-4 text-sm font-bold text-ink hover:bg-sheet-2 md:inline-flex"
+                                    >
+                                        {l("تسجيل الدخول", "Sign in")}
+                                    </Link>
+                                    <Link
+                                        to="/register"
+                                        viewTransition
+                                        className="oiq-btn-mint ms-0.5 inline-flex h-9 sm:h-11 items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-full ps-3.5 pe-1.5 sm:ps-5 sm:pe-2 text-xs sm:text-sm font-bold text-[#FAF6F0]"
+                                    >
+                                        <span>{l("أنشئ حساب", "Create account")}</span>
+                                        <span className="flex size-6 sm:size-7 items-center justify-center rounded-full bg-white/15 text-white">
+                                            <ArrowUpLeft className="size-3.5 sm:size-4 ltr:rotate-90" aria-hidden />
+                                        </span>
+                                    </Link>
                                 </>
                             )}
                             <LandingMenu sections={sections} loggedIn={loggedIn} className={ghost} />
@@ -93,13 +108,13 @@ export default function LandingPage() {
                 </header>
 
                 <main id="main" tabIndex={-1} className="outline-none">
-                    <div ref={hero}><HomeHero startHref={startHref} /></div>
+                    <HomeHero startHref={startHref} />
                     <HomeAbout startHref={startHref} />
-                    <HomeMarking />
                     <HomeSteps />
                     <HomeVideo />
                     <HomeClients />
                     <HomePlatform />
+                    <HomeTestimonials />
                     <HomeContact />
                 </main>
                 <HomeFooter sections={sections} />

@@ -72,17 +72,17 @@ export default function Settings() {
     try { pendingExam = !!localStorage.getItem("pendingExamToken"); } catch { /* ignore */ }
 
     return (
-        <div className="max-w-3xl">
+        <div className="max-w-4xl">
             <PageHeader title={l("الإعدادات", "Settings")} description={l("حسابك، وهويتك في الامتحانات، وشكل المنصة.", "Your account, exam identity and how OralIQ looks.")} />
 
             <div className="space-y-6">
                 {/* ── Account ── */}
                 <Panel>
                     <PanelHeader title={l("الحساب", "Account")} />
-                    <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-start">
+                    <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-start">
                         <div className="flex items-center gap-4 sm:flex-col sm:items-center">
                             <Avatar name={user?.full_name} src={profilePic} size="lg" className="size-20 text-2xl" />
-                            <div className="flex flex-col gap-1 sm:items-center">
+                            <div className="flex flex-col gap-2 sm:items-center">
                                 <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     {profilePic ? l("تغيير الصورة", "Change photo") : l("إضافة صورة", "Add photo")}
                                 </Button>
@@ -90,20 +90,29 @@ export default function Settings() {
                                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
                             </div>
                         </div>
-                        <dl className="grid flex-1 gap-4">
+                        <dl className="grid flex-1 gap-4 sm:grid-cols-2">
                             {user ? (
                                 <>
-                                    <div><dt className="text-sm text-ink-3">{l("الاسم", "Name")}</dt><dd className="font-semibold">{user.full_name}</dd></div>
-                                    <div><dt className="text-sm text-ink-3">{l("البريد الإلكتروني", "Email")}</dt><dd className="ltr">{user.email}</dd></div>
-                                    <div><dt className="text-sm text-ink-3">{l("نوع الحساب", "Account type")}</dt><dd>{lecturer ? l("محاضر", "Lecturer") : l("طالب", "Student")}</dd></div>
+                                    <div className="rounded-xl border border-rule bg-sheet-2/60 p-3.5">
+                                        <dt className="text-xs font-extrabold uppercase tracking-wider text-ink-2">{l("الاسم", "Name")}</dt>
+                                        <dd className="mt-1 text-base font-extrabold text-ink">{user.full_name}</dd>
+                                    </div>
+                                    <div className="rounded-xl border border-rule bg-sheet-2/60 p-3.5">
+                                        <dt className="text-xs font-extrabold uppercase tracking-wider text-ink-2">{l("البريد الإلكتروني", "Email")}</dt>
+                                        <dd className="mt-1 text-base font-extrabold text-ink ltr">{user.email}</dd>
+                                    </div>
+                                    <div className="rounded-xl border border-rule bg-sheet-2/60 p-3.5 sm:col-span-2">
+                                        <dt className="text-xs font-extrabold uppercase tracking-wider text-ink-2">{l("نوع الحساب", "Account type")}</dt>
+                                        <dd className="mt-1 text-base font-extrabold text-ink">{lecturer ? l("محاضر", "Lecturer") : l("طالب", "Student")}</dd>
+                                    </div>
                                 </>
                             ) : (
-                                <><Skeleton className="h-10 w-48" /><Skeleton className="h-10 w-64" /></>
+                                <><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></>
                             )}
                         </dl>
                     </div>
-                    {photoError && <Alert tone="error" className="mx-5 mb-5">{photoError}</Alert>}
-                    <p className="border-t border-rule px-5 py-3 text-sm text-ink-3">
+                    {photoError && <Alert tone="error" className="mx-6 mb-5">{photoError}</Alert>}
+                    <p className="border-t border-rule px-6 py-3.5 text-sm font-semibold text-ink-2">
                         {l("الصورة بتتحفظ على الجهاز ده بس. لتعديل الاسم أو البريد أو كلمة المرور، كلّم مسؤول المنصة.",
                             "Your photo is saved on this device only. To change your name, email or password, contact your platform admin.")}
                     </p>
@@ -121,33 +130,33 @@ export default function Settings() {
                                 { icon: ScanFace, label: l("الوجه", "Face"), ok: bio?.has_faceprint },
                                 { icon: Mic, label: l("الصوت", "Voice"), ok: bio?.has_voiceprint },
                             ].map(({ icon: Icon, label, ok }) => (
-                                <li key={label} className="flex items-center gap-3 px-5 py-3.5">
-                                    <Icon className="size-5 text-ink-3" aria-hidden />
-                                    <span className="flex-1 font-medium">{label}</span>
+                                <li key={label} className="flex items-center gap-3.5 px-6 py-4">
+                                    <Icon className="size-5 text-ink" aria-hidden />
+                                    <span className="flex-1 text-base font-extrabold text-ink">{label}</span>
                                     {bio == null ? <Skeleton className="h-6 w-20" /> : ok ? <Badge tone="pass">{l("مسجّل", "Registered")}</Badge> : <Badge tone="warn">{l("غير مسجّل", "Not registered")}</Badge>}
                                 </li>
                             ))}
                         </ul>
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule px-5 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule px-6 py-4">
                             {bio && !bio.biometrics_complete ? (
                                 <>
-                                    <p className="text-sm text-ink-2">{l("لازم تسجّلهم قبل أول امتحان. بياخد حوالي دقيقتين.", "Required before your first exam. Takes about two minutes.")}</p>
-                                    <Button onClick={() => setShowEnroll(true)}>{l("سجّل الآن", "Register now")}</Button>
+                                    <p className="text-sm font-bold text-ink-2">{l("لازم تسجّلهم قبل أول امتحان. بياخد حوالي دقيقتين.", "Required before your first exam. Takes about two minutes.")}</p>
+                                    <Button size="lg" onClick={() => setShowEnroll(true)}>{l("سجّل الآن", "Register now")}</Button>
                                 </>
                             ) : bio?.can_reenroll ? (
                                 <>
-                                    <p className="text-sm text-ink-2">{l("المحاضر سمحلك تعيد التسجيل.", "Your lecturer allowed you to register again.")}</p>
-                                    <Button variant="secondary" onClick={() => setShowEnroll(true)}>{l("إعادة التسجيل", "Register again")}</Button>
+                                    <p className="text-sm font-bold text-ink-2">{l("المحاضر سمحلك تعيد التسجيل.", "Your lecturer allowed you to register again.")}</p>
+                                    <Button variant="secondary" size="lg" onClick={() => setShowEnroll(true)}>{l("إعادة التسجيل", "Register again")}</Button>
                                 </>
                             ) : bio ? (
-                                <p className="flex items-center gap-2 text-sm text-ink-2">
-                                    <Lock className="size-4 text-ink-3" aria-hidden />
+                                <p className="flex items-center gap-2 text-sm font-bold text-ink-2">
+                                    <Lock className="size-4 text-ink" aria-hidden />
                                     {l("مقفول لحماية الامتحانات. لو محتاج تغيّره، اطلب من المحاضر يسمحلك.", "Locked to protect exams. Ask your lecturer if you need to change it.")}
                                 </p>
                             ) : null}
                         </div>
                         {justEnrolled && pendingExam && (
-                            <Alert tone="success" className="mx-5 mb-5" title={l("تمام، هويتك اتسجلت", "Done — your identity is registered")}
+                            <Alert tone="success" className="mx-6 mb-5" title={l("تمام، هويتك اتسجلت", "Done — your identity is registered")}
                                 action={<Button size="sm" onClick={() => navigate("/exam/start")}>{l("كمّل الامتحان", "Continue to exam")}</Button>}>
                                 {l("عندك امتحان مستنيك.", "You have an exam waiting.")}
                             </Alert>
@@ -158,9 +167,9 @@ export default function Settings() {
                 {/* ── Appearance ── */}
                 <Panel>
                     <PanelHeader title={l("المظهر واللغة", "Appearance and language")} />
-                    <div className="grid gap-5 p-5 sm:grid-cols-2">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-sm font-semibold">{l("الوضع", "Theme")}</span>
+                    <div className="grid gap-6 p-6 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2.5">
+                            <span className="text-base font-extrabold text-ink">{l("الوضع", "Theme")}</span>
                             <Segmented<ThemePref>
                                 label={l("الوضع", "Theme")}
                                 className="self-start"
@@ -173,8 +182,8 @@ export default function Settings() {
                                 ]}
                             />
                         </div>
-                        <div className="flex flex-col gap-2">
-                            <span className="text-sm font-semibold">{l("اللغة", "Language")}</span>
+                        <div className="flex flex-col gap-2.5">
+                            <span className="text-base font-extrabold text-ink">{l("اللغة", "Language")}</span>
                             <Segmented
                                 label={l("اللغة", "Language")}
                                 className="self-start"

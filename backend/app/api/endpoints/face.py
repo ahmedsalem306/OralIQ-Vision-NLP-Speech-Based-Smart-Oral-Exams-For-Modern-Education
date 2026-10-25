@@ -1,4 +1,5 @@
 from typing import Any, List, Optional
+import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 import json
@@ -29,7 +30,7 @@ def get_face_status(
     has_face = _has_faceprint(current_user)
     stale = False
     if current_user.face_embedding and len(current_user.face_embedding) > 10 and not has_face:
-        stale = True  # old face-api.js 128-d — must re-enroll
+        stale = True
     return {
         "has_faceprint": has_face,
         "face_locked": bool(current_user.face_locked) if has_face else False,
@@ -49,10 +50,6 @@ async def enroll_face_print(
     current_user: User = Depends(deps.get_current_user),
     images: List[UploadFile] = File(...),
 ) -> Any:
-    """
-    Enroll Face ID from 3–8 JPEG snapshots.
-    InsightFace ArcFace embeddings averaged on the server (no browser model).
-    """
     stale = bool(current_user.face_embedding) and not _has_faceprint(current_user)
     if not _can_enroll(current_user) and not stale:
         raise HTTPException(
@@ -73,7 +70,7 @@ async def enroll_face_print(
             if len(raw) < 500:
                 errors.append(f"image[{i}]: too small")
                 continue
-            extracted = face_biometrics_service.extract_embedding(raw)
+            extracted = await anyio.to_thread.run_sync(face_biometrics_service.extract_embedding, raw)
             embeddings.append(extracted["embedding"])
         except Exception as e:
             errors.append(f"image[{i}]: {e}")
@@ -118,7 +115,9 @@ async def verify_face_print(
     raw = await image.read()
     stored = json.loads(current_user.face_embedding)
     try:
-        result = face_biometrics_service.verify_image(stored, raw, threshold=0.55)
+        result = await anyio.to_thread.run_sync(
+            lambda: face_biometrics_service.verify_image(stored, raw, threshold=0.55)
+        )
     except ValueError as e:
         return {
             "ok": True,
@@ -154,7 +153,7 @@ async def analyze_gaze(
     image: UploadFile = File(...),
     bbox: Optional[str] = Form(None),
 ) -> Any:
-    """MobileGaze ONNX — pitch/yaw + direction for proctoring."""
+    """MobileGaze ONNX — pitch/yaw + direction for proctoring (offloaded to worker thread)."""
     raw = await image.read()
     try:
         normalized_box = None
@@ -162,12 +161,14 @@ async def analyze_gaze(
             parsed = json.loads(bbox)
             if isinstance(parsed, list) and len(parsed) == 4:
                 normalized_box = [float(v) for v in parsed]
-        result = gaze_ai_service.analyze_image_bytes(
-            raw,
-            normalized_face_bbox=normalized_box,
+        result = await anyio.to_thread.run_sync(
+            lambda: gaze_ai_service.analyze_image_bytes(
+                raw,
+                normalized_face_bbox=normalized_box,
+            )
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gaze failed: {e}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Gaze analysis failed")
     return {"ok": True, **result, "engine": "mobilegaze"}
 
 
@@ -175,7 +176,6 @@ async def analyze_gaze(
 def get_face_descriptor(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """Legacy: client no longer verifies locally — kept for debugging."""
     if not _has_faceprint(current_user):
         raise HTTPException(status_code=404, detail="لا يوجد Face ID مسجّل (InsightFace 512-d)")
     return {
@@ -190,8 +190,6 @@ def delete_face_print(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    from app.api.endpoints.voice import _has_voiceprint
-
     if _has_faceprint(current_user) and current_user.face_locked and not current_user.voice_reenroll_allowed:
         raise HTTPException(
             status_code=403,

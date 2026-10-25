@@ -40,7 +40,6 @@ export default function Overview() {
 
     const [loadError, setLoadError] = useState("");
 
-    // Never turn a failed request into an empty list: "no exams" must mean no exams.
     const load = useCallback(() => {
         setLoading(true);
         setLoadError("");
@@ -100,7 +99,6 @@ export default function Overview() {
         const scored = results.filter((r) => r.overall_score != null);
         const avg = scored.length ? Math.round(scored.reduce((s, r) => s + (r.overall_score ?? 0), 0) / scored.length) : null;
         const flagged = results.filter(needsReview);
-        // Same rule as the Results page, so the two numbers always agree
         const unpublished = results.filter((r) => !r.grade_visible).length;
         const recent = [...results]
             .sort((a, b) => (parseServerDate(b.submitted_at)?.getTime() ?? 0) - (parseServerDate(a.submitted_at)?.getTime() ?? 0))
@@ -118,18 +116,18 @@ export default function Overview() {
                     }
                     actions={
                         <>
-                            <ButtonLink to="/dashboard/questions?new=1" className={onDark.primary}><Plus className="size-4" aria-hidden />{l("سؤال جديد", "New question")}</ButtonLink>
-                            {results.length > 0 && <ButtonLink to="/dashboard/results" variant="secondary" className={onDark.secondary}>{l("كل النتائج", "All results")}</ButtonLink>}
+                            <ButtonLink to="/dashboard/questions?new=1" size="lg" className={onDark.primary}><Plus className="size-5" aria-hidden />{l("سؤال جديد", "New question")}</ButtonLink>
+                            {results.length > 0 && <ButtonLink to="/dashboard/results" variant="secondary" size="lg" className={onDark.secondary}>{l("كل النتائج", "All results")}</ButtonLink>}
                         </>
                     }
                     aside={avg != null && (
-                        <div className="w-64 rounded-2xl border border-white/15 bg-white/[0.08] p-5">
-                            <p className="text-sm text-white/70">{l("متوسط درجات طلابك", "Your students' average")}</p>
+                        <div className="w-64 rounded-2xl border-2 border-white/20 bg-white/[0.10] p-5">
+                            <p className="text-sm font-bold text-white/80">{l("متوسط درجات طلابك", "Your students' average")}</p>
                             <div className="mt-3 flex items-center justify-between">
-                                <span className="font-display text-5xl font-bold tracking-tight" dir="ltr">{avg}<span className="text-2xl text-white/60">%</span></span>
-                                <span className="text-xs text-white/60">{countOf(lang, scored.length, NOUNS.answer)}</span>
+                                <span className="font-display text-5xl font-extrabold tracking-tight" dir="ltr">{avg}<span className="text-2xl text-white/70">%</span></span>
+                                <span className="text-xs font-bold text-white/75">{countOf(lang, scored.length, NOUNS.answer)}</span>
                             </div>
-                            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden>
+                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/20" aria-hidden>
                                 <div className="h-full rounded-full bg-white" style={{ width: `${avg}%` }} />
                             </div>
                         </div>
@@ -148,13 +146,13 @@ export default function Overview() {
                                     done: questions.length > 0,
                                     title: l("اكتب أول سؤال وإجابته النموذجية", "Write your first question and model answer"),
                                     body: l("الذكاء الاصطناعي بيصحح على أساس الإجابة النموذجية، فاكتبها بالمعنى الكامل.", "The AI grades against the model answer, so write out the full meaning."),
-                                    action: <ButtonLink to="/dashboard/questions?new=1" size="sm">{l("اكتب سؤال", "Write a question")}</ButtonLink>,
+                                    action: <ButtonLink to="/dashboard/questions?new=1" size="md">{l("اكتب سؤال", "Write a question")}</ButtonLink>,
                                 },
                                 {
                                     done: false,
                                     title: l("ابعت الامتحان للطلاب", "Send the exam to students"),
                                     body: l("انسخ رابط الامتحان وابعته على جروب المادة، أو ابعته لطالب معيّن من صفحة الأسئلة.", "Copy the exam link into your class group, or send it to specific students from the Questions page."),
-                                    action: questions.length > 0 ? <ButtonLink to="/dashboard/questions" variant="secondary" size="sm">{l("صفحة الأسئلة", "Questions page")}</ButtonLink> : null,
+                                    action: questions.length > 0 ? <ButtonLink to="/dashboard/questions" variant="secondary" size="md">{l("صفحة الأسئلة", "Questions page")}</ButtonLink> : null,
                                 },
                                 {
                                     done: false,
@@ -163,16 +161,16 @@ export default function Overview() {
                                     action: null,
                                 },
                             ].map((s, i) => (
-                                <li key={i} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+                                <li key={i} className="flex flex-col gap-3.5 px-6 py-4.5 sm:flex-row sm:items-center">
                                     <span className={cn(
-                                        "flex size-8 shrink-0 items-center justify-center rounded-full border-2 font-display text-sm font-semibold",
-                                        s.done ? "border-pass bg-pass text-pen-ink" : "border-pen text-pen",
+                                        "flex size-9 shrink-0 items-center justify-center rounded-xl border-2 font-display text-base font-extrabold",
+                                        s.done ? "border-pass bg-pass text-pen-ink" : "border-pen bg-pen-wash text-ink",
                                     )}>
                                         {s.done ? <Check className="size-4" aria-label={l("تم", "Done")} /> : i + 1}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className={cn("font-semibold", s.done && "text-ink-2 line-through decoration-ink-3")}>{s.title}</p>
-                                        <p className="mt-0.5 text-sm text-ink-2">{s.body}</p>
+                                        <p className={cn("text-base font-extrabold text-ink", s.done && "text-ink-2 line-through decoration-ink-3")}>{s.title}</p>
+                                        <p className="mt-0.5 text-sm font-semibold text-ink-2">{s.body}</p>
                                     </div>
                                     {!s.done && s.action}
                                 </li>
@@ -187,7 +185,6 @@ export default function Overview() {
                         { label: l("الامتحانات", "Exams"), value: exams, hint: countOf(lang, questions.length, NOUNS.question), icon: ClipboardList, tone: "pen" },
                         { label: l("الإجابات", "Submissions"), value: results.length, icon: Inbox, tone: "violet" },
                         { label: l("تحتاج مراجعتك", "Need your review"), value: flagged.length, hint: l("النزاهة أو الهوية", "Integrity or identity"), icon: ShieldAlert, tone: "warn" },
-                        // The average already leads the banner above; the last figure is what is left to do
                         { label: l("لم تُنشر بعد", "Not published"), value: unpublished, hint: l("الطالب مش شايف درجتها", "Hidden from the student"), icon: EyeOff, tone: "teal" },
                     ]}
                 />}
@@ -206,7 +203,7 @@ export default function Overview() {
                 {results.length > 0 && <Panel>
                     <PanelHeader
                         title={l("آخر الإجابات", "Latest submissions")}
-                        actions={results.length > 0 && <ButtonLink to="/dashboard/results" variant="ghost" size="sm">{l("عرض الكل", "View all")}</ButtonLink>}
+                        actions={results.length > 0 && <ButtonLink to="/dashboard/results" variant="secondary" size="sm">{l("عرض الكل", "View all")}</ButtonLink>}
                     />
                     {recent.length === 0 ? (
                         <EmptyState
@@ -223,17 +220,17 @@ export default function Overview() {
                                     <li key={s.id}>
                                         <Link
                                             to={`/dashboard/results?open=${s.id}`}
-                                            className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-sheet-2"
+                                            className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-sheet-2"
                                         >
                                             <Avatar name={s.student_name} />
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate font-semibold">{s.student_name}</p>
-                                                <p className="truncate text-sm text-ink-2">
+                                                <p className="truncate text-base font-extrabold text-ink">{s.student_name}</p>
+                                                <p className="truncate text-sm font-semibold text-ink-2">
                                                     {s.question_text || l("سؤال محذوف", "Deleted question")}
                                                 </p>
                                             </div>
                                             <div className="hidden items-center gap-2 sm:flex">
-                                                <span className="text-sm text-ink-3">{timeAgo(s.submitted_at, lang)}</span>
+                                                <span className="text-sm font-bold text-ink-2">{timeAgo(s.submitted_at, lang)}</span>
                                                 {needsReview(s) && <Badge tone="warn">{l("مراجعة", "Review")}</Badge>}
                                                 {g ? <Badge tone={g.tone}>{l(g.ar, g.en)}</Badge> : <Badge>{l("قيد التصحيح", "Grading")}</Badge>}
                                             </div>
@@ -252,7 +249,6 @@ export default function Overview() {
     // ── Student ───────────────────────────────────────────────────────────────
     const pending = assignments.filter((a) => a.status === "pending");
     const ready = !!bio?.biometrics_complete;
-    // "All done" is only true for a student who has had exams; a new account simply has none yet
     const finishedAll = pending.length === 0 && assignments.length > 0;
     let inviteToken: string | null = null;
     try { inviteToken = localStorage.getItem("pendingExamToken"); } catch { /* ignore */ }
@@ -283,30 +279,21 @@ export default function Overview() {
                         <Mic className="size-5" aria-hidden />{l("ابدأ أول امتحان", "Start the first exam")}
                     </button>
                 ) : pending.length === 0 ? (
-                    <ButtonLink to="/dashboard/grades" variant="secondary">{l("درجاتي", "My grades")}</ButtonLink>
+                    <ButtonLink to="/dashboard/grades" variant="secondary" size="lg">{l("درجاتي", "My grades")}</ButtonLink>
                 ) : undefined}
                 aside={
-                    <div className="relative h-60 w-[23rem]">
-                        <img
-                            src="/photos/overview-student-480.webp"
-                            srcSet="/photos/overview-student-480.webp 480w, /photos/overview-student-800.webp 800w"
-                            sizes="224px"
-                            alt=""
-                            className="absolute end-2 top-0 h-60 w-56 rotate-2 rounded-[22px] object-cover shadow-float"
-                        />
-                        {pending[0] ? (
-                            <div className="absolute bottom-[-0.5rem] start-0 w-64 -rotate-1 rounded-2xl border border-rule bg-sheet p-4 shadow-pop">
-                                <p className="text-xs font-medium text-pen">{l("الامتحان الجاي", "Up next")}</p>
-                                <p className="mt-1.5 line-clamp-2 font-display font-semibold leading-snug">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
-                                <p className="mt-2 text-xs text-ink-3">{pending[0].assigned_by_name}</p>
-                            </div>
-                        ) : finishedAll && (
-                            <div className="absolute bottom-2 start-6 flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet px-4 py-3 shadow-pop">
-                                <span className="flex size-9 items-center justify-center rounded-full bg-pass-wash text-pass"><PartyPopper className="size-[18px]" aria-hidden /></span>
-                                <p className="text-sm font-semibold">{l("خلّصت كل امتحاناتك", "All exams done")}</p>
-                            </div>
-                        )}
-                    </div>
+                    pending[0] ? (
+                        <div className="w-68 rounded-2xl border border-rule bg-sheet-2/80 p-5">
+                            <p className="text-xs font-extrabold text-pen">{l("الامتحان الجاي", "Up next")}</p>
+                            <p className="mt-1.5 line-clamp-2 font-display font-bold leading-snug text-ink">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
+                            <p className="mt-2 text-xs font-bold text-ink-2">{pending[0].assigned_by_name}</p>
+                        </div>
+                    ) : finishedAll ? (
+                        <div className="flex items-center gap-3 rounded-2xl border border-rule bg-sheet-2/80 px-5 py-3.5">
+                            <span className="flex size-10 items-center justify-center rounded-full bg-pass-wash text-pass"><PartyPopper className="size-5" aria-hidden /></span>
+                            <p className="text-sm font-bold text-ink">{l("خلّصت كل امتحاناتك", "All exams done")}</p>
+                        </div>
+                    ) : undefined
                 }
             />
 
@@ -321,15 +308,15 @@ export default function Overview() {
                     {l("بنستخدمهم للتأكد إن انت اللي بتجاوب. التسجيل بياخد حوالي دقيقتين.", "We use them to confirm it's you answering. It takes about two minutes.")}
                 </Alert>
             ) : bio && ready ? (
-                <div className="mb-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-2">
+                <div className="mb-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-bold text-ink-2">
                     <span className="inline-flex items-center gap-1.5"><ScanFace className="size-4 text-pass" aria-hidden />{l("الوجه مسجّل", "Face registered")}</span>
                     <span className="inline-flex items-center gap-1.5"><Mic className="size-4 text-pass" aria-hidden />{l("الصوت مسجّل", "Voice registered")}</span>
                     {bio.can_reenroll ? (
-                        <button type="button" onClick={() => setShowEnroll(true)} className="font-semibold text-pen hover:underline">
+                        <button type="button" onClick={() => setShowEnroll(true)} className="font-extrabold text-pen hover:underline">
                             {l("إعادة التسجيل", "Register again")}
                         </button>
                     ) : (
-                        <span className="inline-flex items-center gap-1.5 text-ink-3"><Lock className="size-3.5" aria-hidden />{l("التعديل بإذن المحاضر", "Changes need lecturer approval")}</span>
+                        <span className="inline-flex items-center gap-1.5 text-ink-2"><Lock className="size-3.5" aria-hidden />{l("التعديل بإذن المحاضر", "Changes need lecturer approval")}</span>
                     )}
                 </div>
             ) : null}
@@ -343,12 +330,11 @@ export default function Overview() {
                 />
             )}
 
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div>
             <Panel>
                 <PanelHeader title={l("امتحاناتك المطلوبة", "Your exams")} />
                 {pending.length === 0 ? (
-                    // The banner above already offers "My grades"; this only says what the list means
                     <EmptyState
                         icon={<ClipboardList />}
                         title={finishedAll ? l("خلّصت كل امتحاناتك", "You're all caught up") : l("لسه مفيش امتحانات", "No exams yet")}
@@ -361,16 +347,16 @@ export default function Overview() {
                         {pending.map((a) => {
                             const diff = difficultyInfo(a.question_difficulty, lang);
                             return (
-                                <li key={a.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-5">
+                                <li key={a.id} className="flex flex-col gap-3 px-6 py-4.5 sm:flex-row sm:items-center sm:gap-5">
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-semibold leading-snug">{a.question_text || l("امتحان شفوي", "Oral exam")}</p>
-                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+                                        <p className="text-base font-extrabold leading-snug text-ink">{a.question_text || l("امتحان شفوي", "Oral exam")}</p>
+                                        <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-bold text-ink-2">
                                             <span>{a.assigned_by_name || l("المحاضر", "Lecturer")}</span>
-                                            <span className="text-ink-3">{timeAgo(a.assigned_at, lang)}</span>
+                                            <span>•</span>
+                                            <span>{timeAgo(a.assigned_at, lang)}</span>
                                             {a.question_difficulty && <Badge tone={diff.tone}>{diff.label}</Badge>}
                                         </p>
                                     </div>
-                                    {/* One primary action per screen: the banner's "start the first exam"; rows stay secondary */}
                                     <Button
                                         variant={ready ? "secondary" : "primary"}
                                         onClick={() => startExam(a.exam_token)}
@@ -390,7 +376,7 @@ export default function Overview() {
             </Panel>
 
             {ready && (
-                <p className="mt-4 flex items-center gap-1.5 text-sm text-ink-3">
+                <p className="mt-4 flex items-center gap-2 text-sm font-bold text-ink-2">
                     <ShieldCheck className="size-4" aria-hidden />
                     {l("الامتحان بيتسجّل بالصوت، والكاميرا بتتأكد من هويتك أثناء الإجابة.", "Your answer is recorded as audio; the camera confirms your identity while you answer.")}
                 </p>
@@ -409,7 +395,6 @@ export default function Overview() {
     );
 }
 
-/** Three small reassurances before an oral exam — the things students actually worry about. */
 function CalmTips() {
     const { l } = useI18n();
     const tips = [
@@ -418,15 +403,15 @@ function CalmTips() {
         { icon: HeartHandshake, tone: "bg-teal-wash text-teal", title: l("لو اتلخبطت، عادي", "Lost your thread? That's fine"), body: l("خد نفس وكمّل من حيث وقفت. الإجابة بتتقيّم كلها مع بعض.", "Take a breath and carry on. Your answer is judged as a whole.") },
     ];
     return (
-        <Panel className="p-5">
-            <h2 className="font-display text-[1.0625rem] font-semibold">{l("عشان امتحانك يعدّي بهدوء", "For a calm exam")}</h2>
+        <Panel className="p-6">
+            <h2 className="font-display text-lg font-extrabold text-ink">{l("عشان امتحانك يعدّي بهدوء", "For a calm exam")}</h2>
             <ul className="mt-4 space-y-4">
                 {tips.map(({ icon: Icon, tone, title, body }) => (
                     <li key={title} className="flex gap-3">
-                        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", tone)}><Icon className="size-[18px]" aria-hidden /></span>
+                        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tone)}><Icon className="size-5" aria-hidden /></span>
                         <div>
-                            <p className="font-semibold leading-snug">{title}</p>
-                            <p className="mt-0.5 text-sm leading-relaxed text-ink-2">{body}</p>
+                            <p className="font-extrabold leading-snug text-ink">{title}</p>
+                            <p className="mt-0.5 text-sm font-semibold leading-relaxed text-ink-2">{body}</p>
                         </div>
                     </li>
                 ))}

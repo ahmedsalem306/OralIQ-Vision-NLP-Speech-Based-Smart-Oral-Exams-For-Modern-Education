@@ -18,6 +18,7 @@ venv/
 .env
 backend/local.env
 backend/data/
+backups/
 *.db
 interview_ai.db
 
@@ -27,10 +28,12 @@ dist/
 .DS_Store
 frontend/.env.local
 
-# IDE / tools
+# IDE / tools / scratch
 .vscode/
 .idea/
 .claude/
+.agents/
+.prev-photos/
 hf-space-clone_v2/
 
 # Local-only

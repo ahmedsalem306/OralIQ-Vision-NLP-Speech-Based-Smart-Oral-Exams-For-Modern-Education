@@ -40,8 +40,6 @@ export default function StudentsPage() {
     useEffect(() => { load(); }, [load]);
     const hasData = !loading && !loadError && students.length > 0;
 
-    // Submissions carry the name the student confirmed at check-in (no student id in the API),
-    // so per-student stats are matched by name.
     const statsByName = useMemo(() => {
         const m = new Map<string, number[]>();
         for (const s of subs) {
@@ -96,7 +94,7 @@ export default function StudentsPage() {
                 ]}
             />}
 
-            {hasData && <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {hasData && <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <Segmented
                     label={l("تصفية الطلاب", "Filter students")}
                     value={filter}
@@ -108,7 +106,7 @@ export default function StudentsPage() {
                     ]}
                     className="max-w-full self-start overflow-x-auto"
                 />
-                <Input icon={<Search />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={l("ابحث بالاسم أو البريد", "Search by name or email")} aria-label={l("بحث", "Search")} className="lg:w-72" />
+                <Input icon={<Search />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={l("ابحث بالاسم أو البريد", "Search by name or email")} aria-label={l("بحث", "Search")} className="lg:w-80" />
             </div>}
 
             <Panel className="overflow-hidden">
@@ -129,34 +127,34 @@ export default function StudentsPage() {
                             const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                             const enrolled = s.has_faceprint || s.has_voiceprint;
                             return (
-                                <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
+                                <li key={s.id} className="flex flex-wrap items-center gap-x-5 gap-y-3 px-6 py-4 transition-colors hover:bg-sheet-2/40">
                                     <Avatar name={s.full_name} />
                                     <div className="min-w-0 flex-1 basis-48">
-                                        <p className="truncate font-semibold">{s.full_name}</p>
-                                        <p className="truncate text-sm text-ink-3 ltr">{s.email}</p>
+                                        <p className="truncate text-base font-extrabold text-ink">{s.full_name}</p>
+                                        <p className="truncate text-sm font-bold text-ink-2 ltr">{s.email}</p>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-2">
                                         <Badge tone={s.has_faceprint ? "pass" : "warn"} icon={<ScanFace aria-hidden />}>{s.has_faceprint ? l("الوجه", "Face") : l("بدون وجه", "No face")}</Badge>
                                         <Badge tone={s.has_voiceprint ? "pass" : "warn"} icon={<Mic aria-hidden />}>{s.has_voiceprint ? l("الصوت", "Voice") : l("بدون صوت", "No voice")}</Badge>
                                     </div>
                                     <div className="w-28 text-sm">
-                                        <p className="font-semibold tabular">{avg != null ? `${formatScore(avg)}%` : "—"}</p>
-                                        <p className="text-ink-3">{scores.length ? countOf(lang, scores.length, NOUNS.exam) : l("لا امتحانات", "No exams")}</p>
+                                        <p className="text-base font-extrabold text-ink tabular">{avg != null ? `${formatScore(avg)}%` : "—"}</p>
+                                        <p className="font-bold text-ink-2">{scores.length ? countOf(lang, scores.length, NOUNS.exam) : l("لا امتحانات", "No exams")}</p>
                                     </div>
                                     {enrolled ? (
                                         <Button
-                                            variant={s.voice_reenroll_allowed ? "secondary" : "ghost"}
+                                            variant="secondary"
                                             size="sm"
                                             loading={busy === s.id}
                                             onClick={() => toggleReenroll(s)}
-                                            className={cn("w-44", s.voice_reenroll_allowed && "text-pass")}
+                                            className={cn("w-48", s.voice_reenroll_allowed && "border-pass text-pass hover:border-pass hover:bg-pass-wash")}
                                             title={s.voice_reenroll_allowed ? l("اضغط لإلغاء الإذن", "Click to revoke") : l("اسمح للطالب يعيد تسجيل وشه وصوته", "Let the student re-register face and voice")}
                                         >
                                             {s.voice_reenroll_allowed ? <LockOpen className="size-4" aria-hidden /> : <Lock className="size-4" aria-hidden />}
                                             {s.voice_reenroll_allowed ? l("إعادة التسجيل مسموحة", "Re-register allowed") : l("السماح بإعادة التسجيل", "Allow re-register")}
                                         </Button>
                                     ) : (
-                                        <span className="w-44 text-center text-sm text-ink-3">{l("في انتظار التسجيل", "Waiting for setup")}</span>
+                                        <span className="w-48 text-center text-sm font-bold text-ink-2">{l("في انتظار التسجيل", "Waiting for setup")}</span>
                                     )}
                                 </li>
                             );

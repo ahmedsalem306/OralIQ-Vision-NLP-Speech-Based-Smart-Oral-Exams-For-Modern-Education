@@ -1,6 +1,5 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
-// Real figures from the API, counted up on purpose (owner's choice). avoid-ai-design-ignore-file: M5
 import { CountUp } from "../motion";
 import { Skeleton } from "./feedback";
 
@@ -12,9 +11,9 @@ function AnimatedValue({ value }: { value: React.ReactNode }) {
     return <CountUp to={parseFloat(m[1])} decimals={m[2]?.length ?? 0} suffix={m[3]} duration={1.1} />;
 }
 
-/** The base surface: a card lifted off the page with a soft shadow. */
+/** The base surface: a card lifted off the page with a crisp border and ambient shadow. */
 export function Panel({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-    return <section className={cn("rounded-[var(--radius-panel)] border border-rule/80 bg-sheet shadow-card", className)} {...props} />;
+    return <section className={cn("rounded-[var(--radius-panel)] border border-rule bg-sheet shadow-card", className)} {...props} />;
 }
 
 interface PanelHeaderProps {
@@ -26,12 +25,12 @@ interface PanelHeaderProps {
 
 export function PanelHeader({ title, description, actions, className }: PanelHeaderProps) {
     return (
-        <header className={cn("flex flex-wrap items-start justify-between gap-3 border-b border-rule px-5 py-4 sm:px-6", className)}>
+        <header className={cn("flex flex-wrap items-start justify-between gap-3 border-b border-rule px-6 py-4", className)}>
             <div className="min-w-0">
-                <h2 className="text-[1.0625rem] font-semibold">{title}</h2>
-                {description && <p className="mt-0.5 text-sm text-ink-2">{description}</p>}
+                <h2 className="ar-heading text-lg font-bold text-ink sm:text-xl">{title}</h2>
+                {description && <p className="mt-0.5 text-sm font-medium text-ink-2 sm:text-[0.9375rem]">{description}</p>}
             </div>
-            {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+            {actions && <div className="flex shrink-0 items-center gap-2.5">{actions}</div>}
         </header>
     );
 }
@@ -50,11 +49,11 @@ interface PageHeaderProps {
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
     return (
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-0 max-w-2xl">
-                <h1 className="text-[1.875rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">{title}</h1>
-                {description && <p className="mt-2 text-[1.0625rem] text-ink-2">{description}</p>}
+            <div className="min-w-0 max-w-3xl">
+                <h1 className="ar-heading text-3xl font-bold leading-tight text-ink sm:text-4xl">{title}</h1>
+                {description && <p className="mt-2 text-base font-medium text-ink-2 sm:text-lg">{description}</p>}
             </div>
-            {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+            {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
         </div>
     );
 }
@@ -78,10 +77,6 @@ export interface StatItem {
     tone?: StatTone;
 }
 
-/**
- * Key figures as a row of small cards, each with a tinted icon. While `loading`, the figures
- * are placeholders: a "0" before the data arrives would read as a real (and alarming) number.
- */
 export function StatStrip({ items, loading = false, className }: { items: StatItem[]; loading?: boolean; className?: string }) {
     const cols = items.length === 3 ? "lg:grid-cols-3" : items.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-4";
     return (
@@ -92,25 +87,24 @@ export function StatStrip({ items, loading = false, className }: { items: StatIt
                     <div
                         key={i}
                         className={cn(
-                            "@container rounded-[var(--radius-panel)] border border-rule/80 bg-sheet p-4 shadow-card sm:p-5",
+                            "@container rounded-[var(--radius-panel)] border border-rule bg-sheet p-5 shadow-card",
                             items.length % 2 === 1 && i === items.length - 1 && "col-span-2 lg:col-span-1",
                         )}
                     >
-                        <dt className="flex items-start justify-between gap-3 text-sm font-medium text-ink-2">
+                        <dt className="flex items-start justify-between gap-3 text-sm font-bold text-ink-2 sm:text-[0.95rem]">
                             <span>{item.label}</span>
-                            {/* A narrow card gives its width to the label instead of the icon */}
                             {Icon && (
-                                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl @max-[10.5rem]:hidden [&>svg]:size-[18px]", toneChip[item.tone ?? "pen"])} aria-hidden>
+                                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl @max-[10.5rem]:hidden [&>svg]:size-5", toneChip[item.tone ?? "pen"])} aria-hidden>
                                     <Icon />
                                 </span>
                             )}
                         </dt>
                         {loading ? (
-                            <dd className="mt-2"><Skeleton className="h-[1.875rem] w-16" /></dd>
+                            <dd className="mt-2.5"><Skeleton className="h-9 w-20" /></dd>
                         ) : (
                             <>
-                                <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none text-ink"><AnimatedValue value={item.value} /></dd>
-                                {item.hint && <dd className="mt-2 text-xs text-ink-3">{item.hint}</dd>}
+                                <dd className="mt-2.5 font-display text-3xl font-extrabold leading-none text-ink sm:text-4xl"><AnimatedValue value={item.value} /></dd>
+                                {item.hint && <dd className="mt-2 text-xs font-bold text-ink-2 sm:text-sm">{item.hint}</dd>}
                             </>
                         )}
                     </div>

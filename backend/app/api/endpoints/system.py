@@ -1,5 +1,6 @@
 """System maintenance endpoints (migrations, schema checks)."""
-from fastapi import APIRouter
+import os
+from fastapi import APIRouter, HTTPException
 from app.core.database import ensure_migrations, _column_exists, engine
 
 router = APIRouter()
@@ -9,8 +10,11 @@ router = APIRouter()
 def run_db_migrate() -> dict:
     """
     Apply pending DB schema patches (idempotent).
-    Open once after deploy if registration fails with missing face_embedding column.
+    Restricted outside dev once initial migrations are applied.
     """
+    if os.environ.get("ENV", "dev") != "dev":
+        raise HTTPException(status_code=403, detail="Forbidden in production")
+
     result = ensure_migrations()
     return {
         **result,

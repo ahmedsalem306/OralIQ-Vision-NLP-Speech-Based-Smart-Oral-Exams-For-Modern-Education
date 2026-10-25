@@ -1,74 +1,65 @@
 import { Link } from "react-router-dom";
-import Logo from "./Logo";
+import { ArrowRight } from "lucide-react";
+import Logo, { LogoMark } from "./Logo";
 import LanguageToggle, { ThemeToggle } from "./LanguageToggle";
-import { ScoreMark } from "./ui/score-mark";
 import { useI18n } from "../i18n";
 import { COMPANY } from "../content/company";
 
-const scenes = {
-    /** Sign in: a student mid-answer, with the graded result floating on top. */
-    signin: {
-        src: "/photos/auth-signin-1200.webp",
-        srcSet: "/photos/auth-signin-800.webp 800w, /photos/auth-signin-1200.webp 1200w",
-        position: "center",
-    },
-    /** Sign up: where it all leads. */
-    signup: {
-        src: "/photos/auth-signup-1200.webp",
-        srcSet: "/photos/auth-signup-800.webp 800w, /photos/auth-signup-1200.webp 1200w",
-        position: "center 30%",
-    },
-} as const;
-
-export function AuthShell({ children, scene = "signin" }: { children: React.ReactNode; scene?: keyof typeof scenes }) {
+/**
+ * Clean, Photo-Free AuthShell (Inspired by ahmedali.online/ar):
+ * - Zero stock photos!
+ * - Prominent OralIQ Logo Mark + Wordmark + Tactile Registration / Login Box.
+ */
+export function AuthShell({ children }: { children: React.ReactNode; scene?: "signin" | "signup" }) {
     const { l } = useI18n();
-    const photo = scenes[scene];
+
     return (
-        <div className="grid min-h-dvh bg-paper md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-            {/* Form side */}
-            <div className="flex flex-col px-5 py-6 sm:px-10 md:px-8 lg:px-10">
-                <header className="flex items-center justify-between">
-                    <Link to="/" aria-label="OralIQ" className="flex h-11 items-center"><Logo height={22} /></Link>
-                    <div className="flex items-center gap-1"><LanguageToggle compact /><ThemeToggle /></div>
-                </header>
-                <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">{children}</main>
-                <footer className="text-center text-xs text-ink-3">© 2026 {COMPANY.name} — {l("منتج من", "a product by")} {COMPANY.maker}</footer>
-            </div>
-
-            {/* Brand side — a real moment (student answering), with the product floating on top. From tablet
-                width, so a 768px screen is not one small form in an empty page. */}
-            <aside className="relative hidden overflow-hidden md:block">
-                <img src={photo.src} srcSet={photo.srcSet} sizes="50vw" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: photo.position }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/10" aria-hidden />
-
-                <div className="relative flex h-full flex-col justify-end px-8 pb-12 lg:px-12 lg:pb-16 xl:px-16">
-                    {/* Floats over the photo, so the blur is real layering. avoid-ai-design-ignore: K3 */}
-                    {scene === "signin" && <div className="mb-10 w-72 rounded-2xl border border-white/15 bg-white/10 p-5 text-white shadow-float backdrop-blur-md motion-safe:animate-[oiq-float_7s_ease-in-out_infinite]">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-white/70">{l("سؤال 2 من 3", "Question 2 of 3")}</p>
-                                <p className="mt-1 font-display font-semibold">{l("عرّف الذكاء الاصطناعي", "Define artificial intelligence")}</p>
-                            </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between">
-                            <span className="[&_.text-ink]:text-white [&_.text-ink-2]:text-white/70"><ScoreMark score={92} size="md" animate /></span>
-                            <span className="rounded-md bg-white/15 px-2 py-0.5 text-xs font-semibold">{l("ممتاز", "Excellent")}</span>
-                        </div>
-                    </div>}
-                    <h2 className="max-w-lg text-[2rem] font-bold leading-[1.25] text-white lg:text-[2.4rem] xl:text-[2.75rem]">
-                        {scene === "signup"
-                            ? l("امتحانك الشفوي، من مكانك وبراحتك.", "Your oral exam, from wherever you're comfortable.")
-                            : l("الطالب يجاوب بصوته، والتصحيح يوصلك جاهز.", "Students answer out loud. You get the grading done.")}
-                    </h2>
-                    <p className="mt-4 max-w-md text-base text-white/75 lg:text-lg">
-                        {scene === "signup"
-                            ? l("من غير لجنة ولا رهبة: تجاوب بصوتك، وتشوف درجتك وتفاصيلها أول ما المحاضر ينشرها.",
-                                "No panel, no pressure: answer out loud, then see your grade and its breakdown as soon as your lecturer publishes it.")
-                            : l("OralIQ بيحوّل الإجابة لنص، ويقارنها بإجابتك النموذجية، ويتأكد إن الطالب هو اللي بيجاوب.",
-                                "OralIQ transcribes each answer, compares it with your model answer, and checks the right student is answering.")}
-                    </p>
+        <div
+            style={{
+                background: "radial-gradient(ellipse at 50% 20%, rgba(207,247,238,0.12) 0%, transparent 65%)",
+            }}
+            className="flex min-h-dvh flex-col justify-between bg-paper px-4 py-6 text-ink sm:px-8"
+        >
+            {/* Top Navigation Bar */}
+            <header className="mx-auto flex w-full max-w-[76rem] items-center justify-between rounded-full border-2 border-rule-strong bg-sheet px-5 py-2.5 shadow-card">
+                <Link
+                    to="/"
+                    aria-label="OralIQ"
+                    className="inline-flex items-center gap-2.5 text-sm font-bold text-ink transition-opacity hover:opacity-80"
+                >
+                    <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
+                    <span>{l("العودة للرئيسية", "Back to Home")}</span>
+                </Link>
+                <div className="flex items-center gap-1.5">
+                    <LanguageToggle compact />
+                    <ThemeToggle />
                 </div>
-            </aside>
+            </header>
+
+            {/* Centered Logo + Tactile Auth Box */}
+            <main className="mx-auto my-8 flex w-full max-w-[31rem] flex-col items-center justify-center">
+                {/* Prominent Logo Header in place of old photos */}
+                <Link
+                    to="/"
+                    aria-label="OralIQ"
+                    className="mb-6 flex flex-col items-center gap-3 text-center group"
+                >
+                    <span className="flex size-16 items-center justify-center rounded-2xl border-2 border-[#004D5A] bg-[#CFF7EE] text-[#04323A] shadow-[4px_4px_0px_0px_#004D5A] transition-transform group-hover:-translate-y-0.5">
+                        <LogoMark size={34} />
+                    </span>
+                    <Logo height={28} className="text-ink" />
+                </Link>
+
+                {/* Tactile Login / Registration Box */}
+                <div className="w-full rounded-3xl border-2 border-rule-strong bg-sheet p-6 shadow-[6px_6px_0px_0px_#004D5A] sm:p-9">
+                    {children}
+                </div>
+            </main>
+
+            {/* Minimal Footer */}
+            <footer className="text-center text-xs font-bold text-ink-2">
+                © 2026 {COMPANY.name} — {l("منتج من", "A product by")} {COMPANY.maker}
+            </footer>
         </div>
     );
 }

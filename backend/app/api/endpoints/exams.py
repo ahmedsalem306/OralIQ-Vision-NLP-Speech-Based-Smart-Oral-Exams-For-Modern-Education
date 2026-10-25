@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone
 import tempfile, os, json, traceback
 
@@ -16,19 +16,17 @@ from app.schemas.exam_assignment import ExamAssignmentCreate, AssignedExamOut
 
 router = APIRouter()
 
+ALLOWED_AUDIO_EXTS = {".webm", ".wav", ".mp3", ".ogg", ".m4a", ".mp4"}
+
+
+def _safe_audio_suffix(filename: Optional[str]) -> str:
+    if not filename:
+        return ".webm"
+    raw_ext = os.path.splitext(os.path.basename(filename))[1].lower()
+    return raw_ext if raw_ext in ALLOWED_AUDIO_EXTS else ".webm"
+
 
 # ── Grading concurrency ───────────────────────────────────────────────────────
-# Whisper is the expensive part of a submission: a two-minute answer is roughly a minute of solid
-# CPU. Two limits keep that from taking the server down with it.
-#
-# The semaphore caps how many answers are graded at once. Each job wants several cores and about
-# two gigabytes, so letting a whole class in at once would exhaust memory and leave every job
-# slower than if they had queued. Requests past the cap wait their turn, which is the behaviour
-# we want: a student sees a slower result, not an error.
-#
-# The grading itself then runs in a worker thread, because it is synchronous CPU work. Called
-# directly from the async endpoint it blocked the event loop, so one submission froze the whole
-# API — other students could not even load the next question until it finished.
 def _grading_slots() -> int:
     explicit = os.environ.get("MAX_CONCURRENT_GRADING", "").strip()
     if explicit.isdigit() and int(explicit) > 0:
@@ -47,12 +45,6 @@ def _run_ai_pipeline(
     anti_cheat_alerts: str,
     voice_embedding: Optional[str],
 ) -> Dict[str, Any]:
-    """
-    Transcribe, grade and score one answer. Synchronous and CPU-bound by nature: it takes plain
-    values rather than ORM objects so it can run in a worker thread with no database session of
-    its own, and it never raises — a model that fails leaves its scores as None and the
-    submission is still saved.
-    """
     out: Dict[str, Any] = {
         "transcript": None,
         "nlp_score": None,
@@ -74,12 +66,9 @@ def _run_ai_pipeline(
             out["speech_score"] = fluency["speech_score"]
             out["fluency_report"] = fluency["fluency_report"]
 
-            # Voice print verification if user enrolled
             if voice_embedding:
                 try:
                     stored_emb = json.loads(voice_embedding)
-                    # Security-first threshold. 60–75% remains uncertain,
-                    # never displayed as a confirmed speaker match.
                     voice_res = voice_service.verify_voice(audio_path, stored_emb, threshold=0.75)
                     out["voice_score"] = voice_res["similarity_score"]
                 except Exception as ve:
@@ -94,7 +83,7 @@ def _run_ai_pipeline(
         # 3) Anti-cheat scoring
         try:
             alerts = json.loads(anti_cheat_alerts)
-            if alerts:
+            if alerts and isinstance(alerts, dict):
                 from app.services.face_ai import face_analyzer
                 cheat_result = face_analyzer.calculate_cheat_score(alerts)
                 out["facial_score"] = cheat_result["facial_score"]
@@ -104,9 +93,9 @@ def _run_ai_pipeline(
 
     except Exception:
         print(f"[AI Pipeline Error] {traceback.format_exc()}")
-        # Still save the submission even if AI fails
 
     return out
+
 
 # ── POST assign exam to student (lecturer) ────────────────────────────────────
 @router.post("/assign")
@@ -122,12 +111,13 @@ def assign_exam(
     question = db.query(Question).filter(Question.id == assignment_in.question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
+    if question.creator_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to assign this question")
 
     student = db.query(User).filter(User.id == assignment_in.student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Avoid duplicate assignment
     existing = db.query(ExamAssignment).filter(
         ExamAssignment.question_id == assignment_in.question_id,
         ExamAssignment.student_id == assignment_in.student_id,
@@ -147,16 +137,22 @@ def assign_exam(
     db.refresh(assignment)
     return {"ok": True, "assignment_id": assignment.id}
 
+
 # ── GET my assigned exams (student) ──────────────────────────────────────────
 @router.get("/my-assignments", response_model=List[AssignedExamOut])
 def get_my_assignments(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    assignments = db.query(ExamAssignment).filter(
-        ExamAssignment.student_id == current_user.id,
-        ExamAssignment.status == "pending",
-    ).all()
+    assignments = (
+        db.query(ExamAssignment)
+        .options(joinedload(ExamAssignment.question), joinedload(ExamAssignment.lecturer))
+        .filter(
+            ExamAssignment.student_id == current_user.id,
+            ExamAssignment.status == "pending",
+        )
+        .all()
+    )
 
     result = []
     for a in assignments:
@@ -172,6 +168,7 @@ def get_my_assignments(
             assigned_by_name=a.lecturer.full_name if a.lecturer else "Unknown",
         ))
     return result
+
 
 # ── GET all students (for lecturer to pick from) ──────────────────────────────
 @router.get("/students", response_model=List[dict])
@@ -210,34 +207,26 @@ async def submit_exam(
     finished_at: Optional[str] = Form(None),
     submission_key: Optional[str] = Form(None),
 ) -> Any:
-    """
-    Student submits exam — accepts audio file + anti-cheat alert JSON.
-    Runs AI pipeline: Whisper transcribe → SBERT grade → cheat score.
-
-    `submission_key` identifies one recording. Sending it again returns the submission already
-    stored for it rather than grading the answer a second time, so a retry after a timeout cannot
-    leave the lecturer with two grades for the same answer.
-    """
     question = db.query(Question).filter(Question.id == question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # A retry of a recording already graded: hand back what was stored, before spending a minute
-    # of CPU reaching the same answer and a second row the lecturer would have to resolve.
-    key = (submission_key or "").strip() or None
+    key = (submission_key or "").strip()[:128] or None
     if key:
         existing = db.query(ExamSubmission).filter(ExamSubmission.submission_key == key).first()
         if existing:
-            print(f"[Submit] Key {key[:8]}… already graded as submission {existing.id}; returning it")
             return existing
 
-    face_id_score = face_score
+    face_id_score = max(0.0, min(100.0, float(face_score))) if face_score is not None else None
+    student_name = (student_name or "").strip()[:120]
+    student_number = (student_number or "").strip()[:64]
+    if len(anti_cheat_alerts or "") > 32768:
+        anti_cheat_alerts = "{}"
     overall = None
 
-    # The upload is read here, on the event loop, and only the file path crosses into the worker
     tmp_path = None
     if audio and audio.filename:
-        suffix = os.path.splitext(audio.filename)[1] or ".webm"
+        suffix = _safe_audio_suffix(audio.filename)
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(await audio.read())
             tmp_path = tmp.name
@@ -267,7 +256,6 @@ async def submit_exam(
     cheat_report = ai["cheat_report"]
     fluency_report = ai["fluency_report"]
 
-    # Multi-factor identity: never confirm from one weak biometric.
     face_verified = face_id_score is not None and face_id_score >= 55
     voice_verified = voice_score is not None and voice_score >= 75
     if current_user.face_embedding and face_id_score is not None:
@@ -284,31 +272,21 @@ async def submit_exam(
             (cheat_report + " | " + identity_msg) if cheat_report else identity_msg
         )
 
-    # ---- Calculate overall score ----
-    # 🆕 Weighted Logic: 80% Content (NLP) + 10% Delivery (Fluency) + 10% Integrity (Facial)
     if nlp_score is not None:
         fluency_val = speech_score if speech_score is not None else 50.0
-        
-        # Calculate raw score
         raw_overall = (nlp_score * 0.8) + (fluency_val * 0.1) + (facial_score * 0.1)
-        
-        # 🛡️ FAIL-FAST RULES:
-        # 1. If you failed the content (NLP < 50), you cannot pass overall.
-        # 2. Integrity is supporting evidence. Penalize only severe sustained events;
-        #    moderate gaze alerts remain visible for lecturer review.
-        
-        if facial_score < 60:  # severe integrity event(s), not ordinary glances
+
+        if facial_score < 60:
             penalty = (60 - facial_score) * 0.75
             raw_overall -= penalty
-            
+
         if nlp_score < 50 or raw_overall < 50:
-            overall = min(max(raw_overall, 0), 49.9) # Max 49.9 if failed
+            overall = min(max(raw_overall, 0), 49.9)
         else:
             overall = min(round(raw_overall, 1), 100.0)
     else:
         overall = None
 
-    # ---- Save ----
     dt_started = None
     if started_at:
         try:
@@ -352,18 +330,13 @@ async def submit_exam(
     try:
         db.commit()
     except IntegrityError:
-        # Two retries of the same recording were graded at once and this one lost the race for
-        # the unique key. The other row holds the same answer, so return it: the student sees a
-        # result either way, and the lecturer still sees exactly one grade.
         db.rollback()
         winner = db.query(ExamSubmission).filter(ExamSubmission.submission_key == key).first()
         if winner:
-            print(f"[Submit] Key {key[:8]}… raced; returning submission {winner.id}")
             return winner
         raise
     db.refresh(submission)
 
-    # Mark assignment as completed
     assignment = db.query(ExamAssignment).filter(
         ExamAssignment.question_id == question_id,
         ExamAssignment.student_id == current_user.id,
@@ -374,6 +347,7 @@ async def submit_exam(
         db.commit()
 
     return submission
+
 
 # ── GET results for a question (lecturer only) ────────────────────────────────
 @router.get("/results/{question_id}", response_model=List[ExamSubmissionOut])
@@ -386,11 +360,12 @@ def get_results(
         raise HTTPException(status_code=403, detail="Lecturers only")
     question = db.query(Question).filter(
         Question.id == question_id,
-        Question.creator_id == current_user.id
+        Question.creator_id == current_user.id,
     ).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     return question.submissions
+
 
 # ── GET all results for all questions (lecturer dashboard) ────────────────────
 @router.get("/all-results", response_model=List[ExamSubmissionOut])
@@ -400,16 +375,17 @@ def get_all_results(
 ) -> Any:
     if current_user.role not in ["lecturer", "hr", "admin"]:
         raise HTTPException(status_code=403, detail="Lecturers only")
-    
-    # Join Question to filter by creator
-    submissions = db.query(ExamSubmission).join(Question).filter(
-        Question.creator_id == current_user.id
-    ).all()
-    
-    # Manually populate question details since Pydantic might not pick them from relationship automatically without alias
+
+    submissions = (
+        db.query(ExamSubmission)
+        .options(joinedload(ExamSubmission.question))
+        .join(Question)
+        .filter(Question.creator_id == current_user.id)
+        .all()
+    )
+
     result = []
     for s in submissions:
-        # Create a dict or copy
         item = ExamSubmissionOut.from_orm(s)
         if s.question:
             item.question_text = s.question.text
@@ -417,6 +393,7 @@ def get_all_results(
         result.append(item)
 
     return result
+
 
 # ── GET attendance data (lecturer) ────────────────────────────────────────────
 @router.get("/attendance", response_model=List[dict])
@@ -427,19 +404,24 @@ def get_attendance(
     if current_user.role not in ["lecturer", "hr", "admin"]:
         raise HTTPException(status_code=403, detail="Lecturers only")
 
-    # Get all assignments for questions created by this lecturer
-    assignments = db.query(ExamAssignment).join(Question).filter(
-        Question.creator_id == current_user.id
-    ).all()
+    assignments = (
+        db.query(ExamAssignment)
+        .options(joinedload(ExamAssignment.student), joinedload(ExamAssignment.question))
+        .join(Question)
+        .filter(Question.creator_id == current_user.id)
+        .all()
+    )
 
-    # Also get all submissions for questions created by this lecturer (in case they weren't explicitly assigned)
-    submissions = db.query(ExamSubmission).join(Question).filter(
-        Question.creator_id == current_user.id
-    ).all()
+    submissions = (
+        db.query(ExamSubmission)
+        .options(joinedload(ExamSubmission.student), joinedload(ExamSubmission.question))
+        .join(Question)
+        .filter(Question.creator_id == current_user.id)
+        .all()
+    )
 
-    data_map = {} # student_id -> record
+    data_map = {}
 
-    # Process assignments first
     for a in assignments:
         key = (a.student_id, a.question_id)
         data_map[key] = {
@@ -451,35 +433,33 @@ def get_attendance(
             "finished_at": None,
             "status": a.status,
             "score": None,
-            "question_title": a.question.text[:50] if a.question and a.question.text else "Exam"
+            "question_title": a.question.text[:50] if a.question and a.question.text else "Exam",
         }
 
-    # Process submissions
     for s in submissions:
         key = (s.student_id, s.question_id)
         if key in data_map:
             data_map[key]["status"] = "completed"
             data_map[key]["score"] = s.overall_score
         else:
-            # Student did the exam without an explicit assignment (e.g. via direct link)
             data_map[key] = {
-                "id": -s.id, # Negative ID to distinguish
+                "id": -s.id,
                 "student_name": s.student_name or (s.student.full_name if s.student else "Unknown"),
                 "email": s.student.email if s.student else "",
-                "assigned_at": s.submitted_at, # Fallback to submission time if not assigned
+                "assigned_at": s.submitted_at,
                 "started_at": s.started_at,
                 "finished_at": s.submitted_at,
                 "status": "completed",
                 "score": s.overall_score,
-                "question_title": s.question.text[:50] if s.question and s.question.text else "Exam"
+                "question_title": s.question.text[:50] if s.question and s.question.text else "Exam",
             }
-        
-        # Populate timing if key in data_map
+
         if key in data_map and s.started_at:
             data_map[key]["started_at"] = s.started_at
             data_map[key]["finished_at"] = s.submitted_at
 
     return list(data_map.values())
+
 
 # ── GET my grades (student — only visible ones) ───────────────────────────────
 @router.get("/my-grades", response_model=List[ExamSubmissionOut])
@@ -492,7 +472,8 @@ def get_my_grades(
         ExamSubmission.grade_visible == 1,
     ).all()
 
-# ── PATCH toggle grade visibility (lecturer) ──────────────────────────────────
+
+# ── PATCH toggle grade visibility (lecturer — verified ownership) ─────────────
 @router.patch("/submissions/{submission_id}/visibility")
 def toggle_grade_visibility(
     submission_id: int,
@@ -502,9 +483,16 @@ def toggle_grade_visibility(
 ) -> Any:
     if current_user.role not in ["lecturer", "hr", "admin"]:
         raise HTTPException(status_code=403, detail="Lecturers only")
-    sub = db.query(ExamSubmission).filter(ExamSubmission.id == submission_id).first()
+    sub = (
+        db.query(ExamSubmission)
+        .options(joinedload(ExamSubmission.question))
+        .filter(ExamSubmission.id == submission_id)
+        .first()
+    )
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
+    if sub.question and sub.question.creator_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to modify this submission")
     sub.grade_visible = 1 if visible else 0
     db.commit()
     return {"ok": True}

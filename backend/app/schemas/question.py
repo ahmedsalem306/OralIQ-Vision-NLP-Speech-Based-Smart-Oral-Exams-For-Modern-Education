@@ -1,20 +1,44 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
+
 class QuestionBase(BaseModel):
+    text: str = Field(..., min_length=2, max_length=4000)
+    model_answer: str = Field(..., min_length=1, max_length=8000)
+    keywords: str = Field(default="", max_length=2000)
+    difficulty: str = Field(default="medium", max_length=50)
+    category: str = Field(default="general", max_length=120)
+    duration_minutes: int = Field(default=2, ge=1, le=180)
+
+
+class QuestionCreate(QuestionBase):
+    group_token: Optional[str] = Field(default=None, max_length=128)
+
+
+class QuestionOut(QuestionBase):
+    """Full question schema for lecturers (includes model_answer & keywords)."""
+    id: int
+    exam_token: str
+    group_token: Optional[str] = None
+    order_index: int = 0
+    creator_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class QuestionPublicOut(BaseModel):
+    """
+    Sanitized public question schema for students in the Exam Room.
+    Strictly omits `model_answer` and `keywords` to prevent answer-key leakage in DevTools.
+    """
+    id: int
     text: str
-    model_answer: str
-    keywords: str = ""
     difficulty: str = "medium"
     category: str = "general"
     duration_minutes: int = 2
-
-class QuestionCreate(QuestionBase):
-    group_token: Optional[str] = None  # if provided, add to existing exam group
-
-class QuestionOut(QuestionBase):
-    id: int
     exam_token: str
     group_token: Optional[str] = None
     order_index: int = 0
