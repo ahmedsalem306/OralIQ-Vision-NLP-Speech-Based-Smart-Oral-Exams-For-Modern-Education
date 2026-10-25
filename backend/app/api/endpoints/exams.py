@@ -251,34 +251,10 @@ async def submit_exam(
         if existing:
             return existing
 
-    # Look up lecturer's subscription plan to enforce max_students_per_exam & priority queue
+    # Look up lecturer's subscription plan for priority AI grading queue (no cap on student count)
     creator = db.query(User).filter(User.id == question.creator_id).first() if question.creator_id else None
     plan = get_plan(getattr(creator, "plan_tier", "free") if creator else "free")
     priority = int(plan.get("queue_priority", 3))
-
-    # Enforce max_students_per_exam across all questions in this exam group BEFORE spending CPU
-    group_tok = question.group_token or question.exam_token
-    group_q_ids = [
-        q.id for q in db.query(Question.id).filter(Question.group_token == group_tok).all()
-    ] or [question.id]
-    existing_subs = (
-        db.query(ExamSubmission.student_id, ExamSubmission.student_number)
-        .filter(ExamSubmission.question_id.in_(group_q_ids))
-        .all()
-    )
-    distinct_students = {
-        f"u:{s.student_id}" if s.student_id else f"n:{s.student_number}"
-        for s in existing_subs
-    }
-    this_student_ident = f"u:{current_user.id}"
-    if this_student_ident not in distinct_students and len(distinct_students) >= plan["max_students_per_exam"]:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                f"وصل هذا الامتحان للحد الأقصى للطلاب المسموح به في باقة المحاضر الحالية "
-                f"({plan['max_students_per_exam']} طالب). يرجى التواصل مع محاضرك لترقية الباقة."
-            ),
-        )
 
     face_id_score = max(0.0, min(100.0, float(face_score))) if face_score is not None else None
     student_name = (student_name or "").strip()[:120]

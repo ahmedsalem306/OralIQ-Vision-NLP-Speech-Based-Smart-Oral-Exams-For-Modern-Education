@@ -7,7 +7,8 @@ import { Eyebrow, H2, Section } from "./ui";
 
 /**
  * Section (#pricing): Subscription Plans & Computing Capacity Architecture
- * - Built around the "Exams Created + Max Students per Exam + AI Priority Queue" business model.
+ * - Built around generous Exam Quotas + UNLIMITED Students per Exam + AI Priority Queue.
+ * - Affordable teacher-first pricing (0 EGP / 199 EGP / 399 EGP / 699 EGP).
  * - Matches the Warm Espresso Brown (#6F4E37 / #1E140F), Warm Off-White (#FAF6F0), and Caramel Gold (#E3A458) identity.
  */
 export function HomePricing({ startHref }: { startHref: string }) {
@@ -28,7 +29,10 @@ export function HomePricing({ startHref }: { startHref: string }) {
                     duration: 0.7,
                     stagger: 0.1,
                     ease: "power3.out",
-                    scrollTrigger: { trigger: "[data-price-grid]", start: "top 82%" },
+                    scrollTrigger: {
+                        trigger: "[data-price-grid]",
+                        start: "top 82%",
+                    },
                 },
             );
         });
@@ -37,105 +41,107 @@ export function HomePricing({ startHref }: { startHref: string }) {
     const plans = [
         {
             id: "free",
-            name: l("الباقة التجريبية", "Free Starter"),
-            badge: l("للتجربة السريعة", "Try OralIQ"),
+            badge: l("مجاناً للتجربة", "Free Starter"),
+            name: l("الباقة المجانية", "Free Starter"),
             desc: l(
-                "مثالية لتجربة الامتحانات الشفوية بالذكاء الاصطناعي مع مجموعة صغيرة من الطلاب.",
-                "Ideal for testing AI oral exams with a small student group.",
+                "ابدأ فوراً وجرب المنصة مع كل طلابك ومجموعاتك بدون أي حد لعدد الطلاب.",
+                "Start right away with your entire class — zero limit on student count.",
             ),
             priceEgp: 0,
             priceUsd: 0,
-            maxExams: l("2 امتحانات", "2 Exams"),
-            maxStudents: l("15 طالب / امتحان", "15 Students / Exam"),
-            maxDuration: l("2 دقيقة / سؤال", "2 Min / Question"),
-            queueTier: l("طابور قياسي (Standard)", "Standard Queue"),
+            maxExams: l("5 امتحانات شفوية", "5 Oral Exams"),
+            maxStudents: l("غير محدود (مفتوح لكل طلابك)", "Unlimited Students"),
+            maxDuration: l("3 دقائق / سؤال", "3 min / question"),
+            queueTier: l("طابور معالجة قياسي", "Standard AI Queue"),
             featured: false,
             dark: false,
             features: [
-                l("إنشاء حتى امتحانين (حتى 5 أسئلة للامتحان)", "Up to 2 exams (up to 5 questions/exam)"),
-                l("حد أقصى 15 طالب داخل كل امتحان", "Up to 15 students per exam"),
-                l("التصحيح الدلالي بالمعنى (SBERT 80%)", "Semantic grading by meaning (SBERT 80%)"),
-                l("مراقبة الكاميرا الأساسية لمنع الغش", "Core camera anti-cheat monitoring"),
+                l("إنشاء حتى 5 امتحانات شفوية (حتى 10 أسئلة للامتحان)", "Up to 5 oral exams (10 questions per exam)"),
+                l("عدد طلاب غير محدود داخل كل امتحان (100 أو 500+ طالب)", "Unlimited students per exam (100 or 500+ students)"),
+                l("تصحيح تلقائي بالمعنى + تفريغ صوتي عربي وإنجليزي", "Semantic AI grading + Arabic & English speech-to-text"),
+                l("مراقبة حيوية بـ 478 نقطة للوجه والعين والصوت", "478-point face, eye-gaze & voiceprint anti-cheat"),
             ],
         },
         {
             id: "pro",
-            name: l("باقة المحاضر المحترف", "Pro Lecturer"),
-            badge: l("الأكثر طلباً للدكاترة", "Most Popular"),
+            badge: l("في متناول كل مدرس", "Best for Teachers"),
+            name: l("باقة المدرس الأساسية", "Teacher Plan"),
             desc: l(
-                "مصممة للمحاضرين والمعلمين لإدارة الكويزات الشفوية الأسبوعية والعملية للسكاشن.",
-                "Designed for lecturers & teachers running weekly oral quizzes and lab assessments.",
+                "مصممة للمدرسين والمعيدين والمحاضرين لعمل كويز شفوي يومي لكل مجموعاتهم بسعر رمزي.",
+                "Designed for teachers and lecturers running regular oral quizzes across all their groups.",
             ),
-            priceEgp: 900,
-            priceUsd: 19,
-            maxExams: l("10 امتحانات", "10 Exams"),
-            maxStudents: l("80 طالب / امتحان", "80 Students / Exam"),
-            maxDuration: l("5 دقائق / سؤال", "5 Min / Question"),
-            queueTier: l("أولوية سريعة (Fast Priority)", "Fast Priority Queue"),
-            featured: true,
-            dark: true,
+            priceEgp: 199,
+            priceUsd: 4,
+            maxExams: l("30 امتحان / شهرياً", "30 Exams / month"),
+            maxStudents: l("غير محدود (مفتوح لكل طلابك)", "Unlimited Students"),
+            maxDuration: l("5 دقائق / سؤال", "5 min / question"),
+            queueTier: l("أولوية معالجة سريعة (Fast)", "Fast Priority AI Queue"),
+            featured: false,
+            dark: false,
             features: [
-                l("إنشاء حتى 10 امتحانات (حتى 15 سؤال للامتحان)", "Up to 10 exams (up to 15 questions/exam)"),
-                l("حد أقصى 80 طالب داخل كل امتحان", "Up to 80 students per exam"),
-                l("الـ 3 موديلات كاملة (Whisper + SBERT + 478 نقطة وجه وعين)", "Full 3-AI Engine (Whisper + SBERT + 478 Face/Eye)"),
-                l("مطابقة بصمة الصوت (Voice ID) + أولوية معالجة سريعة", "Voiceprint verification + Fast AI Queue priority"),
+                l("إنشاء حتى 30 امتحان شفوي شهرياً (حتى 20 سؤال للامتحان)", "Up to 30 oral exams/month (20 questions per exam)"),
+                l("عدد طلاب غير محدود في كل امتحان بدون أي قيود", "Unlimited students in every exam with zero caps"),
+                l("أولوية سريعة في طابور التصحيح بالذكاء الاصطناعي", "Fast priority in the AI grading queue"),
+                l("تصدير كشوف الدرجات وتقارير النزاهة التفصيلية", "Export full gradebooks and detailed integrity reports"),
             ],
         },
         {
             id: "campus",
-            name: l("باقة الكليات والمدارس", "Campus & Schools"),
-            badge: l("للدفعات الكبيرة", "High Capacity"),
+            badge: l("الأكثر طلباً للمحاضرين والسناتر", "Most Popular"),
+            name: l("باقة المحاضر والسناتر", "Pro Lecturer & Centers"),
             desc: l(
-                "قدرة حوسبية عالية لامتحان دفعات الكليات والمدارس الدولية في نفس التوقيت بدون انتظار.",
-                "High computing capacity to examine full faculty cohorts simultaneously with zero bottlenecks.",
+                "للمدرسين أصحاب المجموعات الكبيرة، المحاضرين الجامعيين، والسناتر التعليمية.",
+                "For high-volume teachers, university professors, and educational centers.",
             ),
-            priceEgp: 2800,
-            priceUsd: 59,
-            maxExams: l("35 امتحان", "35 Exams"),
-            maxStudents: l("300 طالب / امتحان", "300 Students / Exam"),
-            maxDuration: l("10 دقائق / سؤال", "10 Min / Question"),
-            queueTier: l("أولوية قصوى (VIP Express)", "VIP Express Queue"),
-            featured: false,
-            dark: false,
+            priceEgp: 399,
+            priceUsd: 8,
+            maxExams: l("100 امتحان / شهرياً", "100 Exams / month"),
+            maxStudents: l("غير محدود (مفتوح لكل الدفعات)", "Unlimited Students"),
+            maxDuration: l("10 دقائق / سؤال", "10 min / question"),
+            queueTier: l("أولوية قصوى وقت الذروة (VIP)", "VIP Turbo AI Queue"),
+            featured: true,
+            dark: true,
             features: [
-                l("إنشاء حتى 35 امتحان (حتى 25 سؤال للامتحان)", "Up to 35 exams (up to 25 questions/exam)"),
-                l("حد أقصى 300 طالب داخل كل امتحان في نفس اللحظة", "Up to 300 concurrent students per exam"),
-                l("أولوية قصوى في طابور الـ AI وقت الذروة (VIP Queue)", "VIP Express priority in AI grading queue"),
-                l("سجل حضور وغياب أوتوماتيكي + تقارير تفصيلية للغش", "Automated attendance ledger + detailed integrity reports"),
+                l("إنشاء حتى 100 امتحان شفوي شهرياً (حتى 35 سؤال للامتحان)", "Up to 100 oral exams/month (35 questions per exam)"),
+                l("عدد طلاب غير محدود في كل امتحان مهما كان حجم الدفعة", "Unlimited students per exam for any cohort size"),
+                l("أولوية قصوى فورية وقت الذروة (VIP Turbo AI Queue)", "VIP Turbo priority in the AI grading queue during peak hours"),
+                l("تحليلات متقدمة لأداء المجموعات وإعادة فتح بصمة الصوت", "Advanced cohort analytics & biometric re-enrollment controls"),
             ],
         },
         {
             id: "enterprise",
-            name: l("باقة الجامعات والمنصات", "Enterprise & LMS"),
-            badge: l("ربط API كامل", "Custom & API"),
+            badge: l("امتحانات بلا حدود", "Unlimited Exams"),
+            name: l("باقة بلا حدود (مدارس وجامعات)", "Unlimited & Campus"),
             desc: l(
-                "للجامعات الكبرى والمنصات التعليمية التي ترغب في دمج OralIQ كـ فيتشر داخل منصتها.",
-                "For universities & EdTech platforms embedding OralIQ directly via API / LTI.",
+                "امتحانات مفتوحة بلا حدود مع معالجة فورية مخصصة وإمكانية الربط داخل منصتك التعليمية.",
+                "Unlimited oral exams with dedicated instant AI grading and optional LMS/API integration.",
             ),
-            priceEgp: 7000,
-            priceUsd: 149,
-            maxExams: l("150 امتحان", "150 Exams"),
-            maxStudents: l("1,500 طالب / امتحان", "1,500 Students / Exam"),
-            maxDuration: l("15 دقيقة / سؤال", "15 Min / Question"),
-            queueTier: l("معالجة فورية مخصصة (Dedicated)", "Dedicated Instant Queue"),
+            priceEgp: 699,
+            priceUsd: 14,
+            maxExams: l("غير محدود (امتحانات مفتوحة)", "Unlimited Exams"),
+            maxStudents: l("غير محدود (مفتوح لكل الطلاب)", "Unlimited Students"),
+            maxDuration: l("15 دقيقة / سؤال", "15 min / question"),
+            queueTier: l("معالجة فورية مخصصة (Instant)", "Dedicated Instant AI"),
             featured: false,
             dark: false,
             features: [
-                l("إنشاء حتى 150 امتحان (حتى 50 سؤال للامتحان)", "Up to 150 exams (up to 50 questions/exam)"),
-                l("حد أقصى 1,500 طالب لكل امتحان مع خوادم مخصصة", "Up to 1,500 students/exam on dedicated workers"),
-                l("تكامل مباشر مع Moodle وBlackboard وCanvas عبر API", "Direct API/Webhook integration with Moodle, Blackboard & Canvas"),
-                l("أعلى أولوية معالجة فورية (Priority 0) ودعم فني مخصص", "Instant Priority-0 AI processing & dedicated SLA support"),
+                l("عدد غير محدود من الامتحانات الشفوية طوال الشهر (حتى 50 سؤال)", "Unlimited oral exams all month (up to 50 questions/exam)"),
+                l("عدد طلاب غير محدود في جميع الامتحانات والدفعات", "Unlimited students across all exams and cohorts"),
+                l("مسار معالجة فوري مخصص بدون أي انتظار وقت الذروة", "Dedicated instant AI processing with zero queue wait"),
+                l("إمكانية الربط عبر API / LTI كـ فيتشر داخل منصتك أو مدرستك", "Optional API / LTI white-label integration into your LMS"),
             ],
         },
     ];
 
     const formatPrice = (egp: number, usd: number) => {
         if (egp === 0) return l("مجاناً", "Free");
-        const mult = billingCycle === "semester" ? 0.8 : 1;
+        const factor = billingCycle === "semester" ? 0.8 : 1;
         if (currency === "EGP") {
-            return `${Math.round(egp * mult).toLocaleString()} ${l("ج.م", "EGP")}`;
+            const val = Math.round(egp * factor);
+            return `${val.toLocaleString(lang === "ar" ? "ar-EG" : "en-US")} ${l("ج.م", "EGP")}`;
         }
-        return `$${Math.round(usd * mult)}`;
+        const val = Math.max(1, Math.round(usd * factor));
+        return `$${val}`;
     };
 
     return (
@@ -143,17 +149,17 @@ export function HomePricing({ startHref }: { startHref: string }) {
             <div ref={root} className="mx-auto max-w-[92rem] px-4 sm:px-8 lg:px-12">
                 {/* Header & Controls */}
                 <div className="flex flex-col items-center text-center">
-                    <Eyebrow>{l("خطط الاشتراك وسعة المعالجة", "Subscription Plans & Computing Capacity")}</Eyebrow>
+                    <Eyebrow>{l("خطط الاشتراك والأسعار", "Teacher-Friendly Subscription Plans")}</Eyebrow>
                     <h2 className={`${H2} mt-2 max-w-3xl text-ink`}>
                         {l(
-                            "باقات مرنة بعدد الامتحانات وسعة الطلاب لكل امتحان.",
-                            "Transparent plans scaled by exam count and student capacity.",
+                            "باقات في متناول كل مدرس ومحاضر، بعدد طلاب غير محدود.",
+                            "Affordable plans for every teacher, with unlimited students per exam.",
                         )}
                     </h2>
                     <p className="mt-4 max-w-2xl text-base sm:text-lg font-medium text-ink-2 leading-relaxed">
                         {l(
-                            "صممنا الباقات بحيث تضمن لك أعلى سرعة معالجة لثلاثة موديلات ذكاء اصطناعي (Whisper + SBERT + Biometrics) مع نظام طابور ذكي يعطي أولوية فورية للباقات الاحترافية وقت الذروة.",
-                            "Engineered around real AI computing capacity: choose the number of exams and max students per exam that fit your cohort, backed by our Priority AI Grading Queue.",
+                            "اختار الباقة على قد عدد الامتحانات اللي بتعملها في الشهر بس — وأي امتحان تبعته يقدر يدخله 100 أو 500 أو 1000 طالب بدون أي حد أقصى لعدد الطلاب!",
+                            "Choose your plan based solely on how many exams you create per month — every exam link supports 100, 500, or 1,000+ students with zero student caps!",
                         )}
                     </p>
 
@@ -174,7 +180,7 @@ export function HomePricing({ startHref }: { startHref: string }) {
                             <button
                                 type="button"
                                 onClick={() => setBillingCycle("semester")}
-                                className={` inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-bold transition-all ${
+                                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-bold transition-all ${
                                     billingCycle === "semester"
                                         ? "bg-[#6F4E37] text-[#FAF6F0] shadow-xs"
                                         : "text-ink-2 hover:text-ink"
@@ -262,7 +268,7 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                     )}
                                 </div>
 
-                                {/* Key Capacity Limits Pills (Exams + Students/Exam + AI Queue) */}
+                                {/* Key Capacity Limits Pills (Exams + Unlimited Students + AI Queue) */}
                                 <div className="mt-5 grid grid-cols-2 gap-2.5">
                                     <div className={`rounded-2xl p-3 ${p.dark ? "bg-black/25 border border-white/10" : "bg-sheet-2 border border-rule"}`}>
                                         <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-75">
@@ -274,9 +280,9 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                     <div className={`rounded-2xl p-3 ${p.dark ? "bg-black/25 border border-white/10" : "bg-sheet-2 border border-rule"}`}>
                                         <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-75">
                                             <Users className="size-3.5 text-[#E3A458]" aria-hidden />
-                                            <span>{l("سعة كل امتحان", "Students Cap")}</span>
+                                            <span>{l("عدد الطلاب", "Students")}</span>
                                         </div>
-                                        <p className="mt-1 text-sm font-extrabold">{p.maxStudents}</p>
+                                        <p className="mt-1 text-xs sm:text-sm font-extrabold">{p.maxStudents}</p>
                                     </div>
                                 </div>
 
@@ -317,7 +323,7 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                 >
                                     <span>
                                         {p.priceEgp === 0
-                                            ? l("ابدأ الباقة التجريبية مجاناً", "Start Free Starter")
+                                            ? l("ابدأ الباقة المجانية الآن", "Start Free Now")
                                             : l("اشترك الآن في الباقة", "Choose this plan")}
                                     </span>
                                     <span className={`flex size-8 items-center justify-center rounded-full ${
@@ -337,29 +343,29 @@ export function HomePricing({ startHref }: { startHref: string }) {
                         <div className="lg:col-span-8">
                             <div className="inline-flex items-center gap-2 text-xs font-extrabold text-pen">
                                 <Cpu className="size-4" aria-hidden />
-                                <span>{l("إدارة ذكية للموارد الحوسبية (AI Computing Capacity Protection)", "Intelligent AI Computing Capacity Architecture")}</span>
+                                <span>{l("إدارة ذكية للموارد الحوسبية بدون تقييد عدد الطلاب", "Smart AI Capacity Management With Unlimited Students")}</span>
                             </div>
                             <h3 className="ar-heading mt-2 font-display text-lg sm:text-xl font-bold text-ink">
                                 {l(
-                                    "كيف نضمن سرعة التصحيح وعدم توقف السيرفر أثناء امتحانات الدفعات الكبيرة؟",
-                                    "How we guarantee instant grading and zero server downtime during peak cohort exams:",
+                                    "إزاي بنسمح بعدد طلاب غير محدود في الامتحان من غير ما السيرفر يقع؟",
+                                    "How we support unlimited students per exam with zero server overload:",
                                 )}
                             </h3>
                             <p className="ar-body mt-2 text-sm leading-relaxed text-ink-2">
                                 {l(
-                                    "يعمل محرك OralIQ بنظام الطابور ذي الأولوية (Priority AI Semaphore Queue): يتم تنفيذ تتبُّع الـ 478 نقطة على جهاز الطالب مباشرة لتخفيف الحمل، بينما تمر التسجيلات الصوتية عبر طابور ذكي يمنح أولوية فورية لباقات الكليات والمحترفين، مع حماية السيرفر بسقف محدد لعدد الطلاب في كل امتحان.",
-                                    "OralIQ offloads 478-point facial mesh tracking to the student's browser while routing audio grading through a Priority AI Queue that prioritizes Campus & Pro exams and enforces strict per-exam student caps.",
+                                    "رؤية الكمبيوتر وتتبُّع الـ 478 نقطة بيتم معالجتها بالكامل على جهاز الطالب أثناء الامتحان، بينما إجابات الصوت بتدخل في طابور ذكي (Priority AI Queue) بيحفظ كل إجابة فوراً ويصححها بالترتيب مع إعطاء أولوية فورية للباقات المدفوعة وقت الذروة.",
+                                    "478-point facial mesh tracking runs 100% on the student's device, while spoken answers enter our Priority AI Queue that saves every submission immediately and prioritizes paid plans during peak hours.",
                                 )}
                             </p>
                         </div>
                         <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 lg:col-span-4">
                             <div className="flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet-2 px-4 py-3 text-xs font-bold text-ink">
                                 <Sparkles className="size-4 shrink-0 text-[#6F4E37]" aria-hidden />
-                                <span>{l("ترقية فورية للباقة من داخل لوحة تحكم الدكتور في أي وقت", "Instant 1-click plan upgrade inside the Lecturer Dashboard")}</span>
+                                <span>{l("عدد طلاب مفتوح في كل الباقات حتى الباقة المجانية", "Unlimited students per exam across all tiers including Free")}</span>
                             </div>
                             <div className="flex items-center gap-2.5 rounded-2xl border border-rule bg-sheet-2 px-4 py-3 text-xs font-bold text-ink">
                                 <ShieldCheck className="size-4 shrink-0 text-[#6F4E37]" aria-hidden />
-                                <span>{l("حفظ تلقائي لإجابات الطلاب حتى في أوقات الذروة", "Guaranteed zero-loss submission queuing under peak load")}</span>
+                                <span>{l("حفظ تلقائي لإجابات جميع الطلاب حتى في أوقات الذروة", "Guaranteed zero-loss submission queuing under peak load")}</span>
                             </div>
                         </div>
                     </div>

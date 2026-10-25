@@ -64,9 +64,12 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
     if (!data) return null;
 
     const { plan, usage, all_plans } = data;
-    const pct = Math.min(100, Math.round((usage.exams_used / Math.max(1, usage.exams_limit)) * 100));
-    const isNearLimit = usage.exams_remaining <= 1;
-    const isExhausted = usage.exams_remaining === 0;
+    const isUnlimitedExams = usage.exams_limit >= 9999;
+    const pct = isUnlimitedExams
+        ? Math.min(100, Math.max(8, usage.exams_used * 2))
+        : Math.min(100, Math.round((usage.exams_used / Math.max(1, usage.exams_limit)) * 100));
+    const isNearLimit = !isUnlimitedExams && usage.exams_remaining <= 1;
+    const isExhausted = !isUnlimitedExams && usage.exams_remaining === 0;
 
     const handleUpgrade = async () => {
         setUpgrading(true);
@@ -111,8 +114,8 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-sheet-2 px-3 py-1 text-xs font-bold text-ink-2">
                                 <Users className="size-3.5 text-[#6F4E37]" aria-hidden />
                                 {l(
-                                    `سعة كل امتحان: حتى ${usage.max_students_per_exam} طالب`,
-                                    `Cap: up to ${usage.max_students_per_exam} students/exam`,
+                                    "عدد الطلاب لكل امتحان: غير محدود (مفتوح لكل طلابك)",
+                                    "Students per exam: Unlimited (Open to all students)",
                                 )}
                             </span>
                         </div>
@@ -123,7 +126,9 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                 <span className="text-ink-2">
                                     {l("رصيد الامتحانات المنشأة:", "Created Exams Quota:")}{" "}
                                     <strong className="wb-num text-ink">
-                                        {usage.exams_used} / {usage.exams_limit}
+                                        {isUnlimitedExams
+                                            ? `${usage.exams_used} / ${l("غير محدود", "Unlimited")}`
+                                            : `${usage.exams_used} / ${usage.exams_limit}`}
                                     </strong>
                                 </span>
                                 <span
@@ -137,10 +142,15 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                 >
                                     {isExhausted
                                         ? l("انتهى رصيد الامتحانات في باقتك الحالية", "Exam quota reached")
-                                        : l(
-                                              `متبقي ${usage.exams_remaining} امتحانات (حتى ${usage.max_duration_minutes} د/سؤال)`,
-                                              `${usage.exams_remaining} exams left (up to ${usage.max_duration_minutes}m/question)`,
-                                          )}
+                                        : isUnlimitedExams
+                                          ? l(
+                                                `امتحانات غير محدودة (حتى ${usage.max_duration_minutes} د/سؤال)`,
+                                                `Unlimited exams (up to ${usage.max_duration_minutes}m/question)`,
+                                            )
+                                          : l(
+                                                `متبقي ${usage.exams_remaining} امتحانات (حتى ${usage.max_duration_minutes} د/سؤال)`,
+                                                `${usage.exams_remaining} exams left (up to ${usage.max_duration_minutes}m/question)`,
+                                            )}
                                 </span>
                             </div>
                             <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-sheet-2 border border-rule">
@@ -257,11 +267,15 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                             <div className="mt-3 space-y-1.5 border-t border-current/15 pt-3 text-xs font-bold">
                                                 <div className="flex items-center gap-1.5">
                                                     <Layers className="size-3.5 text-[#E3A458]" aria-hidden />
-                                                    <span>{l(`${p.max_exams} امتحانات`, `${p.max_exams} Exams`)}</span>
+                                                    <span>
+                                                        {p.max_exams >= 9999
+                                                            ? l("امتحانات غير محدودة", "Unlimited Exams")
+                                                            : l(`${p.max_exams} امتحان`, `${p.max_exams} Exams`)}
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <Users className="size-3.5 text-[#E3A458]" aria-hidden />
-                                                    <span>{l(`حتى ${p.max_students_per_exam} طالب/امتحان`, `Up to ${p.max_students_per_exam} students/exam`)}</span>
+                                                    <span>{l("عدد طلاب غير محدود", "Unlimited students")}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <Zap className="size-3.5 text-[#E3A458]" aria-hidden />

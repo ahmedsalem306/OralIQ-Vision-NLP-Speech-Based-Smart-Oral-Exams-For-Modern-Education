@@ -69,7 +69,7 @@ export function HomeHero({ startHref }: { startHref: string }) {
     return (
         <section
             ref={root}
-            className="home-a relative px-2.5 pt-20 pb-6 sm:px-5 sm:pt-24 sm:pb-8 lg:px-7"
+            className="home-a relative px-2.5 pt-21 pb-6 sm:px-5 sm:pt-24 sm:pb-8 lg:px-7"
         >
             {/* Rounded Hero Stage — Unified #0E0804 Base Matching the Processed Video Background 1:1 */}
             <div
@@ -79,11 +79,11 @@ export function HomeHero({ startHref }: { startHref: string }) {
                 }}
                 className="relative isolate mx-auto flex min-h-[calc(100dvh-7.5rem)] max-w-[94rem] flex-col justify-between overflow-hidden rounded-[24px] sm:rounded-[28px] border border-[#FAF6F0]/12 text-[#FAF6F0] shadow-[0_30px_80px_-24px_rgba(20,14,10,0.5)]"
             >
-                {/* FOREGROUND CONTENT: 3-Column Layout on Desktop, Clean Stacked Flow on Mobile */}
+                {/* FOREGROUND CONTENT: 3-Column Layout (Headline on Right | Open 5-Col Center for Character | 478 Card on Left) */}
                 <div className="relative z-10 mx-auto grid w-full max-w-[90rem] flex-1 grid-cols-1 items-center gap-5 px-4 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-8 lg:grid-cols-12 lg:gap-6 lg:px-12 lg:py-12">
-                    {/* 1. Headline & Actions (Right in RTL on Desktop, Top on Mobile) */}
+                    {/* 1. Start Column (Right in RTL): Headline & Actions (4 cols) */}
                     <div data-hero-title-wrap className="order-1 lg:order-none lg:col-span-4 relative z-10">
-                        <h1 className="ar-heading font-display text-[clamp(1.95rem,5.5vw,3.95rem)] font-bold leading-[1.16] text-[#FAF6F0]">
+                        <h1 className="ar-heading font-display text-[clamp(1.95rem,3.8vw,3.95rem)] font-bold leading-[1.16] text-[#FAF6F0]">
                             <span data-hero-line className="block">
                                 {l("أول منصة عربية", "The First Arabic Platform")}
                             </span>
@@ -95,7 +95,7 @@ export function HomeHero({ startHref }: { startHref: string }) {
                             </span>
                         </h1>
 
-                        <p data-hero-fade className="ar-body mt-3.5 sm:mt-5 max-w-[28rem] text-[0.95rem] font-medium leading-[1.8] text-[#FAF6F0]/82 sm:text-[1.05rem]">
+                        <p data-hero-fade className="ar-body mt-3.5 sm:mt-5 max-w-[26rem] text-[0.95rem] font-medium leading-[1.82] text-[#FAF6F0]/82 sm:text-[1.05rem]">
                             {l(
                                 "حولنا الامتحان الشفوي لكويز أونلاين ذكي زي أي كويز إلكتروني: الطالب بيجاوب بصوته، و3 موديلات ذكاء اصطناعي بتصحح الإجابة بالمعنى وبتراقب حركة العين وبصمة الوجه والصوت عشان مستحيل يغش.",
                                 "Turn oral exams into an effortless online quiz: students answer by voice while 3 AI models grade meaning and track eye gaze, face mesh, and voiceprint so cheating is impossible.",
@@ -116,18 +116,20 @@ export function HomeHero({ startHref }: { startHref: string }) {
                         </div>
                     </div>
 
-                    {/* 2. SINGLE Seamless Centerpiece Video — Middle on Mobile (order-2), Absolute Centerpiece on Desktop */}
-                    <div
-                        data-hero-video
-                        className="order-2 lg:order-none lg:col-span-5 flex items-end justify-center -my-2 sm:my-0 lg:pointer-events-none lg:absolute lg:inset-y-0 lg:left-[46.5%] lg:-translate-x-1/2 lg:z-0 lg:w-[39rem] xl:w-[44rem] lg:pt-2"
-                    >
-                        <FaceScan
-                            priority
-                            className="h-[20.5rem] w-full max-w-[22rem] sm:h-[27rem] sm:max-w-[30rem] lg:h-full lg:max-w-none"
-                        />
+                    {/* 2. Center Column (5 cols in Grid Flow so 478 Card stays on Left!): Contains the SINGLE FaceScan Video */}
+                    <div className="order-2 lg:order-none lg:col-span-5 flex items-end justify-center">
+                        <div
+                            data-hero-video
+                            className="flex w-full items-end justify-center -my-2 sm:my-0 lg:pointer-events-none lg:absolute lg:inset-y-0 lg:left-[46.5%] lg:-translate-x-1/2 lg:z-0 lg:w-[39rem] xl:w-[44rem] lg:pt-2"
+                        >
+                            <FaceScan
+                                priority
+                                className="h-[20.5rem] w-full max-w-[22rem] sm:h-[27rem] sm:max-w-[30rem] lg:h-full lg:max-w-none"
+                            />
+                        </div>
                     </div>
 
-                    {/* 3. Warm Off-White 478 Points Biometric Anti-Cheating Card */}
+                    {/* 3. End Column (Left in RTL): Warm Off-White 478 Points Biometric Anti-Cheating Card (3 cols) */}
                     <div className="order-3 lg:order-none lg:col-span-3 relative z-10">
                         <div
                             data-hero-card

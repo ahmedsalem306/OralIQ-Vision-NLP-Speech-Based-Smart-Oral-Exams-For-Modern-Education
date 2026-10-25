@@ -57,12 +57,12 @@ export default function LandingPage() {
                             <Logo height={21} className="sm:h-[23px] w-auto" />
                         </Link>
 
-                        <ul className="hidden items-center gap-1 mx-auto lg:flex">
+                        <ul className="hidden items-center gap-0.5 xl:gap-1 mx-auto lg:flex">
                             {sections.map((s) => (
-                                <li key={s.href}>
+                                <li key={s.href} className="shrink-0">
                                     <a
                                         href={s.href}
-                                        className="inline-flex h-10 items-center rounded-full px-3.5 text-[0.95rem] font-bold text-ink-2 transition-colors hover:bg-sheet-2 hover:text-ink"
+                                        className="inline-flex h-10 items-center whitespace-nowrap rounded-full px-2.5 xl:px-3.5 text-[0.84rem] xl:text-[0.93rem] font-bold text-ink-2 transition-colors hover:bg-sheet-2 hover:text-ink"
                                     >
                                         {s.label}
                                     </a>
