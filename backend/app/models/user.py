@@ -18,3 +18,4 @@ class User(Base):
     face_locked = Column(Boolean, default=False)
     plan_tier = Column(String, default="free")  # 'free', 'pro', 'campus', 'enterprise'
     plan_updated_at = Column(String, nullable=True)
+    exams_created_count = Column(Integer, default=0)  # Cumulative exams created in current cycle (cannot be bypassed by deleting exams)

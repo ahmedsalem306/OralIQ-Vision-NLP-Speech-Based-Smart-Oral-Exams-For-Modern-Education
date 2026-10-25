@@ -34,7 +34,7 @@ def get_lecturer_usage(db: Session, user: User) -> Dict[str, Any]:
     plan = get_plan(getattr(user, "plan_tier", "free"))
     questions = db.query(Question).filter(Question.creator_id == user.id).all()
     distinct_groups = {q.group_token or q.exam_token for q in questions}
-    exams_used = len(distinct_groups)
+    exams_used = max(getattr(user, "exams_created_count", 0) or 0, len(distinct_groups))
 
     # Compute per-exam student counts
     exam_student_counts: Dict[str, int] = {}

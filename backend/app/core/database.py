@@ -112,6 +112,7 @@ def run_migrations():
             _add_column("users", "face_locked", "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_locked BOOLEAN DEFAULT FALSE")
             _add_column("users", "plan_tier", "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_tier VARCHAR DEFAULT 'free'")
             _add_column("users", "plan_updated_at", "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_updated_at VARCHAR")
+            _add_column("users", "exams_created_count", "ALTER TABLE users ADD COLUMN IF NOT EXISTS exams_created_count INTEGER DEFAULT 0")
         else:
             _add_column("users", "voice_locked", f"ALTER TABLE users ADD COLUMN voice_locked BOOLEAN DEFAULT {bool_false}")
             _add_column("users", "voice_reenroll_allowed", f"ALTER TABLE users ADD COLUMN voice_reenroll_allowed BOOLEAN DEFAULT {bool_false}")
@@ -119,6 +120,7 @@ def run_migrations():
             _add_column("users", "face_locked", f"ALTER TABLE users ADD COLUMN face_locked BOOLEAN DEFAULT {bool_false}")
             _add_column("users", "plan_tier", "ALTER TABLE users ADD COLUMN plan_tier VARCHAR DEFAULT 'free'")
             _add_column("users", "plan_updated_at", "ALTER TABLE users ADD COLUMN plan_updated_at VARCHAR")
+            _add_column("users", "exams_created_count", "ALTER TABLE users ADD COLUMN exams_created_count INTEGER DEFAULT 0")
 
         with engine.begin() as conn:
             conn.execute(text(
