@@ -7,7 +7,10 @@ Supports:
 """
 import hashlib
 import hmac
+import json
 import os
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -28,6 +31,156 @@ class UpgradePlanRequest(BaseModel):
     currency: str = Field(default="EGP", max_length=8)
     payment_method: str = Field(default="card", max_length=32)
     wallet_phone: Optional[str] = Field(default=None, max_length=24)
+
+
+def _create_paymob_checkout_url(user: User, plan: Dict[str, Any], payment_method: str, wallet_phone: Optional[str]) -> Optional[str]:
+    """
+    Executes Paymob's 3-step Acceptance API when PAYMOB_API_KEY is configured:
+    1. Auth Token -> 2. Order Registration -> 3. Payment Key -> Returns Iframe/Wallet Checkout URL.
+    """
+    api_key = os.getenv("PAYMOB_API_KEY", "").strip()
+    if not api_key or plan["price_egp"] <= 0:
+        return None
+
+    integration_id = (
+        os.getenv("PAYMOB_WALLET_INTEGRATION_ID", "").strip()
+        if payment_method == "instapay"
+        else os.getenv("PAYMOB_CARD_INTEGRATION_ID", "").strip()
+    )
+    iframe_id = os.getenv("PAYMOB_IFRAME_ID", "").strip()
+    if not integration_id:
+        return None
+
+    amount_cents = int(plan["price_egp"]) * 100
+
+    def _post_json(url: str, data: dict) -> dict:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(data).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    # Step 1: Authenticate
+    auth_res = _post_json("https://accept.paymob.com/api/auth/tokens", {"api_key": api_key})
+    auth_token = auth_res.get("token")
+    if not auth_token:
+        return None
+
+    # Step 2: Register Order
+    order_res = _post_json(
+        "https://accept.paymob.com/api/ecommerce/orders",
+        {
+            "auth_token": auth_token,
+            "delivery_needed": "false",
+            "amount_cents": str(amount_cents),
+            "currency": "EGP",
+            "items": [
+                {
+                    "name": f"OralIQ - {plan['name_en']}",
+                    "amount_cents": str(amount_cents),
+                    "description": plan["id"],
+                    "quantity": "1",
+                }
+            ],
+        },
+    )
+    order_id = order_res.get("id")
+    if not order_id:
+        return None
+
+    # Step 3: Request Payment Key
+    full_name = (user.full_name or "OralIQ Lecturer").strip()
+    parts = full_name.split(" ", 1)
+    first_name = parts[0]
+    last_name = parts[1] if len(parts) > 1 else "Lecturer"
+
+    pkey_res = _post_json(
+        "https://accept.paymob.com/api/acceptance/payment_keys",
+        {
+            "auth_token": auth_token,
+            "amount_cents": str(amount_cents),
+            "expiration": 3600,
+            "order_id": order_id,
+            "billing_data": {
+                "apartment": "NA",
+                "email": user.email,
+                "floor": "NA",
+                "first_name": first_name,
+                "street": "NA",
+                "building": "NA",
+                "phone_number": wallet_phone or "+201000000000",
+                "shipping_method": "NA",
+                "postal_code": "NA",
+                "city": "Cairo",
+                "country": "EG",
+                "last_name": last_name,
+                "state": "Cairo",
+                "extra_description": plan["id"],
+            },
+            "currency": "EGP",
+            "integration_id": int(integration_id),
+        },
+    )
+    payment_token = pkey_res.get("token")
+    if not payment_token:
+        return None
+
+    if payment_method == "instapay" and wallet_phone:
+        pay_res = _post_json(
+            "https://accept.paymob.com/api/acceptance/payments/pay",
+            {
+                "source": {"identifier": wallet_phone, "subtype": "WALLET"},
+                "payment_token": payment_token,
+            },
+        )
+        return pay_res.get("redirect_url") or pay_res.get("iframe_redirection_url")
+
+    if iframe_id:
+        return f"https://accept.paymob.com/api/acceptance/iframes/{iframe_id}?payment_token={payment_token}"
+    return None
+
+
+def _create_stripe_checkout_url(user: User, plan: Dict[str, Any]) -> Optional[str]:
+    """
+    Creates a Stripe Checkout Session for USD payments when STRIPE_SECRET_KEY is configured.
+    """
+    secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    if not secret_key or plan["price_usd"] <= 0:
+        return None
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    amount_cents = int(plan["price_usd"]) * 100
+
+    form_data = urllib.parse.urlencode(
+        {
+            "mode": "payment",
+            "success_url": f"{frontend_url}/dashboard?upgraded={plan['id']}",
+            "cancel_url": f"{frontend_url}/dashboard?canceled=1",
+            "customer_email": user.email,
+            "line_items[0][price_data][currency]": "usd",
+            "line_items[0][price_data][unit_amount]": str(amount_cents),
+            "line_items[0][price_data][product_data][name]": f"OralIQ - {plan['name_en']}",
+            "line_items[0][quantity]": "1",
+            "metadata[user_id]": str(user.id),
+            "metadata[plan_id]": plan["id"],
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.stripe.com/v1/checkout/sessions",
+        data=form_data,
+        headers={
+            "Authorization": f"Bearer {secret_key}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=12) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        return data.get("url")
 
 
 def get_lecturer_usage(db: Session, user: User) -> Dict[str, Any]:
@@ -108,14 +261,42 @@ def upgrade_subscription_plan(
 
     target_plan = PLANS[target_id]
     amount = target_plan["price_egp"] if currency == "EGP" else target_plan["price_usd"]
+    gateway_provider = "paymob_egp" if currency == "EGP" else "stripe_usd"
 
-    # Free tier or Sandbox/Demo instant activation
+    # 1. If Live Payment Gateway Keys are configured, generate Checkout URL and wait for Webhook
+    checkout_url: Optional[str] = None
+    if amount > 0:
+        try:
+            if currency == "EGP" and os.getenv("PAYMOB_API_KEY", "").strip():
+                checkout_url = _create_paymob_checkout_url(
+                    current_user, target_plan, payload.payment_method, payload.wallet_phone
+                )
+            elif currency == "USD" and os.getenv("STRIPE_SECRET_KEY", "").strip():
+                checkout_url = _create_stripe_checkout_url(current_user, target_plan)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"تعذر الاتصال ببوابة الدفع حالياً: {exc}",
+            )
+
+    if checkout_url:
+        status_data = get_lecturer_usage(db, current_user)
+        return {
+            "ok": True,
+            "gateway": gateway_provider,
+            "currency": currency,
+            "amount": amount,
+            "checkout_url": checkout_url,
+            "message": "جاري تحويلك لبوابة الدفع الآمنة...",
+            **status_data,
+        }
+
+    # 2. Free tier or Sandbox/Demo instant activation (when gateway keys are not yet in .env)
     current_user.plan_tier = target_id
     current_user.plan_updated_at = datetime.now(timezone.utc).isoformat()
     db.commit()
     db.refresh(current_user)
 
-    gateway_provider = "paymob_egp" if currency == "EGP" else "stripe_usd"
     status_data = get_lecturer_usage(db, current_user)
     return {
         "ok": True,
