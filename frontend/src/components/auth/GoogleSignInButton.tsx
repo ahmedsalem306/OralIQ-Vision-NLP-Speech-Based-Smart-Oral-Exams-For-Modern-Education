@@ -273,7 +273,7 @@ export default function GoogleSignInButton({
         {
             value: "lecturer",
             icon: Presentation,
-            label: l("دكتور / أستاذ", "Doctor / Teacher"),
+            label: l("دكتور / محاضر / مدرس", "Doctor / Lecturer / Teacher"),
             sub: l("أنشئ الامتحانات وأتابع الطلاب", "Create exams and review students"),
         },
     ];

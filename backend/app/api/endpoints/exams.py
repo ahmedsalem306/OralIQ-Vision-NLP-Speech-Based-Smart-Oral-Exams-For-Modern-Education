@@ -553,10 +553,25 @@ def get_my_grades(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    return db.query(ExamSubmission).filter(
-        ExamSubmission.student_id == current_user.id,
-        ExamSubmission.grade_visible == 1,
-    ).all()
+    subs = (
+        db.query(ExamSubmission)
+        .options(joinedload(ExamSubmission.question).joinedload(Question.creator))
+        .filter(
+            ExamSubmission.student_id == current_user.id,
+            ExamSubmission.grade_visible == 1,
+        )
+        .all()
+    )
+    out = []
+    for s in subs:
+        item = ExamSubmissionOut.model_validate(s)
+        if s.question:
+            item.question_text = s.question.text
+            item.question_category = s.question.category
+            if s.question.creator:
+                item.lecturer_name = s.question.creator.full_name
+        out.append(item)
+    return out
 
 
 # ── PATCH toggle grade visibility (lecturer — verified ownership) ─────────────

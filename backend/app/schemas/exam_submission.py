@@ -28,6 +28,7 @@ class ExamSubmissionOut(BaseModel):
     submitted_at: Optional[datetime] = None
     question_text: Optional[str] = None
     question_category: Optional[str] = None
+    lecturer_name: Optional[str] = None
 
     class Config:
         from_attributes = True

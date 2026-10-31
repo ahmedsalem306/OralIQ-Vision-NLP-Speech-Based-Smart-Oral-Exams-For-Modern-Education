@@ -69,7 +69,7 @@ export default function RegisterPage() {
 
     const roles = [
         { value: "student", icon: GraduationCap, label: l("طالب", "Student"), sub: l("أدخل الامتحانات وأشوف درجاتي", "Take exams and see my grades") },
-        { value: "lecturer", icon: Presentation, label: l("دكتور / أستاذ", "Doctor / Teacher"), sub: l("أكتب الأسئلة وأراجع الإجابات", "Write questions and review answers") },
+        { value: "lecturer", icon: Presentation, label: l("دكتور / محاضر / مدرس", "Doctor / Lecturer / Teacher"), sub: l("أكتب الأسئلة وأراجع إجابات الطلاب", "Write questions and review student answers") },
     ];
 
     return (

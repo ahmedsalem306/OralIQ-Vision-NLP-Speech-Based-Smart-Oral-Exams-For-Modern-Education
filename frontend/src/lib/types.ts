@@ -45,6 +45,7 @@ export interface Submission {
     submitted_at: string | null;
     question_text: string | null;
     question_category: string | null;
+    lecturer_name?: string | null;
 }
 
 export interface Assignment {

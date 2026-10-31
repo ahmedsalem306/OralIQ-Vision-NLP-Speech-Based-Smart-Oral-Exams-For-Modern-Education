@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Award, TrendingUp, Trophy, X } from "lucide-react";
+import { Award, CalendarClock, TrendingUp, Trophy, UserRound, X } from "lucide-react";
 import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, RuledList, StatStrip } from "../components/ui/panel";
@@ -41,6 +41,14 @@ export default function MyGrades() {
     const current = grades.find((g) => g.id === openId) ?? null;
 
     const title = (g: Submission) => g.question_text || l(`امتحان ${formatDate(g.submitted_at, lang)}`, `Exam on ${formatDate(g.submitted_at, lang)}`);
+    const subjectOf = (g: Submission) => {
+        const c = (g.question_category || "").trim();
+        return c && c.toLowerCase() !== "general" ? c : null;
+    };
+    const headline = (g: Submission) => {
+        const subject = subjectOf(g);
+        return subject ? l(`امتحان مادة ${subject}`, `${subject} exam`) : l("امتحان شفوي", "Oral exam");
+    };
 
     return (
         <>
@@ -84,8 +92,20 @@ export default function MyGrades() {
                                         className="flex w-full items-center gap-4 px-5 py-4 text-start transition-colors hover:bg-sheet-2"
                                     >
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold leading-snug">{title(g)}</p>
-                                            <p className="mt-1 text-sm text-ink-3">{formatDate(g.submitted_at, lang)}</p>
+                                            <p className="font-bold leading-snug text-ink">{headline(g)}</p>
+                                            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
+                                                {g.lecturer_name && (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <UserRound className="size-3.5" aria-hidden />
+                                                        {l(`د. ${g.lecturer_name}`, `Dr. ${g.lecturer_name}`)}
+                                                    </span>
+                                                )}
+                                                <span className="inline-flex items-center gap-1">
+                                                    <CalendarClock className="size-3.5" aria-hidden />
+                                                    {formatDate(g.submitted_at, lang, true)}
+                                                </span>
+                                            </p>
+                                            <p className="mt-1 truncate text-xs text-ink-3">{title(g)}</p>
                                         </div>
                                         {info && <Badge tone={info.tone} className="hidden sm:inline-flex">{l(info.ar, info.en)}</Badge>}
                                         <ScoreMark score={g.overall_score} size="md" ink="kind" />
@@ -103,7 +123,14 @@ export default function MyGrades() {
                 label={l("تفاصيل الدرجة", "Grade details")}
                 header={
                     <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold">{l("تفاصيل الدرجة", "Grade details")}</p>
+                        <div className="min-w-0">
+                            <p className="font-semibold">{current ? headline(current) : l("تفاصيل الدرجة", "Grade details")}</p>
+                            {current && (
+                                <p className="truncate text-xs text-ink-2">
+                                    {current.lecturer_name ? `${l("د.", "Dr.")} ${current.lecturer_name} · ` : ""}{formatDate(current.submitted_at, lang, true)}
+                                </p>
+                            )}
+                        </div>
                         <button type="button" data-autofocus className={buttonClasses("ghost", "icon-sm")} onClick={() => setOpenId(null)} aria-label={l("إغلاق", "Close")}>
                             <X className="size-5" aria-hidden />
                         </button>
