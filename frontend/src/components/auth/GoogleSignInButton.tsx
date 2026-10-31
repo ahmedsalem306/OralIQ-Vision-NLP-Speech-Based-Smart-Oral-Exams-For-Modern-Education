@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GraduationCap, Loader2, Presentation } from "lucide-react";
+import { GraduationCap, Loader2, Presentation, X } from "lucide-react";
 import api from "../../lib/api";
 import { useI18n } from "../../i18n";
 import { useTheme } from "../../lib/theme";
@@ -9,11 +9,10 @@ import { getApiErrorMessage } from "../../lib/apiErrors";
 /**
  * Official "Sign in with Google" button (Google Identity Services).
  *
- * - Reads client_id from GET /auth/google/config (with VITE_GOOGLE_CLIENT_ID fallback).
- * - When configured, mounts Google's official GIS popup button and verifies the ID token
- *   server-side via POST /login/google.
- * - When GOOGLE_CLIENT_ID has not been configured yet, shows the Google button with a clear
- *   setup prompt on click so administrators can see where Google Sign-In lives immediately.
+ * - Existing accounts sign right in with one click.
+ * - First-time Google accounts (whether started from Login or Register) open a clean modal
+ *   allowing the user to enter/edit their real full name (pre-filled from the form or Google)
+ *   and pick whether they are a Student ("طالب") or Doctor/Teacher ("دكتور / أستاذ").
  */
 
 type Role = "student" | "lecturer";
@@ -93,8 +92,10 @@ function GoogleMark() {
 }
 
 type Props = {
-    /** Role to use if this Google account is new (Register page). Omit on Login. */
-    role?: Role;
+    /** Pre-selected role for the first-time Google signup modal (e.g. from Register page). */
+    defaultRole?: Role;
+    /** Pre-filled full name if the user already started typing on Register page. */
+    initialName?: string;
     mode?: "signin" | "signup";
     onSuccess: (token: string) => void;
     onError: (message: string) => void;
@@ -105,7 +106,16 @@ type Props = {
     className?: string;
 };
 
-export default function GoogleSignInButton({ role, mode = "signin", onSuccess, onError, onStart, header, className }: Props) {
+export default function GoogleSignInButton({
+    defaultRole,
+    initialName,
+    mode = "signin",
+    onSuccess,
+    onError,
+    onStart,
+    header,
+    className,
+}: Props) {
     const { l, lang } = useI18n();
     const { resolved } = useTheme();
     const btnRef = useRef<HTMLDivElement>(null);
@@ -113,30 +123,54 @@ export default function GoogleSignInButton({ role, mode = "signin", onSuccess, o
     const [configChecked, setConfigChecked] = useState(false);
     const [gsiReady, setGsiReady] = useState(false);
     const [busy, setBusy] = useState(false);
+
+    // First-time signup completion modal state
     const [pendingCredential, setPendingCredential] = useState<string | null>(null);
+    const [pendingEmail, setPendingEmail] = useState<string>("");
+    const [customName, setCustomName] = useState<string>("");
+    const [chosenRole, setChosenRole] = useState<Role>(defaultRole ?? "student");
+    const [modalError, setModalError] = useState<string>("");
 
-    const latest = useRef({ role, onSuccess, onError, onStart, l });
-    latest.current = { role, onSuccess, onError, onStart, l };
+    const latest = useRef({ defaultRole, initialName, onSuccess, onError, onStart, l });
+    latest.current = { defaultRole, initialName, onSuccess, onError, onStart, l };
 
-    const submit = useCallback(async (credential: string, chosenRole?: Role) => {
-        const { onSuccess: ok, onError: fail, onStart: start, l: t } = latest.current;
+    const submit = useCallback(async (credential: string, roleToCreate?: Role, fullNameToCreate?: string) => {
+        const { defaultRole: defRole, initialName: initName, onSuccess: ok, onError: fail, onStart: start, l: t } = latest.current;
         start?.();
+        setModalError("");
         setBusy(true);
         try {
-            const res = await api.post("/login/google", { credential, role: chosenRole ?? null });
+            const res = await api.post("/login/google", {
+                credential,
+                role: roleToCreate ?? null,
+                full_name: fullNameToCreate?.trim() || null,
+            });
             setPendingCredential(null);
             ok(res.data.access_token);
         } catch (err: unknown) {
             const r = (err as { response?: { status?: number; data?: { detail?: unknown } } })?.response;
-            const detail = r?.data?.detail as { code?: string } | string | undefined;
+            const detail = r?.data?.detail as
+                | { code?: string; email?: string; suggested_name?: string }
+                | string
+                | undefined;
             if (r?.status === 409 && typeof detail === "object" && detail?.code === "ROLE_REQUIRED") {
                 setPendingCredential(credential);
+                setPendingEmail(detail.email || "");
+                setCustomName((initName || "").trim() || (detail.suggested_name || "").trim());
+                setChosenRole(defRole ?? "student");
+                setModalError("");
             } else if (r?.status === 401) {
-                fail(t("تعذّر التحقق من حساب Google. جرّب تاني.", "Couldn't verify your Google account. Please try again."));
+                const msg = t("تعذّر التحقق من حساب Google. جرّب تاني.", "Couldn't verify your Google account. Please try again.");
+                setPendingCredential(null);
+                fail(msg);
             } else if (r?.status === 503) {
-                fail(t("الدخول بحساب Google غير مفعّل بعد على السيرفر (أضف GOOGLE_CLIENT_ID).", "Google sign-in isn't configured on the server yet (set GOOGLE_CLIENT_ID)."));
+                const msg = t("الدخول بحساب Google غير مفعّل بعد على السيرفر (أضف GOOGLE_CLIENT_ID).", "Google sign-in isn't configured on the server yet (set GOOGLE_CLIENT_ID).");
+                setPendingCredential(null);
+                fail(msg);
             } else {
-                fail(getApiErrorMessage(err, t("تعذّر تسجيل الدخول بحساب Google.", "Could not sign in with Google.")));
+                const msg = getApiErrorMessage(err, t("تعذّر تسجيل الدخول بحساب Google.", "Could not sign in with Google."));
+                if (roleToCreate) setModalError(msg);
+                else fail(msg);
             }
         } finally {
             setBusy(false);
@@ -165,7 +199,8 @@ export default function GoogleSignInButton({ role, mode = "signin", onSuccess, o
                 gid.initialize({
                     client_id: clientId,
                     callback: (resp) => {
-                        if (resp.credential) void submit(resp.credential, latest.current.role);
+                        // Always check account existence first; new users get the Name + Role dialog.
+                        if (resp.credential) void submit(resp.credential);
                     },
                     ux_mode: "popup",
                     cancel_on_tap_outside: true,
@@ -211,9 +246,30 @@ export default function GoogleSignInButton({ role, mode = "signin", onSuccess, o
         }
     };
 
-    const roles: { value: Role; icon: typeof GraduationCap; label: string }[] = [
-        { value: "student", icon: GraduationCap, label: l("طالب", "Student") },
-        { value: "lecturer", icon: Presentation, label: l("مدرس / محاضر", "Lecturer") },
+    const handleCompleteSignup = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!pendingCredential) return;
+        const trimmed = customName.trim();
+        if (trimmed.length < 2) {
+            setModalError(l("اكتب اسمك بالكامل (حرفين على الأقل).", "Please enter your full name (at least 2 characters)."));
+            return;
+        }
+        void submit(pendingCredential, chosenRole, trimmed);
+    };
+
+    const roles: { value: Role; icon: typeof GraduationCap; label: string; sub: string }[] = [
+        {
+            value: "student",
+            icon: GraduationCap,
+            label: l("طالب", "Student"),
+            sub: l("أدخل الامتحانات وأشوف درجاتي", "Take oral exams and view my grades"),
+        },
+        {
+            value: "lecturer",
+            icon: Presentation,
+            label: l("دكتور / أستاذ", "Doctor / Teacher"),
+            sub: l("أنشئ الامتحانات وأتابع الطلاب", "Create exams and review students"),
+        },
     ];
 
     return (
@@ -245,7 +301,7 @@ export default function GoogleSignInButton({ role, mode = "signin", onSuccess, o
                         </span>
                     </button>
                 )}
-                {busy && (
+                {busy && !pendingCredential && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <Loader2 className="w-5 h-5 animate-spin text-pen" />
                     </div>
@@ -253,34 +309,116 @@ export default function GoogleSignInButton({ role, mode = "signin", onSuccess, o
             </div>
 
             {pendingCredential && (
-                <div className="mt-4 rounded-xl border border-rule bg-sheet p-4" role="group" aria-label={l("اختار نوع الحساب", "Choose account type")}>
-                    <p className="text-sm font-bold text-ink mb-1">
-                        {l("أول مرة تدخل بحساب Google ده", "First time with this Google account")}
-                    </p>
-                    <p className="text-xs text-ink-2 mb-3">
-                        {l("اختار نوع حسابك علشان نكمّل إنشاءه.", "Choose your account type to finish creating it.")}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2.5">
-                        {roles.map(({ value, icon: Icon, label }) => (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-xs p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={l("إكمال بيانات الحساب", "Complete account setup")}
+                >
+                    <form
+                        onSubmit={handleCompleteSignup}
+                        className="w-full max-w-md rounded-2xl border border-rule bg-paper p-5 sm:p-6 text-ink shadow-float space-y-4 animate-[oiq-fade-in_160ms_ease-out]"
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-sheet px-3 py-1 text-xs font-bold text-ink-2 mb-2">
+                                    <GoogleMark />
+                                    <span dir="ltr" className="truncate max-w-[15rem]">{pendingEmail}</span>
+                                </div>
+                                <h2 className="ar-heading text-xl sm:text-2xl font-bold text-ink">
+                                    {l("كمّل بيانات حسابك", "Complete Your Profile")}
+                                </h2>
+                                <p className="text-xs sm:text-sm text-ink-2 mt-0.5">
+                                    {l("اكتب اسمك اللي هيظهر في المنصة واختار نوع حسابك.", "Enter your display name and choose your account type.")}
+                                </p>
+                            </div>
                             <button
-                                key={value}
                                 type="button"
                                 disabled={busy}
-                                onClick={() => void submit(pendingCredential, value)}
-                                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-rule bg-sheet text-sm font-bold text-ink hover:border-pen hover:bg-pen-wash transition-all disabled:opacity-60"
+                                onClick={() => setPendingCredential(null)}
+                                aria-label={l("إغلاق", "Close")}
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full hover:bg-sheet-2 text-ink-2"
                             >
-                                <Icon className="size-4 text-pen" aria-hidden />
-                                <span>{label}</span>
+                                <X className="size-4" />
                             </button>
-                        ))}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setPendingCredential(null)}
-                        className="mt-3 w-full text-xs font-bold text-ink-3 hover:text-ink"
-                    >
-                        {l("إلغاء", "Cancel")}
-                    </button>
+                        </div>
+
+                        {modalError && (
+                            <div className="rounded-xl border border-mark/35 bg-mark-wash px-3.5 py-2.5 text-xs sm:text-sm font-bold text-mark">
+                                {modalError}
+                            </div>
+                        )}
+
+                        <div>
+                            <label htmlFor="google-full-name" className="block text-sm font-bold text-ink mb-1.5">
+                                {l("الاسم بالكامل", "Full Name")}
+                            </label>
+                            <input
+                                id="google-full-name"
+                                type="text"
+                                required
+                                autoFocus
+                                maxLength={120}
+                                value={customName}
+                                onChange={(e) => { setCustomName(e.target.value); setModalError(""); }}
+                                placeholder={l("اكتب اسمك الثلاثي", "Enter your full name")}
+                                className="auth-light-input w-full px-4 py-3 border border-rule bg-sheet text-ink placeholder:text-field rounded-xl focus:ring-2 focus:ring-pen/30 focus:border-pen outline-none font-medium"
+                            />
+                        </div>
+
+                        <div>
+                            <span className="block text-sm font-bold text-ink mb-2">
+                                {l("أنت بتسجّل كـ:", "I am signing up as:")}
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup">
+                                {roles.map(({ value, icon: Icon, label, sub }) => {
+                                    const active = chosenRole === value;
+                                    return (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            disabled={busy}
+                                            onClick={() => setChosenRole(value)}
+                                            className={cn(
+                                                "flex flex-col items-start gap-1 rounded-xl border p-3.5 text-start transition-all",
+                                                active
+                                                    ? "border-pen bg-sheet shadow-card ring-1 ring-pen"
+                                                    : "border-rule bg-sheet/65 hover:border-ink-3",
+                                            )}
+                                        >
+                                            <div className="flex w-full items-center justify-between">
+                                                <Icon className={cn("size-5", active ? "text-pen" : "text-ink-3")} aria-hidden />
+                                                <span className={cn("size-3.5 rounded-full border", active ? "border-pen bg-pen" : "border-rule-strong/40")} />
+                                            </div>
+                                            <span className="mt-1 text-sm font-bold text-ink">{label}</span>
+                                            <span className="text-xs text-ink-2 leading-snug">{sub}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 pt-1">
+                            <button
+                                type="submit"
+                                disabled={busy}
+                                className="oiq-btn-mint flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                            >
+                                {busy && <Loader2 className="size-4 animate-spin" />}
+                                <span>{busy ? l("جاري إنشاء الحساب…", "Creating account…") : l("تأكيد وإنشاء الحساب", "Confirm & Create Account")}</span>
+                            </button>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setPendingCredential(null)}
+                                className="py-3 px-4 rounded-xl border border-rule bg-sheet hover:bg-sheet-2 text-xs sm:text-sm font-bold text-ink-2"
+                            >
+                                {l("إلغاء", "Cancel")}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             )}
         </div>

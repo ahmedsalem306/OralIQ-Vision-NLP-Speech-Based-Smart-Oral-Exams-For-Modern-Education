@@ -116,8 +116,22 @@ def test_new_user_without_role_returns_409(env):
     detail = r.json()["detail"]
     assert detail["code"] == "ROLE_REQUIRED"
     assert detail["email"] == "new.user@gmail.com"
+    assert detail["suggested_name"] == "New User"
     with Session() as db:
         assert db.query(User).count() == 0
+
+
+def test_new_user_with_custom_full_name_and_role(env):
+    client, Session, _ = env
+    r = client.post(
+        "/api/v1/login/google",
+        json={"credential": "x" * 20, "role": "lecturer", "full_name": "  د. أحمد الصاوي  "},
+    )
+    assert r.status_code == 200, r.text
+    with Session() as db:
+        user = db.query(User).filter(User.email == "new.user@gmail.com").one()
+        assert user.role == "lecturer"
+        assert user.full_name == "د. أحمد الصاوي"
 
 
 def test_new_user_with_role_is_created(env):

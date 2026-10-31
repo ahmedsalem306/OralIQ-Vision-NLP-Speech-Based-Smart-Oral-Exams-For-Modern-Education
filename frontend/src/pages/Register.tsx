@@ -69,7 +69,7 @@ export default function RegisterPage() {
 
     const roles = [
         { value: "student", icon: GraduationCap, label: l("طالب", "Student"), sub: l("أدخل الامتحانات وأشوف درجاتي", "Take exams and see my grades") },
-        { value: "lecturer", icon: Presentation, label: l("محاضر", "Lecturer"), sub: l("أكتب الأسئلة وأراجع الإجابات", "Write questions and review answers") },
+        { value: "lecturer", icon: Presentation, label: l("دكتور / أستاذ", "Doctor / Teacher"), sub: l("أكتب الأسئلة وأراجع الإجابات", "Write questions and review answers") },
     ];
 
     return (
@@ -217,10 +217,11 @@ export default function RegisterPage() {
 
                     </form>
 
-                    {/* Sign up with Google (shown only when the server has GOOGLE_CLIENT_ID) */}
+                    {/* Sign up with Google */}
                     <GoogleSignInButton
                         mode="signup"
-                        role={role === "student" || role === "lecturer" ? role : undefined}
+                        defaultRole={role === "student" || role === "lecturer" ? role : undefined}
+                        initialName={fullName}
                         onStart={() => setError("")}
                         onSuccess={(token) => {
                             localStorage.setItem("token", token);

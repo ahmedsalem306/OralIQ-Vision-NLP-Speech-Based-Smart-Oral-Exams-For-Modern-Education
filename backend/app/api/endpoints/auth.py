@@ -152,6 +152,7 @@ def verify_google_id_token(credential: str, client_ids: List[str]) -> dict:
 class GoogleLoginIn(BaseModel):
     credential: str = Field(..., min_length=10, max_length=8192)
     role: Optional[str] = Field(default=None, max_length=32)
+    full_name: Optional[str] = Field(default=None, max_length=120)
 
 
 @router.get("/auth/google/config")
@@ -181,6 +182,9 @@ def login_google(
     if len(email_norm) > 254:
         raise HTTPException(status_code=400, detail="E-mail address is too long")
 
+    google_name = str(claims.get("name") or "").strip()[:120]
+    custom_name = (payload.full_name or "").strip()[:120]
+
     user = db.query(User).filter(User.email == email_norm).first()
     if user is None:
         if role is None:
@@ -190,6 +194,7 @@ def login_google(
                     "code": "ROLE_REQUIRED",
                     "message": "No account exists for this Google e-mail yet. Choose student or lecturer to create one.",
                     "email": email_norm,
+                    "suggested_name": google_name,
                 },
             )
         try:
@@ -197,7 +202,7 @@ def login_google(
                 email=email_norm,
                 # Random secret nobody knows: password login stays impossible until a reset.
                 hashed_password=security.get_password_hash(secrets.token_urlsafe(48)),
-                full_name=(str(claims.get("name") or "").strip()[:120] or None),
+                full_name=(custom_name or google_name or None),
                 role=role,
             )
             db.add(user)
