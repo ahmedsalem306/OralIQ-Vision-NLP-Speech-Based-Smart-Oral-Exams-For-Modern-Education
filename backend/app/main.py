@@ -219,11 +219,24 @@ def _preload_models():
 # ══════════════════════════════════════════════════════════════════════════════
 # Application Factory
 # ══════════════════════════════════════════════════════════════════════════════
+def _init_database():
+    """Create tables + run idempotent migrations. Runs in a background thread so a slow or
+    locked database can never keep the HTTP server from starting (HF health checks)."""
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[Startup] create_all failed: {e}")
+    try:
+        ensure_migrations()
+    except Exception as e:
+        print(f"[Startup] migrations failed: {e}")
+
+
 app = FastAPI(
     title="OralIQ API",
     description="Production-grade backend for OralIQ Smart Oral Exams",
     version="2.0.0",
-    on_startup=[lambda: (Base.metadata.create_all(bind=engine), ensure_migrations())],
+    on_startup=[lambda: threading.Thread(target=_init_database, daemon=True).start()],
     docs_url="/docs" if is_dev_env() else None,
     redoc_url=None,
 )

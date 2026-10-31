@@ -79,6 +79,9 @@ def _exec_ddl(ddl: str) -> None:
     mig_eng = _migration_engine()
     if mig_eng.dialect.name == "postgresql":
         with mig_eng.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            # Never wait forever for a table lock held by another (old) instance.
+            conn.execute(text("SET lock_timeout = '5s'"))
+            conn.execute(text("SET statement_timeout = '60s'"))
             conn.execute(text(ddl))
     else:
         with mig_eng.begin() as conn:
