@@ -12,7 +12,37 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { isLecturerRole, type BiometricStatus, type Me } from "../lib/types";
 
-const MAX_PHOTO_BYTES = 1.5 * 1024 * 1024;
+// Any reasonable photo is accepted; it's resized + compressed in the browser before saving.
+const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
+const AVATAR_SIZE = 384;
+
+/** Center-crop to a square, resize to AVATAR_SIZE and encode as compact JPEG (~20–60 KB). */
+function compressAvatar(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const side = Math.min(img.naturalWidth, img.naturalHeight);
+            if (!side) return reject(new Error("empty image"));
+            const sx = (img.naturalWidth - side) / 2;
+            const sy = (img.naturalHeight - side) / 2;
+            const out = Math.min(AVATAR_SIZE, side);
+            const canvas = document.createElement("canvas");
+            canvas.width = out;
+            canvas.height = out;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return reject(new Error("no canvas"));
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, out, out);
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, sx, sy, side, side, 0, 0, out, out);
+            resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+        img.src = url;
+    });
+}
 
 export default function Settings() {
     const { l, lang, setLang } = useI18n();
@@ -45,20 +75,21 @@ export default function Settings() {
         if (!file || !user) return;
         setPhotoError("");
         if (file.size > MAX_PHOTO_BYTES) {
-            setPhotoError(l("الصورة كبيرة. اختار صورة أقل من 1.5 ميجا.", "That photo is too large. Choose one under 1.5 MB."));
+            setPhotoError(l("الصورة كبيرة جداً. اختار صورة أقل من 25 ميجا.", "That photo is too large. Choose one under 25 MB."));
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const result = ev.target?.result as string;
-            try {
-                localStorage.setItem(`profilePic_${user.email}`, result);
-                setProfilePic(result);
-            } catch {
-                setPhotoError(l("مساحة المتصفح مش كفاية للصورة دي. جرّب صورة أصغر.", "Not enough browser storage for that photo. Try a smaller one."));
-            }
-        };
-        reader.readAsDataURL(file);
+        compressAvatar(file)
+            .then((result) => {
+                try {
+                    localStorage.setItem(`profilePic_${user.email}`, result);
+                    setProfilePic(result);
+                } catch {
+                    setPhotoError(l("مساحة المتصفح مش كفاية للصورة دي. جرّب صورة تانية.", "Not enough browser storage for that photo. Try another one."));
+                }
+            })
+            .catch(() => {
+                setPhotoError(l("مقدرناش نقرأ الصورة دي. جرّب صورة JPG أو PNG.", "Couldn't read that image. Try a JPG or PNG."));
+            });
     };
 
     const removePic = () => {
