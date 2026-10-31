@@ -40,9 +40,9 @@ COPY . .
 
 RUN mkdir -p /models /data
 
-# 8000 for a normal server; Hugging Face Spaces expects 7860, so PORT overrides it there.
-ENV PORT=8000
-EXPOSE 8000
+# Hugging Face Spaces routes traffic to 7860 (no app_port in README). On a VPS, set PORT=8000.
+ENV PORT=7860
+EXPOSE 7860
 
 # One worker on purpose. Answers are graded in a thread pool whose size MAX_CONCURRENT_GRADING
 # caps, and that cap — like the rate limiter — counts per process, so several workers would each
