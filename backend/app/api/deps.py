@@ -43,6 +43,9 @@ def get_current_user(
             status_code=401,
             detail="الجلسة منتهية أو الحساب غير موجود — سجّل الدخول مرة أخرى",
         )
+    if not user.is_active:
+        # A disabled account must lose access now, not when its 7-day token expires.
+        raise HTTPException(status_code=401, detail="Inactive user")
     return user
 
 def get_current_active_user(

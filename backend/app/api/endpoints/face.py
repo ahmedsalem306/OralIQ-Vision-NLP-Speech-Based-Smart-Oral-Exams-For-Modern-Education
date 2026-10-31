@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session
 import json
 
 from app.api import deps
+from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_capped
 from app.models.user import User
 from app.services.face_biometrics import face_biometrics_service, EMBEDDING_DIM
 from app.services.gaze_ai import gaze_ai_service
-from app.api.endpoints.voice import _can_enroll
+from app.api.endpoints.voice import _can_enroll_face
 
 router = APIRouter()
 
@@ -34,7 +35,7 @@ def get_face_status(
     return {
         "has_faceprint": has_face,
         "face_locked": bool(current_user.face_locked) if has_face else False,
-        "can_reenroll": _can_enroll(current_user) or stale,
+        "can_reenroll": _can_enroll_face(current_user) or stale,
         "embedding_dim": EMBEDDING_DIM,
         "engine": "insightface",
         "needs_reenroll": stale,
@@ -51,7 +52,7 @@ async def enroll_face_print(
     images: List[UploadFile] = File(...),
 ) -> Any:
     stale = bool(current_user.face_embedding) and not _has_faceprint(current_user)
-    if not _can_enroll(current_user) and not stale:
+    if not _can_enroll_face(current_user) and not stale:
         raise HTTPException(
             status_code=403,
             detail="Face ID مقفول — اطلب من المحاضر السماح بإعادة التسجيل",
@@ -66,14 +67,17 @@ async def enroll_face_print(
     errors: list[str] = []
     for i, up in enumerate(images):
         try:
-            raw = await up.read()
+            raw = await read_upload_capped(up, MAX_IMAGE_BYTES)
             if len(raw) < 500:
                 errors.append(f"image[{i}]: too small")
                 continue
             extracted = await anyio.to_thread.run_sync(face_biometrics_service.extract_embedding, raw)
             embeddings.append(extracted["embedding"])
+        except HTTPException:
+            raise
         except Exception as e:
-            errors.append(f"image[{i}]: {e}")
+            print(f"[Face Enroll] image[{i}] rejected: {e}")
+            errors.append(f"image[{i}]: no clear face")
 
     if len(embeddings) < 3:
         raise HTTPException(
@@ -112,7 +116,7 @@ async def verify_face_print(
             detail="لا يوجد Face ID مسجّل (أو قديم) — أعد تسجيل Face ID من الإعدادات",
         )
 
-    raw = await image.read()
+    raw = await read_upload_capped(image, MAX_IMAGE_BYTES)
     stored = json.loads(current_user.face_embedding)
     try:
         result = await anyio.to_thread.run_sync(
@@ -154,7 +158,7 @@ async def analyze_gaze(
     bbox: Optional[str] = Form(None),
 ) -> Any:
     """MobileGaze ONNX — pitch/yaw + direction for proctoring (offloaded to worker thread)."""
-    raw = await image.read()
+    raw = await read_upload_capped(image, MAX_IMAGE_BYTES)
     try:
         normalized_box = None
         if bbox:
@@ -172,17 +176,8 @@ async def analyze_gaze(
     return {"ok": True, **result, "engine": "mobilegaze"}
 
 
-@router.get("/descriptor")
-def get_face_descriptor(
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    if not _has_faceprint(current_user):
-        raise HTTPException(status_code=404, detail="لا يوجد Face ID مسجّل (InsightFace 512-d)")
-    return {
-        "embedding": json.loads(current_user.face_embedding),
-        "embedding_dim": EMBEDDING_DIM,
-        "engine": "insightface",
-    }
+# GET /descriptor removed: it handed the stored biometric template back to the browser,
+# and nothing in the frontend used it. Verification happens server-side (/face/verify).
 
 
 @router.delete("/enroll")

@@ -6,6 +6,7 @@ import os
 import traceback
 
 from app.api import deps
+from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_capped
 from app.models.user import User
 
 router = APIRouter()
@@ -32,10 +33,10 @@ async def transcribe_speech(
         raise HTTPException(status_code=400, detail="Audio file is required")
 
     suffix = _safe_audio_suffix(audio.filename)
+    content = await read_upload_capped(audio, MAX_AUDIO_BYTES)
+    if len(content) < 500:
+        raise HTTPException(status_code=422, detail="Recording too short — speak longer")
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        content = await audio.read()
-        if len(content) < 500:
-            raise HTTPException(status_code=422, detail="Recording too short — speak longer")
         tmp.write(content)
         tmp_path = tmp.name
 

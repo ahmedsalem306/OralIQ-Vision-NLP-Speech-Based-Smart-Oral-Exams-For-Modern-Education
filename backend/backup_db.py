@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / "local.env")
 
 from sqlalchemy import inspect, text
-from app.core.database import engine
+from app.core.database import Base, engine, ensure_migrations
+import app.models  # noqa: F401 — ensure all ORM models (including Payment) are registered
 
 BACKUP_ROOT = Path(r"d:\interview-ai\backups")
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -92,6 +93,8 @@ def backup_sqlite_files(target_dir: Path) -> list:
 
 
 if __name__ == "__main__":
+    Base.metadata.create_all(bind=engine)
+    mig_status = ensure_migrations()
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     active_info = backup_active_sqlalchemy_db(BACKUP_DIR)
     sqlite_info = backup_sqlite_files(BACKUP_DIR)

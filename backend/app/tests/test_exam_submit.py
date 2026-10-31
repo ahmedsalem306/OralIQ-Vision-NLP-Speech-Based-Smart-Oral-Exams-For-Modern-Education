@@ -101,6 +101,19 @@ def test_several_keyless_submissions_do_not_collide(client, student_token, quest
     assert first.json()["id"] != second.json()["id"]
 
 
+def test_another_students_key_does_not_return_their_submission(client, student_token, question):
+    """A submission_key is not a capability: presenting someone else's must not leak their grade."""
+    client.post("/api/v1/register", json={
+        "email": "submit-other@example.com", "password": "password123", "full_name": "Other",
+    })
+    other = client.post("/api/v1/login/access-token", data={
+        "username": "submit-other@example.com", "password": "password123",
+    }).json()["access_token"]
+    assert _submit(client, student_token, question.id, key="key-owned-by-first").status_code == 200
+    r = _submit(client, other, question.id, key="key-owned-by-first")
+    assert r.status_code == 409
+
+
 def test_a_missing_question_is_rejected(client, student_token):
     assert _submit(client, student_token, 999_999, key="key-no-question").status_code == 404
 

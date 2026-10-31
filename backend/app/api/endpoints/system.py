@@ -1,6 +1,7 @@
 """System maintenance endpoints (migrations, schema checks)."""
 import os
 from fastapi import APIRouter, HTTPException
+from app.core.config import is_dev_env
 from app.core.database import ensure_migrations, _column_exists, engine
 
 router = APIRouter()
@@ -12,7 +13,7 @@ def run_db_migrate() -> dict:
     Apply pending DB schema patches (idempotent).
     Restricted outside dev once initial migrations are applied.
     """
-    if os.environ.get("ENV", "dev") != "dev":
+    if not is_dev_env():
         raise HTTPException(status_code=403, detail="Forbidden in production")
 
     result = ensure_migrations()

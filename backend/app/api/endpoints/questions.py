@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api import deps
-from app.core.plans import get_plan
 from app.models.exam_assignment import ExamAssignment
 from app.models.exam_submission import ExamSubmission
 from app.models.question import Question
 from app.models.user import User
 from app.schemas.question import QuestionCreate, QuestionOut, QuestionPublicOut
+from app.services import billing_service as bs
 
 router = APIRouter()
 
@@ -35,119 +35,84 @@ def create_question(
     if current_user.role not in ["lecturer", "hr", "admin"]:
         raise HTTPException(status_code=403, detail="Only lecturers can create questions")
 
-    plan = get_plan(getattr(current_user, "plan_tier", "free"))
+    if question_in.duration_minutes is None or question_in.duration_minutes < 1:
+        raise HTTPException(status_code=400, detail="duration_minutes must be at least 1")
 
-    # 1. Enforce max_duration_minutes per question for computing capacity
-    if question_in.duration_minutes > plan["max_duration_minutes"]:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                f"الحد الأقصى لمدة السؤال في {plan['name_ar']} هو {plan['max_duration_minutes']} دقائق. "
-                f"قم بترقية الباقة لزيادة مدة الإجابة الصوتية."
-            ),
-        )
+    # Billing account (assistants consume their owner's quota) + monthly cycle maintenance
+    account = bs.get_billing_account(db, current_user)
+    bs.refresh_account_state(db, account)
+    team_ids = set(bs.team_member_ids(db, account))
 
-    existing_questions = db.query(Question).filter(Question.creator_id == current_user.id).all()
-    distinct_groups = {q.group_token or q.exam_token for q in existing_questions}
-    cumulative_exams_used = max(getattr(current_user, "exams_created_count", 0) or 0, len(distinct_groups))
-
-    # 2. Enforce max_exams or max_questions_per_exam & block exam-link recycling
-    is_new_exam_group = False
+    is_new_exam_group = True
+    group_size_before = 0
     if question_in.group_token:
-        group_questions = [
-            q for q in existing_questions if q.group_token == question_in.group_token
-        ]
-        # Verify group ownership if group already exists in DB
-        any_in_group = (
-            db.query(Question)
-            .filter(Question.group_token == question_in.group_token)
-            .first()
+        group_questions = (
+            db.query(Question).filter(Question.group_token == question_in.group_token).all()
         )
-        if any_in_group and any_in_group.creator_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to add to this exam group")
+        if group_questions:
+            # Existing exam: only the owner's team may add to it
+            if any(q.creator_id not in team_ids for q in group_questions):
+                raise HTTPException(status_code=403, detail="Not authorized to add to this exam group")
+            is_new_exam_group = False
+            group_size_before = len(group_questions)
 
-        if question_in.group_token not in distinct_groups:
-            is_new_exam_group = True
-            if cumulative_exams_used >= plan["max_exams"]:
-                raise HTTPException(
-                    status_code=403,
-                    detail=(
-                        f"وصلت للحد الأقصى لعدد الامتحانات المسموح بها في {plan['name_ar']} "
-                        f"({plan['max_exams']} امتحانات). قم بترقية باقتك لإنشاء امتحانات إضافية."
-                    ),
-                )
-        else:
             # Block adding/replacing questions inside an exam that already has student submissions,
             # assignments, or had questions deleted to recycle the link as a new exam.
             group_q_ids = [q.id for q in group_questions]
             max_prev_order = max(((q.order_index or 0) for q in group_questions), default=-1)
             had_deleted_questions = max_prev_order >= len(group_questions)
-            if group_q_ids:
-                has_submissions = (
-                    db.query(ExamSubmission.id)
-                    .filter(ExamSubmission.question_id.in_(group_q_ids))
-                    .first()
-                    is not None
-                )
-                has_assignments = (
-                    db.query(ExamAssignment.id)
-                    .filter(ExamAssignment.question_id.in_(group_q_ids))
-                    .first()
-                    is not None
-                )
-                if has_submissions or has_assignments or had_deleted_questions:
-                    raise HTTPException(
-                        status_code=403,
-                        detail=(
-                            "لا يمكن استبدال أو إضافة أسئلة داخل امتحان تم تعديله أو مشاركته مع الطلاب "
-                            "(لمنع إعادة استخدام نفس الرابط كامتحان جديد). يرجى الضغط على «امتحان جديد»."
-                        ),
-                    )
-
-        if len(group_questions) >= plan["max_questions_per_exam"]:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"وصلت للحد الأقصى لعدد الأسئلة داخل الامتحان الواحد في {plan['name_ar']} "
-                    f"({plan['max_questions_per_exam']} أسئلة)."
-                ),
+            has_submissions = (
+                db.query(ExamSubmission.id)
+                .filter(ExamSubmission.question_id.in_(group_q_ids))
+                .first()
+                is not None
             )
-    else:
-        # Creating a brand-new exam group
-        is_new_exam_group = True
-        if cumulative_exams_used >= plan["max_exams"]:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"وصلت للحد الأقصى لعدد الامتحانات المسموح بها في {plan['name_ar']} "
-                    f"({plan['max_exams']} امتحانات). قم بترقية باقتك لإنشاء امتحانات إضافية."
-                ),
+            has_assignments = (
+                db.query(ExamAssignment.id)
+                .filter(ExamAssignment.question_id.in_(group_q_ids))
+                .first()
+                is not None
             )
+            if has_submissions or has_assignments or had_deleted_questions:
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "لا يمكن استبدال أو إضافة أسئلة داخل امتحان تم تعديله أو مشاركته مع الطلاب "
+                        "(لمنع إعادة استخدام نفس الرابط كامتحان جديد). يرجى الضغط على «امتحان جديد»."
+                    ),
+                )
 
-    if is_new_exam_group:
-        current_user.exams_created_count = cumulative_exams_used + 1
+    # Plan limits: questions per exam + answer duration (402 with upgrade code)
+    bs.check_question_limits(db, account, group_size_before, question_in.duration_minutes)
 
-    question = Question(
-        text=question_in.text,
-        model_answer=question_in.model_answer,
-        keywords=question_in.keywords,
-        difficulty=question_in.difficulty,
-        category=question_in.category,
-        duration_minutes=question_in.duration_minutes,
-        creator_id=current_user.id,
-    )
-    db.add(question)
-    db.flush()
+    try:
+        if is_new_exam_group:
+            bs.consume_exam_slot(db, account)  # monthly quota first, then non-expiring add-on packs
 
-    if question_in.group_token:
-        question.group_token = question_in.group_token
-        count = db.query(Question).filter(Question.group_token == question_in.group_token).count()
-        question.order_index = count - 1
-    else:
-        question.group_token = question.exam_token
-        question.order_index = 0
+        question = Question(
+            text=question_in.text,
+            model_answer=question_in.model_answer,
+            keywords=question_in.keywords,
+            difficulty=question_in.difficulty,
+            category=question_in.category,
+            duration_minutes=question_in.duration_minutes,
+            creator_id=current_user.id,
+        )
+        db.add(question)
+        db.flush()
 
-    db.commit()
+        if question_in.group_token:
+            question.group_token = question_in.group_token
+            count = db.query(Question).filter(Question.group_token == question_in.group_token).count()
+            question.order_index = count - 1
+        else:
+            question.group_token = question.exam_token
+            question.order_index = 0
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(question)
     return question
 

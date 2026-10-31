@@ -6,7 +6,11 @@ import tempfile, os, json, traceback
 import numpy as np
 
 from app.api import deps
+from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_capped
 from app.models.user import User
+from app.models.exam_assignment import ExamAssignment
+from app.models.exam_submission import ExamSubmission
+from app.models.question import Question
 from app.services.voice_ai import voice_service
 from app.services.face_biometrics import EMBEDDING_DIM as FACE_DIM
 
@@ -43,6 +47,29 @@ def _can_enroll(user: User) -> bool:
     if not user.voice_locked:
         return True
     return bool(user.voice_reenroll_allowed)
+
+
+def _can_enroll_face(user: User) -> bool:
+    """Same rule for the face print, judged on the face print itself (not the voice one)."""
+    if not _has_faceprint(user):
+        return True
+    if not user.face_locked:
+        return True
+    return bool(user.voice_reenroll_allowed)
+
+
+def _lecturer_linked_to_student(db: Session, lecturer: User, student_id: int) -> bool:
+    """A lecturer may only manage students who took / were assigned one of their own questions."""
+    if lecturer.role == "admin":
+        return True
+    own_q = db.query(Question.id).filter(Question.creator_id == lecturer.id)
+    if db.query(ExamSubmission.id).filter(
+        ExamSubmission.student_id == student_id, ExamSubmission.question_id.in_(own_q)
+    ).first():
+        return True
+    return db.query(ExamAssignment.id).filter(
+        ExamAssignment.student_id == student_id, ExamAssignment.question_id.in_(own_q)
+    ).first() is not None
 
 
 @router.get("/status")
@@ -88,8 +115,8 @@ async def enroll_voice_print(
         raise HTTPException(status_code=400, detail="Audio file is required")
 
     suffix = _safe_audio_suffix(audio.filename)
+    content = await read_upload_capped(audio, MAX_AUDIO_BYTES)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        content = await audio.read()
         tmp.write(content)
         tmp_path = tmp.name
 
@@ -150,8 +177,8 @@ async def enroll_voice_print_multi(
                 continue
 
             suffix = _safe_audio_suffix(audio.filename)
+            content = await read_upload_capped(audio, MAX_AUDIO_BYTES)
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                content = await audio.read()
                 tmp.write(content)
                 tmp_paths.append(tmp.name)
 
@@ -208,7 +235,7 @@ def delete_voice_print(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    if _has_voiceprint(current_user) and current_user.voice_locked and not current_user.voice_reenroll_allowed:
+    if not _can_enroll(current_user) or not _can_enroll_face(current_user):
         raise HTTPException(
             status_code=403,
             detail="لا يمكن حذف البصمة — اطلب من المحاضر السماح بإعادة التسجيل",
@@ -235,8 +262,8 @@ async def verify_voice_print(
         raise HTTPException(status_code=400, detail="ملف الصوت مطلوب")
 
     suffix = _safe_audio_suffix(audio.filename)
+    content = await read_upload_capped(audio, MAX_AUDIO_BYTES)
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        content = await audio.read()
         tmp.write(content)
         tmp_path = tmp.name
 
@@ -276,7 +303,7 @@ def allow_voice_reenroll(
         raise HTTPException(status_code=403, detail="Lecturers only")
 
     student = db.query(User).filter(User.id == student_id, User.role == "student").first()
-    if not student:
+    if not student or not _lecturer_linked_to_student(db, current_user, student_id):
         raise HTTPException(status_code=404, detail="Student not found")
     if not _has_voiceprint(student) and not _has_faceprint(student):
         raise HTTPException(status_code=400, detail="Student has no biometrics enrolled yet")
@@ -301,7 +328,7 @@ def revoke_voice_reenroll(
         raise HTTPException(status_code=403, detail="Lecturers only")
 
     student = db.query(User).filter(User.id == student_id, User.role == "student").first()
-    if not student:
+    if not student or not _lecturer_linked_to_student(db, current_user, student_id):
         raise HTTPException(status_code=404, detail="Student not found")
 
     student.voice_reenroll_allowed = False

@@ -7,15 +7,15 @@ import { Eyebrow, H2, Section } from "./ui";
 
 /**
  * Section (#pricing): Subscription Plans
- * - Built around generous Exam Quotas + UNLIMITED Students per Exam + AI Priority Queue.
- * - Ultra-accessible teacher-first pricing (0 EGP / 99 EGP / 249 EGP / 499 EGP).
+ * - Plans (mirror backend app/core/plans.py): Free 0 / Basic 199 / Professional 599 EGP per month / Enterprise per contract.
+ * - Limits: exams per month, questions per exam, answer duration, distinct students per month.
  * - Matches the Warm Espresso Brown (#6F4E37 / #1E140F), Warm Off-White (#FAF6F0), and Caramel Gold (#E3A458) identity.
  */
 export function HomePricing({ startHref }: { startHref: string }) {
     const { l, lang } = useI18n();
     const root = useRef<HTMLDivElement>(null);
     const [currency, setCurrency] = useState<"EGP" | "USD">("EGP");
-    const [billingCycle, setBillingCycle] = useState<"monthly" | "semester">("monthly");
+    const [billingCycle, setBillingCycle] = useState<"monthly" | "term" | "yearly">("monthly");
 
     useGSAP(() => {
         withMotion(() => {
@@ -41,107 +41,115 @@ export function HomePricing({ startHref }: { startHref: string }) {
     const plans = [
         {
             id: "free",
-            badge: l("مجاناً للتجربة", "Free Starter"),
-            name: l("الباقة المجانية", "Free Starter"),
+            badge: l("مجاناً للتجربة", "Free Trial"),
+            name: l("الباقة المجانية", "Free"),
             desc: l(
-                "ابدأ فوراً وجرب المنصة مع كل طلابك ومجموعاتك بدون أي حد لعدد الطلاب.",
-                "Start right away with your entire class — zero limit on student count.",
+                "جرّب المنصة بنفسك مع طلابك قبل ما تشترك.",
+                "Try the platform with your students before subscribing.",
             ),
             priceEgp: 0,
             priceUsd: 0,
-            maxExams: l("5 امتحانات شفوية", "5 Oral Exams"),
-            maxStudents: l("غير محدود (مفتوح لكل طلابك)", "Unlimited Students"),
-            maxDuration: l("3 دقائق / سؤال", "3 min / question"),
-            queueTier: l("طابور معالجة قياسي", "Standard AI Queue"),
+            maxExams: l("5 امتحانات (مرة واحدة)", "5 exams (one-time)"),
+            maxStudents: l("حتى 50 طالب", "Up to 50 students"),
+            maxDuration: l("دقيقتين / إجابة", "2 min / answer"),
+            queueTier: l("طابور معالجة عادي", "Standard AI Queue"),
             featured: false,
             dark: false,
             features: [
-                l("إنشاء حتى 5 امتحانات شفوية (حتى 10 أسئلة للامتحان)", "Up to 5 oral exams (10 questions per exam)"),
-                l("عدد طلاب غير محدود داخل كل امتحان (100 أو 500+ طالب)", "Unlimited students per exam (100 or 500+ students)"),
+                l("5 امتحانات تجريبية (حتى 3 أسئلة للامتحان)", "5 trial exams (up to 3 questions each)"),
+                l("حتى 50 طالب", "Up to 50 students"),
                 l("تصحيح تلقائي بالمعنى + تفريغ صوتي عربي وإنجليزي", "Semantic AI grading + Arabic & English speech-to-text"),
                 l("مراقبة حيوية بـ 478 نقطة للوجه والعين والصوت", "478-point face, eye-gaze & voiceprint anti-cheat"),
             ],
         },
         {
             id: "pro",
-            badge: l("في متناول كل مدرس", "Best for Teachers"),
-            name: l("باقة المدرس الأساسية", "Teacher Plan"),
+            badge: l("للمدرسين", "For Teachers"),
+            name: l("الباقة الأساسية", "Basic"),
             desc: l(
-                "مصممة للمدرسين والمعيدين والمحاضرين لعمل كويز شفوي دوري لكل مجموعاتهم بسعر رمزي.",
-                "Designed for teachers and lecturers running regular oral quizzes across all their groups.",
+                "للمدرس اللي بيعمل كويز شفوي أسبوعي لطلابه — حتى 150 طالب.",
+                "For teachers running weekly oral quizzes — up to 150 students.",
             ),
-            priceEgp: 99,
-            priceUsd: 2,
-            maxExams: l("30 امتحان / شهرياً", "30 Exams / month"),
-            maxStudents: l("غير محدود (مفتوح لكل طلابك)", "Unlimited Students"),
-            maxDuration: l("5 دقائق / سؤال", "5 min / question"),
-            queueTier: l("أولوية معالجة سريعة (Fast)", "Fast Priority AI Queue"),
+            priceEgp: 199,
+            priceUsd: 4,
+            maxExams: l("15 امتحان / شهرياً", "15 exams / month"),
+            maxStudents: l("حتى 150 طالب", "Up to 150 students"),
+            maxDuration: l("5 دقائق / إجابة", "5 min / answer"),
+            queueTier: l("أولوية معالجة سريعة", "Fast Priority AI Queue"),
             featured: false,
             dark: false,
             features: [
-                l("إنشاء حتى 30 امتحان شفوي شهرياً (حتى 20 سؤال للامتحان)", "Up to 30 oral exams/month (20 questions per exam)"),
-                l("عدد طلاب غير محدود في كل امتحان بدون أي قيود", "Unlimited students in every exam with zero caps"),
-                l("أولوية سريعة في طابور التصحيح بالذكاء الاصطناعي", "Fast priority in the AI grading queue"),
-                l("تصدير كشوف الدرجات وتقارير النزاهة التفصيلية", "Export full gradebooks and detailed integrity reports"),
+                l("15 امتحان شهرياً (حتى 5 أسئلة للامتحان)", "15 exams/month (up to 5 questions each)"),
+                l("حتى 150 طالب مختلف في الشهر", "Up to 150 distinct students per month"),
+                l("أولوية سريعة في طابور التصحيح", "Fast priority in the AI grading queue"),
+                l("+10 امتحانات إضافية بـ 79 ج.م (ما بتنتهيش)", "+10 extra exams for 79 EGP (never expire)"),
             ],
         },
         {
             id: "campus",
-            badge: l("الأكثر طلباً للمحاضرين والسناتر", "Most Popular"),
-            name: l("باقة المحاضر والسناتر", "Pro Lecturer & Centers"),
+            badge: l("الأكثر طلباً للدكاترة والسناتر", "Most Popular"),
+            name: l("الباقة الاحترافية", "Professional"),
             desc: l(
-                "للمدرسين أصحاب المجموعات الكبيرة، المحاضرين الجامعيين، والسناتر التعليمية.",
-                "For high-volume teachers, university professors, and educational centers.",
+                "للدكاترة والسناتر وأصحاب الأعداد الكبيرة — حتى 500 طالب و3 مساعدين.",
+                "For lecturers & centers with large cohorts — up to 500 students and 3 assistants.",
             ),
-            priceEgp: 249,
-            priceUsd: 5,
-            maxExams: l("100 امتحان / شهرياً", "100 Exams / month"),
-            maxStudents: l("غير محدود (مفتوح لكل الدفعات)", "Unlimited Students"),
-            maxDuration: l("10 دقائق / سؤال", "10 min / question"),
-            queueTier: l("أولوية قصوى وقت الذروة (VIP)", "VIP Turbo AI Queue"),
+            priceEgp: 599,
+            priceUsd: 12,
+            maxExams: l("30 امتحان / شهرياً", "30 exams / month"),
+            maxStudents: l("حتى 500 طالب", "Up to 500 students"),
+            maxDuration: l("10 دقائق / إجابة", "10 min / answer"),
+            queueTier: l("أولوية قصوى (VIP)", "VIP AI Queue"),
             featured: true,
             dark: true,
             features: [
-                l("إنشاء حتى 100 امتحان شفوي شهرياً (حتى 35 سؤال للامتحان)", "Up to 100 oral exams/month (35 questions per exam)"),
-                l("عدد طلاب غير محدود في كل امتحان مهما كان حجم الدفعة", "Unlimited students per exam for any cohort size"),
-                l("أولوية قصوى فورية وقت الذروة (VIP Turbo AI Queue)", "VIP Turbo priority in the AI grading queue during peak hours"),
-                l("تحليلات متقدمة لأداء المجموعات وإعادة فتح بصمة الصوت", "Advanced cohort analytics & biometric re-enrollment controls"),
+                l("30 امتحان شهرياً (حتى 15 سؤال للامتحان)", "30 exams/month (up to 15 questions each)"),
+                l("حتى 500 طالب مختلف في الشهر", "Up to 500 distinct students per month"),
+                l("3 حسابات مساعدين (معيدين / مدرسين في السنتر)", "3 assistant accounts (TAs / center teachers)"),
+                l("أولوية قصوى وقت الذروة + تحليلات متقدمة", "VIP peak-time priority + advanced analytics"),
             ],
         },
         {
             id: "enterprise",
-            badge: l("امتحانات بلا حدود", "Unlimited Exams"),
-            name: l("باقة بلا حدود (مدارس وجامعات)", "Unlimited & Campus"),
+            badge: l("مدارس وجامعات", "Schools & Universities"),
+            name: l("باقة المؤسسات", "Enterprise"),
             desc: l(
-                "امتحانات مفتوحة بلا حدود مع معالجة فورية مخصصة وإمكانية الربط داخل منصتك التعليمية.",
-                "Unlimited oral exams with dedicated instant AI grading and optional LMS/API integration.",
+                "للمدارس والجامعات والمعاهد — سعر بالطالب وحدود حسب حجم مؤسستك.",
+                "For schools, universities and institutes — priced per student, sized to you.",
             ),
-            priceEgp: 499,
-            priceUsd: 10,
-            maxExams: l("غير محدود (امتحانات مفتوحة)", "Unlimited Exams"),
-            maxStudents: l("غير محدود (مفتوح لكل الطلاب)", "Unlimited Students"),
-            maxDuration: l("15 دقيقة / سؤال", "15 min / question"),
-            queueTier: l("معالجة فورية مخصصة (Instant)", "Dedicated Instant AI"),
+            priceEgp: -1,
+            priceUsd: -1,
+            maxExams: l("حسب الاتفاق", "Custom"),
+            maxStudents: l("أكتر من 500 طالب", "500+ students"),
+            maxDuration: l("15 دقيقة / إجابة", "15 min / answer"),
+            queueTier: l("معالجة فورية", "Instant AI"),
             featured: false,
             dark: false,
             features: [
-                l("عدد غير محدود من الامتحانات الشفوية طوال الشهر (حتى 50 سؤال)", "Unlimited oral exams all month (up to 50 questions/exam)"),
-                l("عدد طلاب غير محدود في جميع الامتحانات والدفعات", "Unlimited students across all exams and cohorts"),
-                l("مسار معالجة فوري مخصص بدون أي انتظار وقت الذروة", "Dedicated instant AI processing with zero queue wait"),
-                l("إمكانية الربط عبر API / LTI كـ فيتشر داخل منصتك أو مدرستك", "Optional API / LTI white-label integration into your LMS"),
+                l("30 ج.م للطالب في الترم (حد أدنى 150 طالب)", "30 EGP per student per term (min. 150 students)"),
+                l("حتى 20 سؤال للامتحان ومدرسين غير محدود", "Up to 20 questions per exam, unlimited teachers"),
+                l("لوحة تحكم للمؤسسة وتقارير شاملة", "Institution dashboard & reports"),
+                l("فاتورة رسمية + إمكانية الربط عبر API / LTI", "Official invoicing + optional API / LTI integration"),
             ],
         },
     ];
 
+    // Term = 4 months for the price of 3; Year = 12 months for the price of 10.
+    const cycleMultiplier = { monthly: 1, term: 3, yearly: 10 } as const;
+    const cycleLabel = {
+        monthly: l("شهرياً", "month"),
+        term: l("الترم (4 شهور)", "term (4 months)"),
+        yearly: l("سنوياً", "year"),
+    } as const;
+
     const formatPrice = (egp: number, usd: number) => {
+        if (egp < 0) return l("تواصل معنا", "Contact us");
         if (egp === 0) return l("مجاناً", "Free");
-        const factor = billingCycle === "semester" ? 0.8 : 1;
+        const factor = cycleMultiplier[billingCycle];
         if (currency === "EGP") {
-            const val = Math.round(egp * factor);
+            const val = egp * factor;
             return `${val.toLocaleString(lang === "ar" ? "ar-EG" : "en-US")} ${l("ج.م", "EGP")}`;
         }
-        const val = Math.max(1, Math.round(usd * factor));
-        return `$${val}`;
+        return `$${usd * factor}`;
     };
 
     return (
@@ -149,48 +157,46 @@ export function HomePricing({ startHref }: { startHref: string }) {
             <div ref={root} className="mx-auto max-w-[92rem] px-4 sm:px-8 lg:px-12">
                 {/* Header & Controls */}
                 <div className="flex flex-col items-center text-center">
-                    <Eyebrow>{l("خطط الاشتراك والأسعار", "Teacher-Friendly Subscription Plans")}</Eyebrow>
+                    <Eyebrow>{l("خطط الاشتراك والأسعار", "Subscription Plans")}</Eyebrow>
                     <h2 className={`${H2} mt-2 max-w-3xl text-ink`}>
                         {l(
-                            "باقات في متناول كل مدرس ومحاضر، بعدد طلاب غير محدود.",
-                            "Affordable plans for every teacher, with unlimited students per exam.",
+                            "باقة على قد احتياجك — من مدرس لحد جامعة.",
+                            "A plan that fits you — from a single teacher to a whole university.",
                         )}
                     </h2>
                     <p className="mt-4 max-w-2xl text-base sm:text-lg font-medium text-ink-2 leading-relaxed">
                         {l(
-                            "اختار الباقة على قد عدد الامتحانات اللي بتعملها في الشهر بس — وأي امتحان تبعته يقدر يدخله 100 أو 500 أو 1000 طالب بدون أي حد أقصى لعدد الطلاب!",
-                            "Choose your plan based solely on how many exams you create per month — every exam link supports 100, 500, or 1,000+ students with zero student caps!",
+                            "اختار الباقة حسب عدد طلابك وامتحاناتك في الشهر. الامتحان الواحد ممكن يكون فيه أكتر من سؤال، ونفس الامتحان يتبعت لكل مجموعاتك ويتحسب مرة واحدة.",
+                            "Pick a plan by how many students and exams you have per month. One exam can hold several questions, and the same exam can be sent to all your groups while counting once.",
                         )}
                     </p>
 
                     {/* Currency & Cycle Switchers */}
                     <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
                         <div className="inline-flex items-center rounded-full border border-rule bg-sheet p-1 shadow-xs">
-                            <button
-                                type="button"
-                                onClick={() => setBillingCycle("monthly")}
-                                className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold transition-all ${
-                                    billingCycle === "monthly"
-                                        ? "bg-[#6F4E37] text-[#FAF6F0] shadow-xs"
-                                        : "text-ink-2 hover:text-ink"
-                                }`}
-                            >
-                                {l("اشتراك شهري", "Monthly")}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setBillingCycle("semester")}
-                                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-bold transition-all ${
-                                    billingCycle === "semester"
-                                        ? "bg-[#6F4E37] text-[#FAF6F0] shadow-xs"
-                                        : "text-ink-2 hover:text-ink"
-                                }`}
-                            >
-                                <span>{l("فصلي / سنوي", "Semester / Annual")}</span>
-                                <span className="rounded-full bg-[#E3A458] px-2 py-0.5 text-[10px] font-extrabold text-[#18110D]">
-                                    {l("خصم 20%", "-20%")}
-                                </span>
-                            </button>
+                            {([
+                                { id: "monthly", label: l("شهري", "Monthly"), tag: null },
+                                { id: "term", label: l("ترم (4 شهور)", "Term (4 mo)"), tag: l("شهر مجاناً", "1 mo free") },
+                                { id: "yearly", label: l("سنوي", "Yearly"), tag: l("شهرين مجاناً", "2 mo free") },
+                            ] as const).map((c) => (
+                                <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => setBillingCycle(c.id)}
+                                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-xs sm:text-sm font-bold transition-all ${
+                                        billingCycle === c.id
+                                            ? "bg-[#6F4E37] text-[#FAF6F0] shadow-xs"
+                                            : "text-ink-2 hover:text-ink"
+                                    }`}
+                                >
+                                    <span>{c.label}</span>
+                                    {c.tag && (
+                                        <span className="rounded-full bg-[#E3A458] px-2 py-0.5 text-[10px] font-extrabold text-[#18110D]">
+                                            {c.tag}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
                         </div>
 
                         <div className="inline-flex items-center rounded-full border border-rule bg-sheet p-1 shadow-xs">
@@ -263,7 +269,7 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                     </span>
                                     {p.priceEgp > 0 && (
                                         <span className={`text-xs font-bold ${p.dark ? "text-[#FAF6F0]/70" : "text-ink-3"}`}>
-                                            / {l("شهرياً", "month")}
+                                            / {cycleLabel[billingCycle]}
                                         </span>
                                     )}
                                 </div>
@@ -314,7 +320,7 @@ export function HomePricing({ startHref }: { startHref: string }) {
                             {/* CTA Button */}
                             <div className="mt-7 pt-2">
                                 <Link
-                                    to={startHref}
+                                    to={p.priceEgp < 0 ? "#contact" : startHref}
                                     className={`inline-flex h-12 w-full items-center justify-between rounded-full ps-5 pe-2 text-sm font-bold transition-all ${
                                         p.dark
                                             ? "bg-[#FAF6F0] text-[#18110D] hover:bg-[#E3A458]"
@@ -324,7 +330,9 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                     <span>
                                         {p.priceEgp === 0
                                             ? l("ابدأ الباقة المجانية الآن", "Start Free Now")
-                                            : l("اشترك الآن في الباقة", "Choose this plan")}
+                                            : p.priceEgp < 0
+                                                ? l("تواصل معنا", "Contact sales")
+                                                : l("اشترك الآن في الباقة", "Choose this plan")}
                                     </span>
                                     <span className={`flex size-8 items-center justify-center rounded-full ${
                                         p.dark ? "bg-[#18110D]/10 text-[#18110D]" : "bg-white/15 text-white"

@@ -7,7 +7,7 @@ import Logo from "../Logo";
 import LanguageToggle, { ThemeToggle } from "../LanguageToggle";
 
 /**
- * Below 1024px the header's section links don't fit, so this button opens them in a side sheet,
+ * When the header's section links don't fit (LandingNav measures this), this button opens them in a side sheet,
  * with the account links, language and theme. A native dialog: focus, Escape and the backdrop
  * behave as expected, and Lenis leaves it alone.
  */
@@ -30,7 +30,7 @@ export function LandingMenu({ sections, loggedIn, className }: { sections: { hre
                 onClick={() => setOpen(true)}
                 aria-label={l("القائمة", "Menu")}
                 aria-expanded={open}
-                className={cn("flex size-10 items-center justify-center rounded-full lg:hidden", className ?? "text-ink hover:bg-sheet")}
+                className={cn("flex size-10 items-center justify-center shrink-0 rounded-full", className ?? "text-ink hover:bg-sheet")}
             >
                 <Menu className="size-5" aria-hidden />
             </button>

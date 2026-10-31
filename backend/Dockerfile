@@ -5,6 +5,7 @@ WORKDIR /app
 # "medium" gives better Arabic/English accuracy than "small" on oral answers.
 ENV WHISPER_MODEL=medium
 ENV ACCESS_TOKEN_EXPIRE_MINUTES=10080
+ENV GOOGLE_CLIENT_ID=576823116130-im8185suok743g2vttudc37f7qdt6lep.apps.googleusercontent.com
 
 # Model caches live under /models, which is meant to be a mounted volume. Pointed at /tmp they
 # were lost on every restart, and the container then spent the first few minutes of its life

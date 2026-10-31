@@ -1,10 +1,22 @@
 import os
 import secrets
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Load .env / local.env without overriding explicit environment variables
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(_BACKEND_DIR / ".env", override=False)
+load_dotenv(_BACKEND_DIR / "local.env", override=False)
 
 MIN_SECRET_LENGTH = 32
+
+
+def is_dev_env() -> bool:
+    """True only on a developer machine. Debug-only surfaces (/docs, /debug, tracebacks in
+    500 responses, /system/db-migrate) use this, so they stay closed on Hugging Face Spaces
+    (SPACE_ID is always set there) even if someone forgets ENV=production."""
+    return os.environ.get("ENV", "dev") == "dev" and not os.environ.get("SPACE_ID")
 
 
 def _get_or_create_secret() -> str:
@@ -39,7 +51,7 @@ def _get_or_create_secret() -> str:
         )
 
     # Development only, from here down.
-    key_file = Path(__file__).resolve().parents[2] / "data" / ".secret_key"
+    key_file = _BACKEND_DIR / "data" / ".secret_key"
     if key_file.exists():
         stored = key_file.read_text().strip()
         if len(stored) >= MIN_SECRET_LENGTH:
@@ -53,6 +65,8 @@ def _get_or_create_secret() -> str:
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=(".env", "local.env"), extra="ignore")
+
     PROJECT_NAME: str = "OralIQ"
     API_V1_STR: str = "/api/v1"
 
@@ -68,9 +82,6 @@ class Settings(BaseSettings):
 
     # Environment
     ENV: str = os.environ.get("ENV", "dev")
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()

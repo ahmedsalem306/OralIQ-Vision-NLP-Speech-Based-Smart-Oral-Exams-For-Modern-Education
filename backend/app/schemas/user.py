@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 
-ALLOWED_SIGNUP_ROLES = {"student", "lecturer", "hr"}
+ALLOWED_SIGNUP_ROLES = {"student", "lecturer"}
 
 
 class UserBase(BaseModel):
@@ -11,7 +11,14 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def reject_compromised_passwords(cls, v: str) -> str:
+        if v.strip().lower() in {"oauth_google_oraliq_2026!", "oauth_github_oraliq_2026!"}:
+            raise ValueError("Please choose a different password")
+        return v
 
     @field_validator("role")
     @classmethod

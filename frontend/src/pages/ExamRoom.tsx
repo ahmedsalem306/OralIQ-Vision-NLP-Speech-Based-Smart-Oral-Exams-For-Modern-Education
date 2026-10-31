@@ -212,6 +212,17 @@ export default function ExamRoom() {
                     setErrorMsg(t("exam.noQuestion"));
                 }
 
+                // Lecturer's plan student limit: tell the student BEFORE they record (HTTP 402).
+                try {
+                    await api.get(`/exams/access-check/${examToken}`);
+                } catch (accessErr: any) {
+                    if (accessErr?.response?.status === 402) {
+                        setErrorMsg(getApiErrorMessage(accessErr));
+                        setAllQuestions([]);
+                        setQuestion(null);
+                    }
+                }
+
                 setPhase("info");
             } catch (err: any) {
                 const status = err?.response?.status;

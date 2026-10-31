@@ -6,6 +6,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.api_router import api_router
 from app.core.database import engine, Base, ensure_migrations
 from app.models.user import User  # noqa: F401 — ensures all models are registered
+from app.core.config import is_dev_env, settings
+from jose import jwt as _jwt, JWTError as _JWTError
 import hashlib
 import os
 import time
@@ -39,7 +41,7 @@ class RateLimiter:
             del self._hits[k]
 
     def is_allowed(self, key: str) -> bool:
-        now = time.monotonic()
+        now = time.time()
         cutoff = now - self.window
         with self._lock:
             self._prune_unlocked(now)
@@ -67,6 +69,8 @@ rate_limiter = RateLimiter(limit=RATE_LIMIT, window=60, max_buckets=50_000)
 auth_rate_limiter = RateLimiter(limit=AUTH_RATE_LIMIT, window=60, max_buckets=50_000)
 
 TRUST_PROXY = os.environ.get("TRUST_PROXY", "").strip().lower() in ("1", "true", "yes")
+# How many proxies we control sit in front of the app (each appends one X-Forwarded-For entry).
+TRUSTED_PROXY_HOPS = max(1, int(os.environ.get("TRUSTED_PROXY_HOPS", "1") or 1))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -95,7 +99,9 @@ def _client_ip(request: Request) -> str:
     if TRUST_PROXY:
         forwarded = request.headers.get("x-forwarded-for", "")
         if forwarded:
-            return forwarded.split(",")[0].strip()
+            parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+            if parts:
+                return parts[-min(TRUSTED_PROXY_HOPS, len(parts))]
     return request.client.host if request.client else "unknown"
 
 
@@ -104,7 +110,12 @@ def _rate_limit_key(request: Request) -> str:
     if auth.lower().startswith("bearer "):
         token = auth[7:].strip()
         if token:
-            return "s:" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]
+            try:
+                sub = _jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]).get("sub")
+                if sub:
+                    return "u:" + str(sub)
+            except _JWTError:
+                pass
     return "ip:" + _client_ip(request)
 
 
@@ -115,7 +126,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Strict brute-force rate limit on login & registration endpoints (per IP)
-        if path in ("/api/v1/login/access-token", "/api/v1/register"):
+        if path in ("/api/v1/login/access-token", "/api/v1/register", "/api/v1/login/google"):
             ip_key = "auth:" + _client_ip(request)
             if not auth_rate_limiter.is_allowed(ip_key):
                 return JSONResponse(
@@ -213,7 +224,7 @@ app = FastAPI(
     description="Production-grade backend for OralIQ Smart Oral Exams",
     version="2.0.0",
     on_startup=[lambda: (Base.metadata.create_all(bind=engine), ensure_migrations())],
-    docs_url="/docs" if os.environ.get("ENV", "dev") == "dev" else None,
+    docs_url="/docs" if is_dev_env() else None,
     redoc_url=None,
 )
 
@@ -265,7 +276,7 @@ def read_root():
 
 @app.get("/debug")
 def debug_info():
-    if os.environ.get("ENV", "dev") != "dev":
+    if not is_dev_env():
         raise HTTPException(status_code=404, detail="Not Found")
 
     from sqlalchemy import text
@@ -325,7 +336,7 @@ def health_check():
             "face_id": "ready" if face_status.get("ready") else ("error" if face_status.get("error") else "lazy"),
             "gaze": "ready" if gaze_status.get("ready") else ("error" if gaze_status.get("error") else "lazy"),
         },
-        "config": {
+        "config": {} if not is_dev_env() else {
             "whisper_model": speech_analyzer.MODEL_SIZE,
             "anti_cheat_alerts": list(face_analyzer.ALERT_WEIGHTS.keys()),
             "voice_engine": voice_status["engine"],
@@ -355,7 +366,7 @@ async def global_exception_handler(request, exc):
     import traceback
     print(f"[500 ERROR] {request.method} {request.url.path}")
     print(traceback.format_exc())
-    is_dev = os.environ.get("ENV", "dev") == "dev"
+    is_dev = is_dev_env()
     content = {"detail": str(exc) if is_dev else "Internal server error"}
     if is_dev:
         content["traceback"] = traceback.format_exc()

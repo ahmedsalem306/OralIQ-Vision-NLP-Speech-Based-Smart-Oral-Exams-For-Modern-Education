@@ -79,10 +79,18 @@ def test_development_defaults_to_any_origin(monkeypatch):
 
 def test_two_students_on_one_school_ip_get_separate_buckets():
     """The case that matters: a class behind one NAT must not share one allowance."""
-    a = _rate_limit_key(_request({"authorization": "Bearer token-of-student-a"}))
-    b = _rate_limit_key(_request({"authorization": "Bearer token-of-student-b"}))
+    from app.core import security
+    a = _rate_limit_key(_request({"authorization": f"Bearer {security.create_access_token(101)}"}))
+    b = _rate_limit_key(_request({"authorization": f"Bearer {security.create_access_token(102)}"}))
     assert a != b
-    assert a.startswith("s:")
+    assert a.startswith("u:")
+
+
+def test_forged_tokens_do_not_get_their_own_bucket():
+    """Random bearer strings must not mint unlimited fresh buckets (and evict real users')."""
+    a = _rate_limit_key(_request({"authorization": "Bearer token-of-student-a"}, client_host="198.51.100.7"))
+    b = _rate_limit_key(_request({"authorization": "Bearer token-of-student-b"}, client_host="198.51.100.7"))
+    assert a == b == "ip:198.51.100.7"
 
 
 def test_the_bucket_name_never_contains_the_token():
@@ -104,7 +112,20 @@ def test_a_forwarded_header_is_ignored_unless_a_proxy_is_trusted(monkeypatch):
 def test_a_trusted_proxy_reveals_the_real_client(monkeypatch):
     """Behind nginx every request arrives from 127.0.0.1, which would be one global bucket."""
     monkeypatch.setattr("app.main.TRUST_PROXY", True)
+    monkeypatch.setattr("app.main.TRUSTED_PROXY_HOPS", 1)
+    key = _rate_limit_key(_request({"x-forwarded-for": "1.2.3.4"}, client_host="127.0.0.1"))
+    assert key == "ip:1.2.3.4"
+    # two proxies we control: the client is the second entry from the right
+    monkeypatch.setattr("app.main.TRUSTED_PROXY_HOPS", 2)
     key = _rate_limit_key(_request({"x-forwarded-for": "1.2.3.4, 10.0.0.1"}, client_host="127.0.0.1"))
+    assert key == "ip:1.2.3.4"
+
+
+def test_a_spoofed_forwarded_entry_is_not_believed(monkeypatch):
+    """The client controls everything left of what our proxy appended."""
+    monkeypatch.setattr("app.main.TRUST_PROXY", True)
+    monkeypatch.setattr("app.main.TRUSTED_PROXY_HOPS", 1)
+    key = _rate_limit_key(_request({"x-forwarded-for": "6.6.6.6, 1.2.3.4"}, client_host="127.0.0.1"))
     assert key == "ip:1.2.3.4"
 
 

@@ -6,7 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
 # PostgreSQL via DATABASE_URL (production / Supabase); otherwise SQLite for local dev
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = (os.environ.get("DATABASE_URL") or "").strip() or None
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 if DATABASE_URL:
     # ── Production: PostgreSQL with high-concurrency connection pooling ──
@@ -18,6 +20,7 @@ if DATABASE_URL:
         pool_recycle=1800,
         pool_pre_ping=True,
         poolclass=QueuePool,
+        connect_args={"connect_timeout": 10},
         echo=False,
     )
 else:
@@ -138,6 +141,7 @@ def run_migrations():
             ))
 
         _exec_ddl("CREATE INDEX IF NOT EXISTS ix_users_role ON users (role)")
+        _exec_ddl("CREATE INDEX IF NOT EXISTS ix_users_plan_tier ON users (plan_tier)")
 
         if "questions" in table_names:
             _exec_ddl("CREATE INDEX IF NOT EXISTS ix_questions_creator_id ON questions (creator_id)")
@@ -157,11 +161,17 @@ def run_migrations():
                 "ON exam_submissions (submission_key)"
             )
             _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_submissions_question_id ON exam_submissions (question_id)")
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_submissions_q_submitted ON exam_submissions (question_id, submitted_at)")
             _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_submissions_student_id ON exam_submissions (student_id, grade_visible)")
 
         if "exam_assignments" in table_names:
             _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_assignments_student_status ON exam_assignments (student_id, status)")
             _exec_ddl("CREATE INDEX IF NOT EXISTS ix_exam_assignments_question_id ON exam_assignments (question_id)")
+
+        if "payments" in table_names:
+            _exec_ddl("CREATE INDEX IF NOT EXISTS ix_payments_user_status ON payments (user_id, status)")
+
+        _run_billing_migrations(is_pg, "questions" in table_names)
 
         print("[DB Migration] All patches and scalability indexes applied successfully")
         return {"ok": True, "face_embedding": _column_exists("users", "face_embedding")}
@@ -170,6 +180,48 @@ def run_migrations():
         import traceback
         traceback.print_exc()
         return {"ok": False, "error": str(e)}
+
+
+_migrations_applied = False
+
+
+def _run_billing_migrations(is_pg: bool, has_questions: bool) -> None:
+    """Subscription-cycle columns on users + keep the lifetime exam counter consistent."""
+    from sqlalchemy import text
+
+    billing_columns = [
+        ("plan_period", "VARCHAR"),
+        ("plan_started_at", "TIMESTAMP"),
+        ("plan_expires_at", "TIMESTAMP"),
+        ("cycle_started_at", "TIMESTAMP"),
+        ("cycle_exams_used", "INTEGER DEFAULT 0"),
+        ("bonus_exams", "INTEGER DEFAULT 0"),
+        ("custom_max_exams", "INTEGER"),
+        ("custom_max_students", "INTEGER"),
+        ("owner_id", "INTEGER"),
+    ]
+    for col, col_type in billing_columns:
+        if is_pg:
+            _add_column("users", col, f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {col_type}")
+        else:
+            _add_column("users", col, f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE users SET cycle_exams_used = 0 WHERE cycle_exams_used IS NULL"))
+        conn.execute(text("UPDATE users SET bonus_exams = 0 WHERE bonus_exams IS NULL"))
+        conn.execute(text("UPDATE users SET exams_created_count = 0 WHERE exams_created_count IS NULL"))
+        if has_questions:
+            # Lifetime counter must never be below the exams that still exist (legacy rows).
+            conn.execute(text(
+                "UPDATE users SET exams_created_count = ("
+                "  SELECT COUNT(DISTINCT COALESCE(q.group_token, q.exam_token)) "
+                "  FROM questions q WHERE q.creator_id = users.id"
+                ") WHERE exams_created_count < ("
+                "  SELECT COUNT(DISTINCT COALESCE(q.group_token, q.exam_token)) "
+                "  FROM questions q WHERE q.creator_id = users.id"
+                ")"
+            ))
+    _exec_ddl("CREATE INDEX IF NOT EXISTS ix_users_owner_id ON users (owner_id)")
 
 
 _migrations_applied = False

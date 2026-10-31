@@ -42,6 +42,13 @@ export function getApiErrorMessage(err: unknown, fallback?: string): string {
         if (/[؀-ۿ]/.test(detail)) return detail;
     }
 
+    // Plan-limit errors (HTTP 402) carry a bilingual object: { code, message, message_en, upgrade_required }
+    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+        const d = detail as { message?: string; message_en?: string };
+        const msg = ar ? d.message : (d.message_en || d.message);
+        if (msg) return msg;
+    }
+
     if (status === 401 || status === 403) return t("انتهت الجلسة. سجّل الدخول مرة تانية.", "Your session ended. Please sign in again.");
     if (status === 404) return t("المطلوب مش موجود. حدّث الصفحة وجرّب تاني.", "That wasn't found. Refresh the page and try again.");
     if (status === 413) return t("الملف كبير جداً.", "That file is too large.");

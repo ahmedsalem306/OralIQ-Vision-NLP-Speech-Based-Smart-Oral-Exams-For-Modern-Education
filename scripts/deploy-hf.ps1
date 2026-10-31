@@ -4,7 +4,7 @@ $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $Backend = Join-Path $Root "backend"
 $Stage = Join-Path $env:TEMP "oraliq-hf-deploy"
 
-$exclude = @("venv", "data", "..bfg-report", ".git")
+$exclude = @("venv", "data", "..bfg-report", ".git", ".pytest_cache")
 
 function Remove-Pycache($dir) {
     Get-ChildItem $dir -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue |

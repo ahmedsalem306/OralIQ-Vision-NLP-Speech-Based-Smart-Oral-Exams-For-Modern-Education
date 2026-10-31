@@ -4,13 +4,16 @@ import heapq
 from typing import Any, Dict, List, Optional
 import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone
 import tempfile, os, json, traceback
 
 from app.api import deps
+from app.core.uploads import MAX_AUDIO_BYTES, read_upload_capped
 from app.core.plans import get_plan
+from app.services import billing_service as bs
 from app.models.exam_submission import ExamSubmission
 from app.models.exam_assignment import ExamAssignment
 from app.models.question import Question
@@ -148,7 +151,7 @@ def assign_exam(
     if question.creator_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to assign this question")
 
-    student = db.query(User).filter(User.id == assignment_in.student_id).first()
+    student = db.query(User).filter(User.id == assignment_in.student_id, User.role == "student").first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
@@ -212,7 +215,15 @@ def get_students(
 ) -> Any:
     if current_user.role not in ["lecturer", "hr", "admin"]:
         raise HTTPException(status_code=403, detail="Lecturers only")
-    students = db.query(User).filter(User.role == "student").all()
+    query = db.query(User).filter(User.role == "student")
+    if current_user.role != "admin":
+        # Only students linked to this lecturer's own questions (submitted or assigned) —
+        # never the whole platform's student list (anyone can sign up as a lecturer).
+        own_q = db.query(Question.id).filter(Question.creator_id == current_user.id)
+        submitted = db.query(ExamSubmission.student_id).filter(ExamSubmission.question_id.in_(own_q))
+        assigned = db.query(ExamAssignment.student_id).filter(ExamAssignment.question_id.in_(own_q))
+        query = query.filter(or_(User.id.in_(submitted), User.id.in_(assigned)))
+    students = query.order_by(User.id.desc()).limit(2000).all()
     return [{
         "id": s.id,
         "full_name": s.full_name,
@@ -223,6 +234,31 @@ def get_students(
         "face_locked": bool(s.face_locked),
         "voice_reenroll_allowed": bool(s.voice_reenroll_allowed),
     } for s in students]
+
+
+# ── GET pre-exam access check (student) ──────────────────────────────────────
+# Call before the student starts recording so a full student quota is reported up-front.
+@router.get("/access-check/{group_token}")
+def exam_access_check(
+    group_token: str,
+    student_number: Optional[str] = None,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    question = (
+        db.query(Question)
+        .filter((Question.group_token == group_token) | (Question.exam_token == group_token))
+        .first()
+    )
+    if not question:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    creator = db.query(User).filter(User.id == question.creator_id).first() if question.creator_id else None
+    if creator is None:
+        return {"allowed": True}
+    account = bs.get_billing_account(db, creator)
+    bs.refresh_account_state(db, account)
+    bs.check_student_allowed(db, account, current_user.id, student_number)
+    return {"allowed": True}
 
 
 # ── POST submit exam WITH audio + AI grading + Plan Capacity & Priority Queue ──
@@ -249,11 +285,19 @@ async def submit_exam(
     if key:
         existing = db.query(ExamSubmission).filter(ExamSubmission.submission_key == key).first()
         if existing:
+            if existing.student_id != current_user.id:
+                raise HTTPException(status_code=409, detail="Duplicate submission key")
             return existing
 
-    # Look up lecturer's subscription plan for priority AI grading queue (no cap on student count)
+
+    # Lecturer's billing account: distinct-student limit + priority AI grading queue.
+    # Checked BEFORE the expensive AI pipeline runs.
     creator = db.query(User).filter(User.id == question.creator_id).first() if question.creator_id else None
-    plan = get_plan(getattr(creator, "plan_tier", "free") if creator else "free")
+    account = bs.get_billing_account(db, creator) if creator else None
+    if account is not None:
+        bs.refresh_account_state(db, account)
+        bs.check_student_allowed(db, account, current_user.id, student_number)
+    plan = get_plan(account.plan_tier if account is not None else "free")
     priority = int(plan.get("queue_priority", 3))
 
     face_id_score = max(0.0, min(100.0, float(face_score))) if face_score is not None else None
@@ -266,8 +310,9 @@ async def submit_exam(
     tmp_path = None
     if audio and audio.filename:
         suffix = _safe_audio_suffix(audio.filename)
+        content = await read_upload_capped(audio, MAX_AUDIO_BYTES)
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(await audio.read())
+            tmp.write(content)
             tmp_path = tmp.name
 
     try:
@@ -371,8 +416,10 @@ async def submit_exam(
     except IntegrityError:
         db.rollback()
         winner = db.query(ExamSubmission).filter(ExamSubmission.submission_key == key).first()
-        if winner:
+        if winner and winner.student_id == current_user.id:
             return winner
+        if winner:
+            raise HTTPException(status_code=409, detail="Duplicate submission key")
         raise
     db.refresh(submission)
 
@@ -530,7 +577,7 @@ def toggle_grade_visibility(
     )
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
-    if sub.question and sub.question.creator_id != current_user.id and current_user.role != "admin":
+    if current_user.role != "admin" and (not sub.question or sub.question.creator_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not authorized to modify this submission")
     sub.grade_visible = 1 if visible else 0
     db.commit()
