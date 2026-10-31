@@ -70,6 +70,12 @@ let configPromise: Promise<string | null> | null = null;
 function getClientId(): Promise<string | null> {
     if (configPromise) return configPromise;
     const fallback = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() || null;
+    // Client ID is public: use the build-time value right away instead of waiting for a
+    // (possibly cold-starting) backend, so the Google button is clickable immediately.
+    if (fallback) {
+        configPromise = Promise.resolve(fallback);
+        return configPromise;
+    }
     configPromise = api
         .get<{ enabled: boolean; client_id: string | null }>("/auth/google/config")
         .then((res) => (res.data?.enabled && res.data.client_id ? res.data.client_id : fallback))
