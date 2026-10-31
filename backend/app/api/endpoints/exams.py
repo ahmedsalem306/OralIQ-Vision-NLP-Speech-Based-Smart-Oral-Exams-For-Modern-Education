@@ -4,7 +4,7 @@ import heapq
 from typing import Any, Dict, List, Optional
 import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone
@@ -198,7 +198,7 @@ def get_my_assignments(
             question_id=a.question_id,
             assigned_at=a.assigned_at,
             status=a.status,
-            question_text=a.question.text if a.question else None,
+            question_text=None,
             question_category=a.question.category if a.question else None,
             question_difficulty=a.question.difficulty if a.question else None,
             exam_token=a.question.exam_token if a.question else None,
@@ -257,7 +257,7 @@ def exam_access_check(
         return {"allowed": True}
     account = bs.get_billing_account(db, creator)
     bs.refresh_account_state(db, account)
-    bs.check_student_allowed(db, account, current_user.id, student_number)
+    bs.acquire_exam_seat(db, account, current_user.id, None, question.group_token or question.exam_token)
     return {"allowed": True}
 
 
@@ -296,7 +296,7 @@ async def submit_exam(
     account = bs.get_billing_account(db, creator) if creator else None
     if account is not None:
         bs.refresh_account_state(db, account)
-        bs.check_student_allowed(db, account, current_user.id, student_number)
+        bs.acquire_exam_seat(db, account, current_user.id, None, question.group_token or question.exam_token)
     plan = get_plan(account.plan_tier if account is not None else "free")
     priority = int(plan.get("queue_priority", 3))
 
@@ -431,6 +431,17 @@ async def submit_exam(
     if assignment:
         assignment.status = "completed"
         db.commit()
+
+    # Free the seat once the student answered the last question of the exam.
+    if account is not None:
+        grp = question.group_token or question.exam_token
+        last_idx = (
+            db.query(func.max(Question.order_index))
+            .filter((Question.group_token == grp) | (Question.exam_token == grp))
+            .scalar()
+        )
+        if last_idx is None or (question.order_index or 0) >= last_idx:
+            bs.release_exam_seat(db, account, current_user.id, None)
 
     return submission
 

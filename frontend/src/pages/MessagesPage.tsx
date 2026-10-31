@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Inbox, Mic, X } from "lucide-react";
 import api from "../lib/api";
+import { examTitleOf } from "../lib/types";
 import { useI18n } from "../i18n";
 import { Panel, PageHeader, RuledList } from "../components/ui/panel";
 import { Alert, EmptyState, ListSkeleton, LoadFailed } from "../components/ui/feedback";
@@ -116,14 +117,14 @@ export default function MessagesPage() {
                                         <p className="text-sm text-ink-3">
                                             {l(`من ${a.assigned_by_name || "المحاضر"}`, `From ${a.assigned_by_name || "your lecturer"}`)} <span className="ms-2">{timeAgo(a.assigned_at, lang)}</span>
                                         </p>
-                                        <p className="mt-0.5 font-semibold leading-snug">{a.question_text || l("امتحان شفوي", "Oral exam")}</p>
+                                        <p className="mt-0.5 font-semibold leading-snug">{examTitleOf(a, l)}</p>
                                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                                             {a.question_category && a.question_category !== "general" && <Badge>{a.question_category}</Badge>}
                                             {a.question_difficulty && <Badge tone={diff.tone}>{diff.label}</Badge>}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Button variant="secondary" onClick={() => start(a.exam_token!)} aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
+                                        <Button variant="secondary" onClick={() => start(a.exam_token!)} aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${examTitleOf(a, l)}`}><Mic className="size-4" aria-hidden />{l("ابدأ الامتحان", "Start exam")}</Button>
                                         <button type="button" className={buttonClasses("ghost", "icon")} onClick={() => dismiss(a.exam_token!)} aria-label={l("إخفاء الدعوة", "Hide invite")} title={l("إخفاء", "Hide")}>
                                             <X className="size-4" aria-hidden />
                                         </button>

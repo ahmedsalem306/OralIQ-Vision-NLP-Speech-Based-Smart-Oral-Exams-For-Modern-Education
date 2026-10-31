@@ -4,6 +4,7 @@ import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardL
 import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import api from "../lib/api";
+import { examTitleOf } from "../lib/types";
 import { useI18n } from "../i18n";
 import { Button, ButtonLink, buttonClasses } from "../components/ui/button";
 import { Panel, PanelHeader, RuledList, StatStrip } from "../components/ui/panel";
@@ -288,7 +289,7 @@ export default function Overview() {
                     pending[0] ? (
                         <div className="w-68 rounded-2xl border border-rule bg-sheet-2/80 p-5">
                             <p className="text-xs font-extrabold text-pen">{l("الامتحان الجاي", "Up next")}</p>
-                            <p className="mt-1.5 line-clamp-2 font-display font-bold leading-snug text-ink">{pending[0].question_text || l("امتحان شفوي", "Oral exam")}</p>
+                            <p className="mt-1.5 line-clamp-2 font-display font-bold leading-snug text-ink">{examTitleOf(pending[0], l)}</p>
                             <p className="mt-2 text-xs font-bold text-ink-2">{pending[0].assigned_by_name}</p>
                         </div>
                     ) : finishedAll ? (
@@ -352,7 +353,7 @@ export default function Overview() {
                             return (
                                 <li key={a.id} className="flex flex-col gap-3 px-6 py-4.5 sm:flex-row sm:items-center sm:gap-5">
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-base font-extrabold leading-snug text-ink">{a.question_text || l("امتحان شفوي", "Oral exam")}</p>
+                                        <p className="text-base font-extrabold leading-snug text-ink">{examTitleOf(a, l)}</p>
                                         <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-bold text-ink-2">
                                             <span>{a.assigned_by_name || l("المحاضر", "Lecturer")}</span>
                                             <span>•</span>
@@ -363,7 +364,7 @@ export default function Overview() {
                                     <Button
                                         variant={ready ? "secondary" : "primary"}
                                         onClick={() => startExam(a.exam_token)}
-                                        aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${a.question_text || l("امتحان شفوي", "Oral exam")}`}
+                                        aria-label={`${l("ابدأ الامتحان", "Start exam")}: ${examTitleOf(a, l)}`}
                                         disabled={!ready}
                                         title={!ready ? l("سجّل وجهك وصوتك أولاً", "Register your face and voice first") : undefined}
                                         className="sm:w-auto"

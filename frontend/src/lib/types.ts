@@ -86,3 +86,9 @@ export function needsReview(s: Pick<Submission, "facial_score" | "cheat_report">
     if (s.facial_score != null && s.facial_score < 70) return true;
     return !!s.cheat_report && s.cheat_report.includes("NOT VERIFIED");
 }
+
+/** Student-facing exam title: subject name, never the question text (it must stay hidden until the exam starts). */
+export function examTitleOf(a: { question_category?: string | null }, l: (ar: string, en: string) => string): string {
+    const c = (a.question_category || "").trim();
+    return c && c.toLowerCase() !== "general" ? l(`امتحان مادة ${c}`, `${c} exam`) : l("امتحان شفوي", "Oral exam");
+}

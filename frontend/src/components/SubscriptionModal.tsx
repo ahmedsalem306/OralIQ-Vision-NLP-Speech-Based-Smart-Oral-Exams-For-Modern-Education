@@ -194,7 +194,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${studentsFull ? "border-bad/40 text-bad" : "border-rule bg-sheet-2 text-ink-2"}`}>
                                     <Users className="size-3.5 text-[#6F4E37]" aria-hidden />
                                     <span className="wb-num">{studentsUsed} / {studentsLimit}</span>
-                                    {l(isLifetime ? "طالب" : "طالب هذا الشهر", isLifetime ? "students" : "students this month")}
+                                    {l("طالب بيمتحن دلوقتي", "in an exam now")}
                                 </span>
                             )}
                             {expiresAt && (
@@ -247,7 +247,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                             <p className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-bold text-warn">
                                 <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
                                 {studentsFull
-                                    ? l("وصلت للحد الأقصى من الطلاب — الطلاب الجدد مش هيقدروا يمتحنوا لحد ما ترقّي الباقة.", "Student limit reached — new students can't take exams until you upgrade.")
+                                    ? l("الامتحان مليان دلوقتي — أي طالب جديد هيستنى لحد ما حد يخلّص، أو رقّي الباقة لعدد أكبر في نفس الوقت.", "Exam room is full right now — new students wait until someone finishes, or upgrade for more at once.")
                                     : isLifetime
                                       ? l("الامتحانات التجريبية قربت تخلص — اشترك عشان تكمل.", "Trial exams almost used — subscribe to continue.")
                                       : l("امتحانات الشهر قربت تخلص — اشتري امتحانات إضافية أو رقّي باقتك.", "Monthly exams almost used — buy extra exams or upgrade.")}
@@ -388,7 +388,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                                     <span>
                                                         {isEnterprise
                                                             ? l("طلاب حسب الاتفاق", "Custom students")
-                                                            : l(`حتى ${p.max_students} طالب`, `Up to ${p.max_students} students`)}
+                                                            : l(`${p.max_students} طالب في نفس الوقت`, `${p.max_students} students at once`)}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">

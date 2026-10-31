@@ -5,3 +5,4 @@ from app.models.exam_submission import ExamSubmission
 from app.models.exam_assignment import ExamAssignment
 
 from app.models.payment import Payment
+from app.models.exam_session import ExamSession
