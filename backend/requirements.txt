@@ -26,3 +26,4 @@ webrtcvad
 onnxruntime
 insightface
 Pillow
+sentry-sdk[fastapi]

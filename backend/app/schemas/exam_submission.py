@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict
 from datetime import datetime
 
@@ -14,12 +14,13 @@ class ExamSubmissionOut(BaseModel):
     student_name: str
     student_number: str
     transcript: Optional[str] = None
-    nlp_score: Optional[float] = None
-    facial_score: Optional[float] = None
-    speech_score: Optional[float] = None
-    voice_score: Optional[float] = None
-    face_score: Optional[float] = None
-    overall_score: Optional[float] = None
+    # Scores are clamped 0–100 server-side; negative values are rejected.
+    nlp_score: Optional[float] = Field(default=None, ge=0, le=100)
+    facial_score: Optional[float] = Field(default=None, ge=0, le=100)
+    speech_score: Optional[float] = Field(default=None, ge=0, le=100)
+    voice_score: Optional[float] = Field(default=None, ge=0, le=100)
+    face_score: Optional[float] = Field(default=None, ge=0, le=100)
+    overall_score: Optional[float] = Field(default=None, ge=0, le=100)
     cheat_report: Optional[str] = None
     fluency_report: Optional[str] = None
     grade_visible: int = 0

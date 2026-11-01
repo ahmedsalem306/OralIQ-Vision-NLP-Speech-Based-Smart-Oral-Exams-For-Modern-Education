@@ -14,6 +14,66 @@ import time
 import threading
 from collections import OrderedDict
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Sentry Error Tracking (optional — only active when SENTRY_DSN is set)
+# ══════════════════════════════════════════════════════════════════════════════
+_SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+if _SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+        sentry_sdk.init(
+            dsn=_SENTRY_DSN,
+            integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+            traces_sample_rate=0.1,   # 10% of requests for performance tracing
+            send_default_pii=False,   # never send passwords / tokens
+            environment=os.environ.get("ENV", "dev"),
+            release=os.environ.get("RAILWAY_DEPLOYMENT_ID") or os.environ.get("SPACE_ID") or "local",
+        )
+        print("[Startup] Sentry error tracking: ENABLED")
+    except ImportError:
+        print("[Startup] sentry-sdk not installed — add it to requirements.txt to enable Sentry")
+else:
+    print("[Startup] Sentry error tracking: DISABLED (SENTRY_DSN not set)")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Required environment-variable checklist (12 keys)
+# On startup: prints which keys are missing so ops can catch config mistakes.
+# ══════════════════════════════════════════════════════════════════════════════
+REQUIRED_ENV_KEYS = [
+    "SECRET_KEY",
+    "DATABASE_URL",
+    "ALLOWED_ORIGINS",
+    "GOOGLE_CLIENT_ID",
+    "PAYMOB_API_KEY",
+    "PAYMOB_HMAC_SECRET",
+    "PAYMOB_INTEGRATION_ID_CARD",
+    "PAYMOB_INTEGRATION_ID_WALLET",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "OPENAI_API_KEY",
+    "SENTRY_DSN",
+]
+
+def _check_required_keys() -> dict:
+    """Return which of the 12 required env keys are present / missing."""
+    present = []
+    missing = []
+    for key in REQUIRED_ENV_KEYS:
+        if os.environ.get(key, "").strip():
+            present.append(key)
+        else:
+            missing.append(key)
+    return {"present": present, "missing": missing}
+
+def _log_key_check():
+    result = _check_required_keys()
+    if result["missing"]:
+        print(f"[Startup] ⚠️  Missing env vars ({len(result['missing'])}): {', '.join(result['missing'])}")
+    else:
+        print("[Startup] ✅ All 12 required env vars are set.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # High-Concurrency Thread-Safe Bounded Rate Limiter
@@ -230,6 +290,7 @@ def _init_database():
         ensure_migrations()
     except Exception as e:
         print(f"[Startup] migrations failed: {e}")
+    _log_key_check()
 
 
 app = FastAPI(
@@ -358,6 +419,24 @@ def health_check():
             "face_engine": face_status.get("engine"),
             "gaze_engine": gaze_status.get("engine"),
         },
+    }
+
+
+@app.get("/health/keys")
+def health_keys():
+    """
+    Returns which of the 12 required env vars are present vs missing.
+    Intentionally public (no auth) so a deploy script can check config
+    without a token — but we NEVER expose the actual values.
+    """
+    result = _check_required_keys()
+    all_ok = len(result["missing"]) == 0
+    return {
+        "ok": all_ok,
+        "present_count": len(result["present"]),
+        "missing_count": len(result["missing"]),
+        "present": result["present"],
+        "missing": result["missing"],
     }
 
 

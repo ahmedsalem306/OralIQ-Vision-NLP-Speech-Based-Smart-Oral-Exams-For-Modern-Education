@@ -119,6 +119,8 @@ class SpeechAnalyzer:
     def is_ready(self) -> bool:
         return self._model is not None
 
+    MAX_AI_AUDIO_SECONDS = 600  # Resource & compute spend limit: max 10 minutes per answer
+
     def _transcribe(self, audio_path: str, hint: str = "", word_timestamps: bool = False):
         """Run a transcription, return (full_text, segments_list, info)."""
         prompt = (hint + " " + self.filler_prompt).strip()
@@ -133,7 +135,11 @@ class SpeechAnalyzer:
             beam_size=5,
             condition_on_previous_text=False,  # avoid hallucinations from short clips
         )
-        segments = list(segments_iter)
+        segments = []
+        for s in segments_iter:
+            segments.append(s)
+            if s.end >= self.MAX_AI_AUDIO_SECONDS:
+                break
         text = " ".join(s.text.strip() for s in segments if s.text).strip()
         return text, segments, info
 
