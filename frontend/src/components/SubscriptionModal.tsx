@@ -444,15 +444,24 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                 </div>
                                 {paymentMethod === "wallet" && currency === "EGP" && (
                                     <div className="mt-3">
-                                        <label className="block text-xs font-bold text-ink-2 mb-1">
-                                            {l("رقم محفظة فودافون كاش أو غيرها:", "Wallet phone number (Vodafone Cash, etc.):")}
-                                        </label>
+                                        <div className="flex items-center justify-between max-w-xs mb-1">
+                                            <label className="block text-xs font-bold text-ink-2">
+                                                {l("رقم المحفظة:", "Wallet phone number:")}
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setWalletPhone("01010101010")}
+                                                className="text-[11px] font-extrabold text-[#6F4E37] hover:underline"
+                                            >
+                                                {l("استخدم رقم التيست (01010101010)", "Use test number (01010101010)")}
+                                            </button>
+                                        </div>
                                         <input
                                             type="tel"
                                             dir="ltr"
                                             value={walletPhone}
                                             onChange={(e) => setWalletPhone(e.target.value)}
-                                            placeholder="01xxxxxxxxx"
+                                            placeholder="01010101010"
                                             className="h-11 w-full max-w-xs rounded-xl border border-rule bg-paper px-3.5 text-sm font-bold text-ink outline-none focus:border-[#6F4E37]"
                                         />
                                     </div>
