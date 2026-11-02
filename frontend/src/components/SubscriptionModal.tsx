@@ -443,15 +443,37 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                     )}
                                 </div>
                                 {paymentMethod === "wallet" && currency === "EGP" && (
-                                    <input
-                                        type="tel"
-                                        dir="ltr"
-                                        value={walletPhone}
-                                        onChange={(e) => setWalletPhone(e.target.value)}
-                                        placeholder="01xxxxxxxxx"
-                                        className="mt-3 h-11 w-full max-w-xs rounded-xl border border-rule bg-paper px-3.5 text-sm font-bold text-ink outline-none focus:border-[#6F4E37]"
-                                    />
+                                    <div className="mt-3">
+                                        <label className="block text-xs font-bold text-ink-2 mb-1">
+                                            {l("رقم محفظة فودافون كاش أو غيرها:", "Wallet phone number (Vodafone Cash, etc.):")}
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            dir="ltr"
+                                            value={walletPhone}
+                                            onChange={(e) => setWalletPhone(e.target.value)}
+                                            placeholder="01xxxxxxxxx"
+                                            className="h-11 w-full max-w-xs rounded-xl border border-rule bg-paper px-3.5 text-sm font-bold text-ink outline-none focus:border-[#6F4E37]"
+                                        />
+                                    </div>
                                 )}
+
+                                <div className="mt-4 rounded-xl border border-rule/80 bg-sheet-2/60 p-3.5 text-xs text-ink-2">
+                                    <p className="font-extrabold text-ink flex items-center gap-1.5 mb-1.5">
+                                        <span className="inline-block size-2 rounded-full bg-[#E3A458]" />
+                                        {l("تعليمات التيست والاختبار (لن يتم خصم أي أموال حقيقية):", "Test / Sandbox Mode (No real money charged):")}
+                                    </p>
+                                    {paymentMethod === "card" ? (
+                                        <div className="space-y-1 font-mono text-[11px] text-ink leading-relaxed" dir="ltr">
+                                            <p><span className="font-sans font-bold text-ink-2">Card:</span> 8600000000000001 <span className="font-sans text-ink-3">(or 4111111111111111)</span></p>
+                                            <p><span className="font-sans font-bold text-ink-2">Expiry:</span> 12/28 <span className="font-sans font-bold text-ink-2 ms-3">CVV:</span> 123 <span className="font-sans font-bold text-ink-2 ms-3">OTP:</span> 123456</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1 text-[11px] text-ink leading-relaxed">
+                                            <p>{l("اكتب أي رقم محمول (مثال: 01010101010) وفي صفحة الدفع اكتب كود OTP: 1234 والـ PIN: 1234", "Enter any mobile (e.g. 01010101010) and on payment page enter OTP: 1234 & PIN: 1234")}</p>
+                                        </div>
+                                    )}
+                                </div>
                                 {canBuyAddon && (
                                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4">
                                         <span className="text-xs font-bold text-ink-2">

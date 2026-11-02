@@ -51,7 +51,8 @@ export default function RegisterPage() {
             params.append("password", password);
             const response = await api.post("/login/access-token", params);
             localStorage.setItem("token", response.data.access_token);
-            navigate(redirectTo);
+            const dest = (role === "lecturer" || role === "hr" || role === "admin") ? "/dashboard" : redirectTo;
+            navigate(dest);
         } catch (err: unknown) {
             const e2 = err as { response?: { status?: number; data?: { detail?: unknown } } };
             const detail = e2?.response?.data?.detail;
@@ -225,7 +226,8 @@ export default function RegisterPage() {
                         onStart={() => setError("")}
                         onSuccess={(token) => {
                             localStorage.setItem("token", token);
-                            navigate(redirectTo);
+                            const dest = (role === "lecturer" || role === "hr" || role === "admin") ? "/dashboard" : redirectTo;
+                            navigate(dest);
                         }}
                         onError={setError}
                         header={
