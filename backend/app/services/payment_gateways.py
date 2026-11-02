@@ -61,12 +61,18 @@ PAYMOB_HMAC_FIELDS = [
 WALLET_METHODS = ("wallet", "instapay", "vodafone_cash")
 
 
+def _paymob_card_id() -> str:
+    return _env("PAYMOB_CARD_INTEGRATION_ID") or _env("PAYMOB_INTEGRATION_ID_CARD")
+
+def _paymob_wallet_id() -> str:
+    return _env("PAYMOB_WALLET_INTEGRATION_ID") or _env("PAYMOB_INTEGRATION_ID_WALLET")
+
 def paymob_configured(payment_method: str = "card") -> bool:
     if not _env("PAYMOB_API_KEY"):
         return False
     if payment_method in WALLET_METHODS:
-        return bool(_env("PAYMOB_WALLET_INTEGRATION_ID"))
-    return bool(_env("PAYMOB_CARD_INTEGRATION_ID") and _env("PAYMOB_IFRAME_ID"))
+        return bool(_paymob_wallet_id())
+    return bool(_paymob_card_id() and _env("PAYMOB_IFRAME_ID"))
 
 
 def _post(url: str, body: dict) -> dict:
@@ -86,7 +92,7 @@ def paymob_create_checkout(
     is_wallet = payment_method in WALLET_METHODS
     if is_wallet and not wallet_phone:
         raise GatewayError("wallet phone required")
-    integration_id = _env("PAYMOB_WALLET_INTEGRATION_ID" if is_wallet else "PAYMOB_CARD_INTEGRATION_ID")
+    integration_id = _paymob_wallet_id() if is_wallet else _paymob_card_id()
     amount_cents = int(payment.amount) * 100
 
     token = _post(f"{PAYMOB_BASE}/api/auth/tokens", {"api_key": _env("PAYMOB_API_KEY")}).get("token")
