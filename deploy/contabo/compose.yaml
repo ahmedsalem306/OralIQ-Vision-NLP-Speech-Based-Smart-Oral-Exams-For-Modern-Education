@@ -1,0 +1,127 @@
+name: oraliq
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app: &app
+  image: oraliq-backend:${APP_TAG:-local}
+  build: ../../backend
+  env_file: .env
+  environment: &app-env
+    ENV: production
+    DATABASE_URL: postgresql://oraliq:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/oraliq
+    GRADING_WORKER_MODE: external
+    HF_HOME: /models/huggingface
+    INSIGHTFACE_HOME: /models/insightface
+    OMP_NUM_THREADS: "1"
+    OPENBLAS_NUM_THREADS: "1"
+    MKL_NUM_THREADS: "1"
+    DB_POOL_SIZE: "8"
+    DB_MAX_OVERFLOW: "8"
+  restart: unless-stopped
+  init: true
+  volumes:
+    - models:/models
+  networks: [database, default]
+  logging: *logging
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: oraliq
+      POSTGRES_USER: oraliq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    command: [postgres, -c, shared_buffers=512MB, -c, max_connections=100, -c, work_mem=8MB]
+    volumes: [postgres:/var/lib/postgresql/data]
+    networks: [database]
+    cpus: 1
+    mem_limit: 3g
+    shm_size: 512mb
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U oraliq -d oraliq']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging: *logging
+
+  api:
+    <<: *app
+    environment:
+      <<: *app-env
+      PORT: "8000"
+      TRUST_PROXY: "1"
+    command: [uvicorn, app.main:app, --host, "0.0.0.0", --port, "8000", --workers, "1", --proxy-headers, --forwarded-allow-ips, "*", --timeout-keep-alive, "75"]
+    cpus: 2
+    mem_limit: 4g
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 12
+      start_period: 90s
+
+  worker:
+    <<: *app
+    command: [python, -m, app.worker]
+    environment:
+      <<: *app-env
+      GRADING_WORKER_CONCURRENCY: "2"
+      MAX_CONCURRENT_GRADING: "2"
+      WHISPER_CPU_THREADS: "2"
+      WHISPER_NUM_WORKERS: "2"
+    cpus: 5
+    mem_limit: 14g
+    stop_grace_period: 3m
+    depends_on:
+      api: {condition: service_healthy}
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 256m
+    depends_on:
+      api: {condition: service_healthy}
+    logging: *logging
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: oraliq
+      PGDATABASE: oraliq
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    entrypoint: [sh, /scripts/backup-loop.sh]
+    volumes:
+      - ./backup-loop.sh:/scripts/backup-loop.sh:ro
+      - ./backups:/backups
+    networks: [database]
+    mem_limit: 512m
+    depends_on:
+      db: {condition: service_healthy}
+    logging: *logging
+
+volumes:
+  postgres:
+  models:
+  caddy_data:
+  caddy_config:
+
+networks:
+  database:
+    internal: true

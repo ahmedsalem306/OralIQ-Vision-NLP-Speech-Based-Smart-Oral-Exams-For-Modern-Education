@@ -378,6 +378,17 @@ def test_team_assistants_share_owner_quota(env):
     assert client.post("/api/v1/billing/checkout", json={"plan_id": "pro"}, headers=ah).status_code == 400
 
 
+def test_enterprise_assistant_uses_owners_unlimited_seats_plan(env):
+    client, Session = env
+    owner_id, _ = make_user(Session, "enterprise-owner@t.com", plan_tier="enterprise")
+    _, assistant = make_user(Session, "enterprise-assistant@t.com", owner_id=owner_id)
+    status = client.get("/api/v1/billing/status", headers=assistant).json()
+    assert status["is_team_member"] is True
+    assert status["plan_tier"] == "enterprise"
+    assert new_exam(client, assistant, duration=15).status_code == 200
+    assert get_user(Session, owner_id).cycle_exams_used == 1
+
+
 def test_admin_grant_enterprise_custom_limits(env):
     client, Session = env
     _, adm = make_user(Session, "admin@t.com", role="admin")

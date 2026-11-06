@@ -7,7 +7,8 @@ from app.models.exam_assignment import ExamAssignment
 from app.models.exam_submission import ExamSubmission
 from app.models.question import Question
 from app.models.user import User
-from app.schemas.question import QuestionCreate, QuestionOut, QuestionPublicOut
+from app.schemas.question import ExamSchedule, QuestionCreate, QuestionOut, QuestionPublicOut
+from app.services import exam_schedule
 from app.services import billing_service as bs
 from app.services import service_pause
 
@@ -97,9 +98,12 @@ def create_question(
         max_attempts = question_in.max_attempts
         results_policy = question_in.results_policy
         results_published_at = results_published_by = None
+        opens_at = exam_schedule.utc_naive(question_in.opens_at)
+        closes_at = exam_schedule.utc_naive(question_in.closes_at)
         if not is_new_exam_group:
             leader = min(group_questions, key=lambda q: (q.order_index or 0, q.id))
             max_attempts = leader.max_attempts or 1
+            opens_at, closes_at = leader.opens_at, leader.closes_at
             results_policy = leader.results_policy or "manual"   # also the exam's, not per question
             results_published_at, results_published_by = leader.results_published_at, leader.results_published_by
         question = Question(
@@ -110,6 +114,8 @@ def create_question(
             category=question_in.category,
             duration_minutes=question_in.duration_minutes,
             max_attempts=max_attempts,
+            opens_at=opens_at,
+            closes_at=closes_at,
             results_policy=results_policy,
             results_published_at=results_published_at,
             results_published_by=results_published_by,
@@ -132,6 +138,27 @@ def create_question(
         raise
     db.refresh(question)
     return question
+
+
+@router.put("/exams/{key}/schedule")
+def update_exam_schedule(
+    key: str,
+    payload: ExamSchedule,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    from app.services.exam_sessions import exam_questions
+    questions = exam_questions(db, key)
+    if not questions:
+        raise HTTPException(404, detail="Exam not found")
+    if any(q.creator_id != current_user.id for q in questions):
+        raise HTTPException(403, detail="Only the exam creator can change its schedule")
+    service_pause.ensure_lecturer_active(db, current_user)
+    opens_at, closes_at = exam_schedule.utc_naive(payload.opens_at), exam_schedule.utc_naive(payload.closes_at)
+    for question in questions:
+        question.opens_at, question.closes_at = opens_at, closes_at
+    db.commit()
+    return {"opens_at": exam_schedule.iso(opens_at), "closes_at": exam_schedule.iso(closes_at)}
 
 
 # ── DELETE question (only creator — does NOT refund consumed exam quota) ──────
@@ -188,11 +215,13 @@ def delete_question(
 def get_question_by_token(
     token: str,
     db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_optional_user),
 ) -> Any:
     question = db.query(Question).filter(Question.exam_token == token).first()
     if not question:
         raise HTTPException(status_code=404, detail="Exam not found")
     service_pause.ensure_exam_available(db, question)
+    exam_schedule.require_question_access(db, question, current_user)
     return question
 
 
@@ -201,6 +230,7 @@ def get_question_by_token(
 def get_questions_by_group(
     group_token: str,
     db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_optional_user),
 ) -> Any:
     questions = (
         db.query(Question)
@@ -211,4 +241,5 @@ def get_questions_by_group(
     if not questions:
         raise HTTPException(status_code=404, detail="Exam group not found")
     service_pause.ensure_exam_available(db, questions[0])
+    exam_schedule.require_question_access(db, questions[0], current_user)
     return questions

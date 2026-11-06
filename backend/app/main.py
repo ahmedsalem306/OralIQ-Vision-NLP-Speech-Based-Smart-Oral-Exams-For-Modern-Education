@@ -273,15 +273,20 @@ def _preload_models():
 # Application Factory
 # ══════════════════════════════════════════════════════════════════════════════
 def _init_database():
-    """Create tables + run idempotent migrations. Runs in a background thread so a slow or
-    locked database can never keep the HTTP server from starting (HF health checks)."""
+    """Finish schema setup before serving traffic or starting the grading worker."""
     try:
         Base.metadata.create_all(bind=engine)
     except Exception as e:
+        if is_production():
+            raise RuntimeError("Database schema initialization failed") from e
         print(f"[Startup] create_all failed: {e}")
     try:
-        ensure_migrations()
+        result = ensure_migrations()
+        if is_production() and not (result and result.get("ok")):
+            raise RuntimeError("Database migration did not complete")
     except Exception as e:
+        if is_production():
+            raise RuntimeError("Database migration failed") from e
         print(f"[Startup] migrations failed: {e}")
     _log_key_check()
 
@@ -320,7 +325,7 @@ app = FastAPI(
     version="2.0.0",
     on_startup=[
         _check_database_reachable,
-        lambda: threading.Thread(target=_init_database, daemon=True).start(),
+        _init_database,
         _start_grading_worker,
     ],
     on_shutdown=[_stop_grading_worker],
@@ -480,5 +485,6 @@ async def global_exception_handler(request, exc):
 
 
 # Start background model preloading after the app is fully configured
-_preload_thread = threading.Thread(target=_preload_models, daemon=True)
-_preload_thread.start()
+if current_env() != "test":
+    _preload_thread = threading.Thread(target=_preload_models, daemon=True)
+    _preload_thread.start()

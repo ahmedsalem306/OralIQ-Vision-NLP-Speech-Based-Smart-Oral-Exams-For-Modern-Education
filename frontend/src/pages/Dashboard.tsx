@@ -17,6 +17,7 @@ import type { Question, StudentRow } from "../lib/types";
 import { useToast } from "../components/ui/toast";
 import { useFieldErrors } from "../lib/useFieldErrors";
 import { SubscriptionQuotaBar } from "../components/SubscriptionModal";
+import ExamScheduleModal from "../components/ExamScheduleModal";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -41,6 +42,7 @@ export default function Dashboard() {
     const { errors: fieldErrors, validate, clear: clearField, reset: resetFields } = useFieldErrors();
     const editorFields = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState<string | null>(null);
+    const [scheduleFor, setScheduleFor] = useState<ExamGroup | null>(null);
 
     // Editor
     const [editorOpen, setEditorOpen] = useState(false);
@@ -294,6 +296,12 @@ export default function Dashboard() {
                                                 <Badge tone="warn" icon={<EyeOff aria-hidden />}>{l("النتائج لسه مخفية عن الطلاب", "Results hidden from students")}</Badge>
                                             )}
                                         </div>
+                                        {(g.questions[0]?.opens_at || g.questions[0]?.closes_at) && (
+                                            <p className="mt-3 text-sm font-bold text-ink-2">
+                                                {l("يفتح:", "Opens:")} {g.questions[0].opens_at ? new Date(parseServerDate(g.questions[0].opens_at)!).toLocaleString(lang) : l("متاح الآن", "Available now")}
+                                                {" · "}{l("يقفل:", "Closes:")} {g.questions[0].closes_at ? new Date(parseServerDate(g.questions[0].closes_at)!).toLocaleString(lang) : l("بدون موعد", "No closing time")}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2.5">
                                         {g.questions[0]?.results_policy !== "immediate" && !g.questions[0]?.results_published_at && (
@@ -302,9 +310,9 @@ export default function Dashboard() {
                                                 {l("نشر النتائج", "Publish results")}
                                             </Button>
                                         )}
-                                        <Button variant="secondary" size="md" onClick={() => copyLink(g.token)} aria-live="polite">
+                                        <Button variant="secondary" size="md" onClick={() => setScheduleFor(g)} aria-live="polite">
                                             {copied === g.token ? <Check className="size-4 text-pass" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-                                            {copied === g.token ? l("اتنسخ الرابط", "Copied") : l("نسخ الرابط", "Copy link")}
+                                            {copied === g.token ? l("اتنسخ الرابط", "Copied") : l("صلاحية ونسخ الرابط", "Schedule and copy link")}
                                         </Button>
                                         <Button variant="secondary" size="md" onClick={() => openAssign(g)}>
                                             <UserPlus className="size-4" aria-hidden />
@@ -535,6 +543,13 @@ export default function Dashboard() {
                     )}
                 </div>
             </Modal>
+            {scheduleFor && <ExamScheduleModal key={scheduleFor.token} token={scheduleFor.token}
+                question={scheduleFor.questions[0]} onClose={() => setScheduleFor(null)}
+                onSaved={async (window) => {
+                    const token = scheduleFor.token;
+                    setQuestions((items) => items.map((q) => (q.group_token || q.exam_token) === token ? { ...q, ...window } : q));
+                    await copyLink(token);
+                }} />}
         </>
     );
 }

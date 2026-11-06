@@ -20,6 +20,8 @@ export interface Question {
     duration_minutes: number;
     /** Attempts per student at this question's exam (enforced by the server per sitting). */
     max_attempts?: number;
+    opens_at?: string | null;
+    closes_at?: string | null;
     /** manual: hidden until the lecturer publishes; immediate: shown once graded (whole exam). */
     results_policy?: "manual" | "immediate";
     results_published_at?: string | null;

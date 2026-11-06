@@ -23,6 +23,9 @@ class Question(Base):
     # Attempts each student gets at this exam (set by the lecturer for the whole group; questions
     # added later inherit the first question's value). Enforced by the server per sitting.
     max_attempts = Column(Integer, nullable=False, default=1, server_default="1")
+    # UTC; admission window only. Sittings admitted before closing keep their deadline.
+    opens_at = Column(DateTime, nullable=True)
+    closes_at = Column(DateTime, nullable=True)
     # When students see their grade (whole exam; later questions inherit the first one's):
     #   manual    — hidden until the lecturer publishes the exam's results (the default, and how
     #               every existing exam already worked: grades appeared in "My grades" only once

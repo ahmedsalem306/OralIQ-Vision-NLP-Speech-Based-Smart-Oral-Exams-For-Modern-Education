@@ -114,6 +114,9 @@ def answered_in(db: Session, sitting: ExamSitting) -> List[int]:
 def check_can_start(db: Session, user: User, key: str, questions: Optional[List[Question]] = None) -> int:
     """Raises unless the user may start a new sitting of this exam; returns sittings used so far."""
     questions = questions if questions is not None else exam_questions(db, key)
+    if questions:
+        from app.services.exam_schedule import require_admission
+        require_admission(questions[0], now())
     require_enrollment(user)
     limit = max_attempts_of(questions)
     used = db.query(func.count(ExamSitting.id)).filter(

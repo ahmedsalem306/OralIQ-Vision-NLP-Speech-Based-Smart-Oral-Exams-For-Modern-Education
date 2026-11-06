@@ -186,6 +186,9 @@ def run_migrations():
         if "questions" in table_names:
             # Exams that existed before attempt limits get 1 attempt, the product default.
             ine = "IF NOT EXISTS " if is_pg else ""
+            for column in ("opens_at", "closes_at"):
+                _add_column("questions", column,
+                            f"ALTER TABLE questions ADD COLUMN {ine}{column} TIMESTAMP")
             _add_column("questions", "max_attempts",
                         f"ALTER TABLE questions ADD COLUMN {ine}max_attempts INTEGER NOT NULL DEFAULT 1")
             # Existing exams keep publishing by hand (their per-answer grade_visible is untouched).

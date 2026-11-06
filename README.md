@@ -1,5 +1,10 @@
 # OralIQ
 
+VPS deployment: [Contabo 8 vCPU / 24 GB runbook](deploy/contabo/README.md).
+Cost assumptions and proposed pricing: [Arabic worksheet](docs/pricing-contabo-ar.md).
+Exam links support optional opening/closing times; students admitted before closing retain their
+existing sitting deadline. Lecturers set the window when copying the link from Questions.
+
 An Arabic-first platform for **oral exams online**. A lecturer writes a question and a model
 answer; students answer out loud from a phone or laptop; the grade comes back with a transcript,
 a fluency reading and an integrity report. Built by [GharTech](mailto:ghartech1@gmail.com).

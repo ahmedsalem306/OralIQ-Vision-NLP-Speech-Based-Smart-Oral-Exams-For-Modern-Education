@@ -1,9 +1,19 @@
 """The settings a production deployment must not be allowed to get wrong silently."""
 import pytest
+from unittest.mock import Mock
 from starlette.requests import Request
 
 from app.core.config import _get_or_create_secret
 from app.main import _allowed_origins, _rate_limit_key
+
+
+def test_production_does_not_serve_after_failed_migration(monkeypatch):
+    import app.main as main
+    monkeypatch.setattr(main, "is_production", lambda: True)
+    monkeypatch.setattr(main.Base.metadata, "create_all", Mock())
+    monkeypatch.setattr(main, "ensure_migrations", lambda: {"ok": False})
+    with pytest.raises(RuntimeError, match="Database migration failed"):
+        main._init_database()
 
 
 def _request(headers: dict, client_host: str = "203.0.113.9") -> Request:

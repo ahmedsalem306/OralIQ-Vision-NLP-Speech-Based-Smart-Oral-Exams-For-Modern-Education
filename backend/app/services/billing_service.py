@@ -56,7 +56,7 @@ def get_billing_account(db: Session, user: User) -> User:
         owner = db.query(User).filter(User.id == user.owner_id).first()
         if owner:
             refresh_account_state(db, owner)
-            if get_plan(owner.plan_tier).get("assistant_seats") != 0:
+            if get_plan(owner.plan_tier)["id"] in ("campus", "enterprise"):
                 return owner
     return user
 

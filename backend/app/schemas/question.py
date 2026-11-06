@@ -1,9 +1,36 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer, model_validator
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def schedule_timestamp(value: Optional[datetime]) -> Optional[str]:
+    if value is None:
+        return None
+    utc = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return utc.isoformat().replace("+00:00", "Z")
+
+
+class ExamSchedule(BaseModel):
+    opens_at: Optional[datetime] = None
+    closes_at: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        for value in (self.opens_at, self.closes_at):
+            if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+                raise ValueError("Schedule times must include a timezone")
+        if self.opens_at and self.closes_at and self.closes_at <= self.opens_at:
+            raise ValueError("Closing time must be after opening time")
+        return self
 
 
 class QuestionBase(BaseModel):
+    opens_at: Optional[datetime] = None
+    closes_at: Optional[datetime] = None
+
+    @field_serializer("opens_at", "closes_at")
+    def serialize_window(self, value):
+        return schedule_timestamp(value)
     text: str = Field(..., min_length=2, max_length=4000)
     model_answer: str = Field(..., min_length=1, max_length=8000)
     keywords: str = Field(default="", max_length=2000)
@@ -16,7 +43,7 @@ class QuestionBase(BaseModel):
     results_policy: str = Field(default="manual", pattern="^(manual|immediate)$")
 
 
-class QuestionCreate(QuestionBase):
+class QuestionCreate(QuestionBase, ExamSchedule):
     group_token: Optional[str] = Field(default=None, max_length=128)
 
 
@@ -40,6 +67,12 @@ class QuestionPublicOut(BaseModel):
     Strictly omits `model_answer` and `keywords` to prevent answer-key leakage in DevTools.
     """
     id: int
+    opens_at: Optional[datetime] = None
+    closes_at: Optional[datetime] = None
+
+    @field_serializer("opens_at", "closes_at")
+    def serialize_window(self, value):
+        return schedule_timestamp(value)
     text: str
     difficulty: str = "medium"
     category: str = "general"

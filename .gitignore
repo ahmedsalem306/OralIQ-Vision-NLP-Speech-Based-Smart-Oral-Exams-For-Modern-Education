@@ -4,6 +4,7 @@
 # Scoped to frontend/ on purpose: a backend .env.production would hold the real credentials.
 !frontend/.env.development
 !frontend/.env.production
+!deploy/contabo/.env.example
 *.env
 !local.env.example
 .secret_key
@@ -44,11 +45,13 @@ face_landmarker.task
 # Tool outputs and caches
 graphify-out/
 .pytest_cache/
+.pytest-tmp*/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 *.log
+students.load.json
 
 # Keys and certificates
 *.pem
