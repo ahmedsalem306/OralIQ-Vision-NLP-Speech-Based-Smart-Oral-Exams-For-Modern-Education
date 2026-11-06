@@ -54,6 +54,15 @@ def test_timezone_and_whole_exam_update(env):
         assert all(q.opens_at == datetime(2027, 1, 1, 8) for q in db.query(Question).filter(Question.id.in_(ids)))
 
 
+def test_secondary_question_token_updates_the_whole_exam(env):
+    _, ids = env["exam"]()
+    with env["Session"]() as db:
+        alias = db.get(Question, ids[1]).exam_token
+    assert schedule(env, alias, "2027-01-01T08:00:00Z", None).status_code == 200
+    with env["Session"]() as db:
+        assert all(q.opens_at == datetime(2027, 1, 1, 8) for q in db.query(Question).filter(Question.id.in_(ids)))
+
+
 def test_invalid_and_unauthorized_schedule(env):
     token, _ = env["exam"]()
     _, other = env["user"]("other@t.com", "lecturer", enrolled=False)

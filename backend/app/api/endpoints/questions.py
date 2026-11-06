@@ -151,6 +151,8 @@ def update_exam_schedule(
     questions = exam_questions(db, key)
     if not questions:
         raise HTTPException(404, detail="Exam not found")
+    # A secondary question's individual token is an alias for the same whole exam.
+    questions = exam_questions(db, questions[0].group_token or questions[0].exam_token)
     if any(q.creator_id != current_user.id for q in questions):
         raise HTTPException(403, detail="Only the exam creator can change its schedule")
     service_pause.ensure_lecturer_active(db, current_user)
