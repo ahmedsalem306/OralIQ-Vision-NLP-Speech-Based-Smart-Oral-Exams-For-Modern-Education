@@ -1,0 +1,72 @@
+name: oraliq-loadtest
+x-app: &app
+  image: oraliq-loadtest:local
+  build: ../../backend
+  env_file: .env
+  environment: &environment
+    ENV: production
+    LOAD_TEST_ENABLED: "1"
+    DATABASE_URL: postgresql://oraliq:${POSTGRES_PASSWORD:?Set a new staging password}@db:5432/oraliq_loadtest
+    GRADING_WORKER_MODE: external
+    HF_HOME: /models/huggingface
+    INSIGHTFACE_HOME: /models/insightface
+    TORCH_HOME: /models/torch
+    OMP_NUM_THREADS: "1"
+    OPENBLAS_NUM_THREADS: "1"
+    DB_POOL_SIZE: "8"
+    DB_MAX_OVERFLOW: "8"
+  volumes: [models:/models, artifacts:/data]
+  init: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: oraliq
+      POSTGRES_DB: oraliq_loadtest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a new staging password}
+    volumes: [postgres:/var/lib/postgresql/data]
+    cpus: 1
+    mem_limit: 3g
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U oraliq -d oraliq_loadtest]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  api:
+    <<: *app
+    command: [uvicorn, app.main:app, --host, "0.0.0.0", --port, "8000", --workers, "1"]
+    ports: ["127.0.0.1:18000:8000"]
+    cpus: 2
+    mem_limit: 4g
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      start_period: 90s
+      retries: 12
+  worker:
+    <<: *app
+    command: [python, -m, app.worker]
+    environment:
+      <<: *environment
+      GRADING_WORKER_CONCURRENCY: "2"
+      MAX_CONCURRENT_GRADING: "2"
+      WHISPER_CPU_THREADS: "2"
+      WHISPER_NUM_WORKERS: "2"
+    cpus: 5
+    mem_limit: 14g
+    stop_grace_period: 3m
+    depends_on:
+      api: {condition: service_healthy}
+volumes:
+  postgres:
+  models:
+  artifacts:

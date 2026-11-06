@@ -5,6 +5,7 @@
 !frontend/.env.development
 !frontend/.env.production
 !deploy/contabo/.env.example
+!ops/loadtest/.env.example
 *.env
 !local.env.example
 .secret_key
@@ -54,6 +55,7 @@ htmlcov/
 students.load.json
 security-*-audit.json
 /security-*.txt
+loadtest-artifacts/
 
 # Keys and certificates
 *.pem

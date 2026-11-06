@@ -38,6 +38,11 @@ RUN pip install --no-cache-dir \
 
 COPY . .
 
+# Legacy VAD uses pkg_resources, removed from current setuptools. Only migrate
+# its version lookup to the standard library; fail if the pinned source changes.
+RUN python -m scripts.patch_legacy_vad \
+    && python -c "import webrtcvad; from resemblyzer import VoiceEncoder"
+
 RUN useradd --system --uid 10001 --create-home --home-dir /home/oraliq oraliq \
     && mkdir -p /models /data \
     && chown -R oraliq:oraliq /models /data /home/oraliq
