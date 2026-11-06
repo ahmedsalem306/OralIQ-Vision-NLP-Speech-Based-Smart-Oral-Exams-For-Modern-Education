@@ -478,6 +478,11 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                         )}
                                     </div>
                                 )}
+                                <p className="mt-4 text-sm text-ink-2">
+                                    <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="font-bold text-pen underline underline-offset-4">
+                                        {l("راجع سياسة الاسترجاع والإلغاء قبل الدفع", "Read the refund and cancellation policy before paying")}
+                                    </a>
+                                </p>
                                 {canBuyAddon && (
                                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4">
                                         <span className="text-xs font-bold text-ink-2">

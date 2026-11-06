@@ -21,6 +21,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const MyGrades = lazy(() => import("./pages/MyGrades"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 
 function App() {
     return (
@@ -32,6 +33,7 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/refund-policy" element={<RefundPolicy />} />
 
                 {/* Exam invite link — saves token, redirects to login or dashboard */}
                 <Route path="/exam/:token" element={<ExamInvite />} />

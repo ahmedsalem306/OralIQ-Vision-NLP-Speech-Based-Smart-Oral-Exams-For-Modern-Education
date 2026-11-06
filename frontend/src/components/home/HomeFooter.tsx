@@ -58,6 +58,7 @@ export function HomeFooter({ sections }: { sections: { href: string; label: stri
                 <nav aria-label={l("الحساب", "Account")}>
                     <p className={head}>{l("ابدأ الآن", "Get Started")}</p>
                     <ul className="space-y-2.5 text-sm font-medium">
+                        <li><Link to="/refund-policy" className="hover:text-[#E3A458]">{l("سياسة الاسترجاع والإلغاء", "Refund and cancellation policy")}</Link></li>
                         <li>
                             <Link to="/register" className="hover:text-[#E3A458]">
                                 {l("إنشاء حساب جديد", "Create Account")}
