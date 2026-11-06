@@ -52,6 +52,7 @@ graphify-out/
 htmlcov/
 *.log
 students.load.json
+security-*-audit.json
 
 # Keys and certificates
 *.pem

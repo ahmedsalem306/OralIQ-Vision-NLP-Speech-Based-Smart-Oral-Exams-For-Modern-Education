@@ -40,6 +40,11 @@ Two grading jobs run at once, each Whisper job uses two CPU threads and Whisper 
 workers. One API worker keeps the existing process-local rate limiter coherent. Model caches and
 PostgreSQL use persistent named volumes. Leave the remaining RAM to Linux and disk cache.
 
+Admission stops at `GRADING_MAX_PENDING_JOBS=500` or 2GB of retained audio (failed recordings count
+until purged), returning a retryable 503. PostgreSQL serializes the capacity check across API
+processes. Already accepted idempotency keys still return their original answer. These are safety
+ceilings, not a promised throughput: lower them to fit the measured queue delay and disk budget.
+
 Students can record simultaneously; grading capacity is a different number. Do not sell 150/500
 simultaneous students just because a plan currently advertises that limit. Measure on the actual
 CPU, whose vCPUs may be shared. Start with small classes, then load-test the provided
@@ -108,9 +113,19 @@ docker compose exec db psql -U oraliq -d oraliq_restore_check -c 'SELECT count(*
 
 Compare key table counts and sample rows with the source. For a release, take a fresh backup,
 record the previous commit/image, update code, rebuild, then `docker compose up -d --build`.
-Schema changes in this release only add nullable schedule columns. Never run `docker compose down -v`
+Schema changes add nullable schedule columns and a table for consent-based team invitations.
+The Python 3.12 image uses security-updated API/model dependencies and runs as a non-root user.
+Run the new image's inference smoke test before opening a class; API unit tests fake model calls.
+Named model/data volumes created by an older root image may need their ownership changed to UID
+10001 during maintenance before this image can write to them. Do not grant world-write access.
+Never run `docker compose down -v`
 against production: that removes the database/model volumes. Test the release and rollback on
 staging first; this local environment has no Docker daemon or purchased VPS to validate containers.
+
+For encrypted, verified off-site backups and failure alerts, use the existing
+[`ops/backup` runbook](../../ops/backup/README.md) after configuring its destination and public GPG
+key. The Compose backup is only a local first copy. Review memberships predating the invitation
+system with the affected lecturers; the security patch does not silently unlink existing teams.
 
 References: [Compose health dependencies](https://docs.docker.com/compose/how-tos/startup-order/),
 [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https),

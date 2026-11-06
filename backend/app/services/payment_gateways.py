@@ -181,7 +181,9 @@ def kashier_create_checkout(payment: Payment, user: User, description: str, **_:
     if not session_id or not url:
         raise GatewayError("Kashier response missing _id / sessionUrl")
     parsed = urlparse(str(url))
-    if parsed.scheme != "https" or not (parsed.hostname or "").endswith("kashier.io"):
+    hostname = (parsed.hostname or "").lower()
+    if (parsed.scheme != "https" or parsed.username or parsed.password
+            or not (hostname == "kashier.io" or hostname.endswith(".kashier.io"))):
         raise GatewayError("Kashier sessionUrl is not a kashier.io https URL")
     # The session id lets the server ask Kashier for this payment's state (reconciliation).
     payment.provider_txn_id = kashier_session_marker(session_id)

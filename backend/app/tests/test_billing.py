@@ -369,7 +369,10 @@ def test_team_assistants_share_owner_quota(env):
     client.post("/api/v1/billing/checkout", json={"plan_id": "pro"}, headers=oh)
     assert client.post("/api/v1/billing/team", json={"email": "asst@t.com"}, headers=oh).status_code == 402
     client.post("/api/v1/billing/checkout", json={"plan_id": "campus"}, headers=oh)
-    assert client.post("/api/v1/billing/team", json={"email": "asst@t.com"}, headers=oh).status_code == 200
+    assert client.post("/api/v1/billing/team", json={"email": "asst@t.com"}, headers=oh).status_code == 202
+    assert get_user(Session, asst_id).owner_id is None
+    invitation = client.get("/api/v1/billing/team/invitations", headers=ah).json()[0]
+    assert client.post(f"/api/v1/billing/team/invitations/{invitation['id']}/decision", json={"accept": True}, headers=ah).status_code == 200
     assert new_exam(client, ah, duration=10).status_code == 200  # campus limits apply to assistant
     assert get_user(Session, owner_id).cycle_exams_used == 1
     st = client.get("/api/v1/billing/status", headers=ah).json()

@@ -5,6 +5,7 @@ import api from "../lib/api";
 import { useI18n } from "../i18n";
 import { useTheme, type ThemePref } from "../lib/theme";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
+import TeamInvitations from "../components/TeamInvitations";
 import { Panel, PanelHeader, PageHeader } from "../components/ui/panel";
 import { Alert, Segmented, Skeleton } from "../components/ui/feedback";
 import { Avatar } from "../components/ui/avatar";
@@ -227,6 +228,7 @@ export default function Settings() {
                 </Panel>
             </div>
 
+            {isLecturerRole(user?.role) && <TeamInvitations />}
             <VoiceEnrollmentModal
                 isOpen={showEnroll}
                 onClose={() => setShowEnroll(false)}

@@ -1,4 +1,4 @@
 # Everything the server needs, plus the test tools. Production installs requirements.txt only.
 -r requirements.txt
-pytest
+pytest>=9.0.3
 httpx

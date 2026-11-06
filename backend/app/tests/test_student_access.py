@@ -243,7 +243,7 @@ def test_team_form_does_not_reveal_what_an_address_is(env):
         for r in (env["client"].post("/api/v1/billing/team", json={"email": e}, headers=env["a"])
                   for e in ("nobody@t.com", "student1@t.com", "outsider@t.com"))
     }
-    assert len(answers) == 1 and answers.pop()[0] == 404
+    assert len(answers) == 1 and answers.pop()[0] == 202
 
 
 # ── 14 + 15. Legitimate use and API shape ─────────────────────────────────────

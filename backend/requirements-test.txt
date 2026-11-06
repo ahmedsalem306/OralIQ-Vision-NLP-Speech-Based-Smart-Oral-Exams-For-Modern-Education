@@ -1,0 +1,4 @@
+# The API suite fakes model inference; no model weights / torch are needed for these tests.
+-r requirements-api.txt
+pytest>=9.0.3
+av>=19.0.2

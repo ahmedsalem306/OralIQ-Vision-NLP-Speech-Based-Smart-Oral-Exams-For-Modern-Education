@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Any, Union
-from jose import jwt
+import jwt
 from passlib.context import CryptContext
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256"], deprecated="auto",
+    pbkdf2_sha256__default_rounds=600_000, pbkdf2_sha256__min_rounds=600_000,
+)
 
 def create_access_token(subject: Union[str, Any], expires_delta: timedelta = None, token_version: int = 0) -> str:
     if expires_delta:

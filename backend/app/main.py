@@ -7,7 +7,9 @@ from app.api.api_router import api_router
 from app.core.database import engine, Base, ensure_migrations
 from app.models.user import User  # noqa: F401 — ensures all models are registered
 from app.core.config import current_env, is_dev_env, is_production, parse_allowed_origins, settings
-from jose import jwt as _jwt, JWTError as _JWTError
+from app.core.request_limits import MAX_BODY_SIZE, RequestSizeLimitMiddleware
+import jwt as _jwt
+from jwt import InvalidTokenError as _JWTError
 import hashlib
 import os
 import time
@@ -207,27 +209,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 # ══════════════════════════════════════════════════════════════════════════════
 # Request Size Limit Middleware (prevent abuse with huge uploads)
 # ══════════════════════════════════════════════════════════════════════════════
-MAX_BODY_SIZE = 50 * 1024 * 1024  # 50MB max (exam recordings can be large)
-
-
-class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        content_length = request.headers.get("content-length")
-        if content_length:
-            try:
-                if int(content_length) > MAX_BODY_SIZE:
-                    return JSONResponse(
-                        status_code=413,
-                        content={"detail": "Request body too large. Maximum is 50MB."},
-                    )
-            except ValueError:
-                return JSONResponse(
-                    status_code=400,
-                    content={"detail": "Invalid Content-Length header."},
-                )
-        return await call_next(request)
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Background model preloading
 # ══════════════════════════════════════════════════════════════════════════════
@@ -443,10 +424,10 @@ def health_check():
 @app.get("/health/keys")
 def health_keys():
     """
-    Returns which of the 12 required env vars are present vs missing.
-    Intentionally public (no auth) so a deploy script can check config
-    without a token — but we NEVER expose the actual values.
+    Development-only configuration diagnostics; never returns secret values.
     """
+    if not is_dev_env():
+        raise HTTPException(status_code=404, detail="Not found")
     result = _check_required_keys()
     all_ok = len(result["missing"]) == 0
     return {
@@ -468,6 +449,7 @@ async def http_exception_handler(request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
+        headers=exc.headers,
     )
 
 

@@ -21,8 +21,10 @@ from app.core.plans import ADDON_EXAMS_PER_PACK, BILLING_PERIODS, PLANS, addon_p
 from app.models.billing_cancellation import BillingCancellationRequest
 from app.models.payment import OPEN_STATUSES, Payment
 from app.models.user import User
+from app.models.team_invitation import TeamInvitation
 from app.services import billing_service as bs
 from app.services import cancellations
+from app.services import service_pause
 from app.services import payment_gateways as gw
 
 router = APIRouter()
@@ -548,14 +550,14 @@ def list_team(
     return {"team": status["team"], "assistant_seats": status["usage"]["assistant_seats"]}
 
 
-@router.post("/team")
+@router.post("/team", status_code=202)
 def add_team_member(
     *,
     db: Session = Depends(deps.get_db),
     payload: TeamAddRequest,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """Owner links an existing lecturer account as an assistant (shares the owner's quota)."""
+    """Invite a lecturer. Only their own authenticated acceptance may link the account."""
     _require_lecturer(current_user)
     if current_user.owner_id:
         raise HTTPException(status_code=400, detail="حساب المساعد لا يمكنه إضافة مساعدين.")
@@ -584,17 +586,74 @@ def add_team_member(
     # kind of account an address is.
     if (
         not member
-        or member.role not in bs.LECTURER_ROLES
+        or member.role not in ("lecturer", "hr")
         or (member.owner_id and member.owner_id != current_user.id)
         or db.query(User).filter(User.owner_id == member.id).count()
     ):
-        raise HTTPException(
-            status_code=404,
-            detail="مفيش حساب محاضر متاح للإضافة بالبريد ده. اطلب من المساعد يسجّل كمحاضر بنفس البريد، ومايكونش تابع لفريق تاني.",
-        )
-    member.owner_id = current_user.id
+        return {"ok": True, "pending_acceptance": True}
+    invitation = db.query(TeamInvitation).filter_by(owner_id=current_user.id, invitee_id=member.id).first()
+    if invitation is None:
+        invitation = TeamInvitation(owner_id=current_user.id, invitee_id=member.id)
+        db.add(invitation)
+    invitation.status = "pending"
+    invitation.expires_at = bs.utcnow() + timedelta(days=7)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()  # A simultaneous duplicate invite already exists.
+    return {"ok": True, "pending_acceptance": True}
+
+
+@router.get("/team/invitations")
+def my_team_invitations(db: Session = Depends(deps.get_db), current_user: User = Depends(deps.get_current_user)) -> Any:
+    _require_lecturer(current_user)
+    rows = db.query(TeamInvitation, User).join(User, User.id == TeamInvitation.owner_id).filter(
+        TeamInvitation.invitee_id == current_user.id, TeamInvitation.status == "pending",
+        TeamInvitation.expires_at > bs.utcnow()).all()
+    return [{"id": invitation.id, "owner_name": owner.full_name, "owner_email": owner.email,
+             "expires_at": _iso(invitation.expires_at)} for invitation, owner in rows]
+
+
+class TeamInvitationDecision(BaseModel):
+    accept: bool
+
+
+@router.post("/team/invitations/{invitation_id}/decision")
+def decide_team_invitation(invitation_id: int, payload: TeamInvitationDecision,
+                           db: Session = Depends(deps.get_db),
+                           current_user: User = Depends(deps.get_current_user)) -> Any:
+    invitation = db.query(TeamInvitation).filter_by(id=invitation_id, invitee_id=current_user.id).first()
+    if invitation is None:
+        raise HTTPException(404, detail="Invitation not found")
+    owner = db.get(User, invitation.owner_id)
+    if owner is not None:
+        service_pause.ensure_lecturer_active(db, owner)
+        bs.refresh_account_state(db, owner)
+    # Serialize acceptance against both the owner's seat count and the recipient's memberships.
+    locked = db.query(User).filter(User.id.in_([invitation.owner_id, current_user.id])).order_by(User.id).populate_existing().with_for_update().all()
+    people = {u.id: u for u in locked}
+    owner, member = people.get(invitation.owner_id), people.get(current_user.id)
+    db.refresh(invitation)
+    if invitation.status != "pending" or invitation.expires_at <= bs.utcnow():
+        raise HTTPException(409, detail="Invitation expired or already answered")
+    if not payload.accept:
+        invitation.status = "declined"
+        db.commit()
+        return {"ok": True}
+    if not owner or not owner.is_active or owner.owner_id or owner.role not in bs.LECTURER_ROLES:
+        raise HTTPException(409, detail="Team is no longer available")
+    if not member or member.role not in ("lecturer", "hr") or member.owner_id:
+        raise HTTPException(409, detail="Account is already linked or cannot join a team")
+    if db.query(User.id).filter(User.owner_id == member.id).first():
+        raise HTTPException(409, detail="A team owner cannot join another team")
+    plan = get_plan(owner.plan_tier)
+    count = db.query(User).filter(User.owner_id == owner.id).count()
+    if plan["id"] not in ("campus", "enterprise") or (plan["assistant_seats"] and count >= plan["assistant_seats"]):
+        raise HTTPException(409, detail="Team has no available assistant seats")
+    member.owner_id = owner.id
+    invitation.status = "accepted"
     db.commit()
-    return {"ok": True, "member": {"id": member.id, "email": member.email, "full_name": member.full_name}}
+    return {"ok": True}
 
 
 @router.delete("/team/{member_id}")

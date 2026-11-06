@@ -132,8 +132,10 @@ class SpeechAnalyzer:
         """Run a transcription, return (full_text, segments_list, info)."""
         prompt = (hint + " " + self.filler_prompt).strip()
         language_hint = os.environ.get("WHISPER_LANGUAGE", "").strip() or None
+        from app.core.media_limits import decode_audio_bounded
+        waveform = decode_audio_bounded(audio_path, self.MAX_AI_AUDIO_SECONDS)
         segments_iter, info = self.model.transcribe(
-            audio_path,
+            waveform,
             language=language_hint,  # None lets Whisper detect Arabic/English automatically.
             initial_prompt=prompt,
             word_timestamps=word_timestamps,

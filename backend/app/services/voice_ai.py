@@ -54,13 +54,17 @@ class VoiceBiometricsService:
         try:
             import subprocess
             result = subprocess.run(
-                ['ffmpeg', '-y', '-i', audio_path, '-ar', '16000', '-ac', '1', wav_path],
+                ['ffmpeg', '-nostdin', '-v', 'error', '-y',
+                 '-protocol_whitelist', 'file,pipe', '-format_whitelist', 'wav,mp3,ogg,matroska,webm,mov,aac,flac',
+                 '-i', audio_path, '-vn', '-t', '600', '-ar', '16000', '-ac', '1', wav_path],
                 capture_output=True, timeout=30
             )
             if result.returncode == 0 and os.path.exists(wav_path):
                 return wav_path
         except Exception as e:
             print(f"[Voice AI] ffmpeg conversion failed: {e}")
+        if os.path.exists(wav_path):
+            os.unlink(wav_path)
         
         return audio_path  # Return original if conversion fails
 
@@ -77,7 +81,8 @@ class VoiceBiometricsService:
             if self.encoder is not None:
                 try:
                     from resemblyzer import preprocess_wav
-                    wav = preprocess_wav(converted_path)
+                    from app.core.media_limits import decode_audio_bounded
+                    wav = preprocess_wav(decode_audio_bounded(converted_path), source_sr=16000)
                     embed = self.encoder.embed_utterance(wav)
                     return embed.tolist()
                 except Exception as e:
@@ -99,7 +104,8 @@ class VoiceBiometricsService:
         """
         import librosa
         
-        y, sr = librosa.load(audio_path, sr=16000)
+        from app.core.media_limits import decode_audio_bounded
+        y, sr = decode_audio_bounded(audio_path), 16000
         
         # Remove silence to focus on speech
         intervals = librosa.effects.split(y, top_db=25)

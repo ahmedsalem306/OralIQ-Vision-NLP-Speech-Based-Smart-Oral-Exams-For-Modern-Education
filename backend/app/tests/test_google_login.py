@@ -8,7 +8,7 @@ import time
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

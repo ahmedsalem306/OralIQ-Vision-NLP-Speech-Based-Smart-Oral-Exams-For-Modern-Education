@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -331,7 +332,7 @@ def test_backup_dir_must_be_outside_app_and_temp(env, monkeypatch, capsys):
     monkeypatch.undo()  # restore the real _forbidden_roots
     monkeypatch.setitem(tool.TOOLS, "psql", [sys.executable, FAKE, "psql"])
     monkeypatch.setenv("BACKUP_DATABASE_URL", SOURCE_URL)
-    monkeypatch.setenv("BACKUP_DIR", str(env["tmp"] / "inside-temp"))
+    monkeypatch.setenv("BACKUP_DIR", str(Path(tempfile.gettempdir()) / "oraliq-forbidden-backup"))
     assert tool.main(["backup"]) == 1
     app_dir = Path(tool.__file__).resolve().parents[2] / "backups-here"
     monkeypatch.setenv("BACKUP_DIR", str(app_dir))

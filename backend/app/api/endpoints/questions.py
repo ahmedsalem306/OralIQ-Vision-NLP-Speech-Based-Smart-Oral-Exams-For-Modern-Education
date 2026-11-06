@@ -51,8 +51,16 @@ def create_question(
     group_size_before = 0
     if question_in.group_token:
         group_questions = (
-            db.query(Question).filter(Question.group_token == question_in.group_token).all()
+            db.query(Question).filter(
+                (Question.group_token == question_in.group_token) | (Question.exam_token == question_in.group_token)
+            ).all()
         )
+        if not group_questions:
+            raise HTTPException(status_code=404, detail="Exam group not found")
+        canonical_key = group_questions[0].group_token or group_questions[0].exam_token
+        group_questions = db.query(Question).filter(
+            (Question.group_token == canonical_key) | (Question.exam_token == canonical_key)
+        ).all()
         if group_questions:
             # Existing exam: only the owner's team may add to it
             if any(q.creator_id not in team_ids for q in group_questions):
@@ -92,6 +100,11 @@ def create_question(
     try:
         if is_new_exam_group:
             bs.consume_exam_slot(db, account)  # monthly quota first, then non-expiring add-on packs
+        else:
+            for existing in group_questions:
+                if existing.group_token is None:
+                    existing.group_token = canonical_key
+            db.flush()
 
         # The attempt limit belongs to the exam: a question added to an existing exam takes the
         # exam's value, whatever the request says.
@@ -125,8 +138,8 @@ def create_question(
         db.flush()
 
         if question_in.group_token:
-            question.group_token = question_in.group_token
-            count = db.query(Question).filter(Question.group_token == question_in.group_token).count()
+            question.group_token = canonical_key
+            count = db.query(Question).filter(Question.group_token == canonical_key).count()
             question.order_index = count - 1
         else:
             question.group_token = question.exam_token

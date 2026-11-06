@@ -76,6 +76,8 @@ class FaceBiometricsService:
         }
 
     def _decode_bgr(self, image_bytes: bytes) -> np.ndarray:
+        from app.core.media_limits import check_image_dimensions
+        check_image_dimensions(image_bytes)
         arr = np.frombuffer(image_bytes, dtype=np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         if img is None:

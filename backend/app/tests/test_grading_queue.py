@@ -112,6 +112,37 @@ def submission_of(Session, submission_id):
 
 # ── 1. Submit answers at once with "queued" ───────────────────────────────────
 
+def test_queue_capacity_refuses_without_orphan_submission_and_allows_idempotent_retry(Session, seed, monkeypatch):
+    from fastapi import HTTPException
+    monkeypatch.setenv("GRADING_MAX_PENDING_JOBS", "1")
+    first_id, created = accept(Session, seed, key="capacity-first")
+    assert created
+    with pytest.raises(HTTPException) as caught:
+        accept(Session, seed, key="capacity-second")
+    assert caught.value.status_code == 503
+    assert caught.value.detail["code"] == "GRADING_CAPACITY_REACHED"
+    assert accept(Session, seed, key="capacity-first") == (first_id, False)
+    with Session() as db:
+        assert db.query(GradingJob).count() == db.query(ExamSubmission).count() == 1
+
+
+def test_failed_audio_counts_against_storage_capacity_until_purged(Session, seed, monkeypatch):
+    from fastapi import HTTPException
+    monkeypatch.setenv("GRADING_MAX_RETAINED_AUDIO_BYTES", str(len(AUDIO)))
+    first_id, _ = accept(Session, seed, key="retained-first")
+    with Session() as db:
+        job = db.query(GradingJob).filter_by(submission_id=first_id).one()
+        job.status = gq.FAILED
+        db.commit()
+    with pytest.raises(HTTPException):
+        accept(Session, seed, key="retained-second")
+    with Session() as db:
+        job = db.query(GradingJob).filter_by(submission_id=first_id).one()
+        job.audio = None
+        db.commit()
+    assert accept(Session, seed, key="retained-second")[1]
+
+
 def test_1_submit_is_queued_and_answers_without_grading(client, db, monkeypatch):
     def must_not_run(*a, **k):
         raise AssertionError("grading ran inside the request")

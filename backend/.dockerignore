@@ -12,3 +12,6 @@ data
 *.onnx
 uploads
 recordings
+app/tests
+requirements-dev.txt
+requirements-test.txt

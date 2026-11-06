@@ -17,7 +17,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, func, or_, update
+from sqlalchemy import and_, func, or_, text, update
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.exam_submission import ExamSubmission
@@ -87,6 +88,18 @@ def enqueue(
     priority: int,
 ) -> GradingJob:
     """Adds the job for a submission that is being added in the same session. Caller commits."""
+    # Serialize only queue admission on PostgreSQL. Claims/completion can continue independently.
+    if db.get_bind().dialect.name == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(721183004)"))
+    pending = db.query(func.count(GradingJob.id)).filter(GradingJob.status.in_((QUEUED, PROCESSING))).scalar() or 0
+    retained = db.query(func.coalesce(func.sum(GradingJob.audio_bytes), 0)).filter(
+        GradingJob.status.in_((QUEUED, PROCESSING, FAILED)), GradingJob.audio.isnot(None)).scalar() or 0
+    if (pending >= _env_int("GRADING_MAX_PENDING_JOBS", 500, 1)
+            or retained + (len(audio) if audio else 0) > _env_int("GRADING_MAX_RETAINED_AUDIO_BYTES", 2 * 1024 ** 3, 1)):
+        raise HTTPException(503, detail={"code": "GRADING_CAPACITY_REACHED",
+                            "message": "ضغط التصحيح عالي حاليًا. احتفظ بالتسجيل وحاول التسليم بعد قليل.",
+                            "message_en": "Grading capacity is full. Keep your recording and retry shortly."},
+                            headers={"Retry-After": "30"})
     now = utcnow()
     submission.grading_status = QUEUED
     job = GradingJob(

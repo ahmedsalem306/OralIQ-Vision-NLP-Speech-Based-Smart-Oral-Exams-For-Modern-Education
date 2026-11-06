@@ -142,6 +142,10 @@ def test_create_session_request_matches_kashier_docs(env, monkeypatch):
     Resp.json = staticmethod(lambda: {"_id": "x", "sessionUrl": "https://evil.example/pay"})
     with pytest.raises(gw.GatewayError):
         gw.kashier_create_checkout(p, User(id=uid, email="body@t.com"), "x")
+    for malicious_url in ("https://notkashier.io/pay", "https://kashier.io.evil.example/pay", "https://user:password@payments.kashier.io/pay"):
+        Resp.json = staticmethod(lambda: {"_id": "x", "sessionUrl": malicious_url})
+        with pytest.raises(gw.GatewayError):
+            gw.kashier_create_checkout(p, User(id=uid, email="body@t.com"), "x")
     # Production always uses the live host.
     monkeypatch.setenv("ENV", "production")
     Resp.json = staticmethod(lambda: {"_id": "s", "sessionUrl": "https://payments.kashier.io/s"})

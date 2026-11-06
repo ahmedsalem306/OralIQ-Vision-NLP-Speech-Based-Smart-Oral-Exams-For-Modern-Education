@@ -65,6 +65,9 @@ def login_access_token(
             "message_en": "Confirm your e-mail first using the link we sent you, or ask for a new one.",
         })
 
+    if security.pwd_context.needs_update(user.hashed_password):
+        user.hashed_password = security.get_password_hash(form_data.password)
+        db.commit()
     return _session(user)
 
 

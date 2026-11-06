@@ -1,29 +1,13 @@
-fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
-pydantic
-pydantic-settings
-python-multipart
-python-jose[cryptography]
-passlib[bcrypt]
-bcrypt
-argon2-cffi
-opencv-python-headless
+-r requirements-api.txt
+# Model inference dependencies; all run on CPU in the production image.
 librosa
-transformers
-torch
-sentence-transformers
-numpy
-pytest
-httpx
-moviepy
-email-validator
+transformers>=5.22.2,<6
+torch>=2.15.0,<3
+sentence-transformers>=6.2.0,<7
 faster-whisper
 resemblyzer
 scipy
 webrtcvad
 onnxruntime
 insightface
-Pillow
-sentry-sdk[fastapi]
+av>=19.0.2

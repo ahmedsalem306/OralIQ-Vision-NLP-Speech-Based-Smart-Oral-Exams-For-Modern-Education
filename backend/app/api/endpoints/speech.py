@@ -10,6 +10,7 @@ from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_cappe
 from app.models.user import User
 
 router = APIRouter()
+_dictation_slots = anyio.CapacityLimiter(1)
 
 ALLOWED_AUDIO_EXTS = {".webm", ".wav", ".mp3", ".ogg", ".m4a", ".mp4"}
 
@@ -29,6 +30,8 @@ async def transcribe_speech(
     hint: str = Form(""),
 ) -> Any:
     """Convert a short voice recording to text (Whisper) in a worker thread."""
+    if current_user.role not in ("lecturer", "hr", "admin"):
+        raise HTTPException(status_code=403, detail="Dictation is available to lecturers only")
     if not audio or not audio.filename:
         raise HTTPException(status_code=400, detail="Audio file is required")
 
@@ -43,9 +46,16 @@ async def transcribe_speech(
     try:
         from app.services.speech_ai import speech_analyzer
         safe_hint = (hint or "")[:500]
-        text = await anyio.to_thread.run_sync(
-            lambda: speech_analyzer.transcribe_audio(tmp_path, hint=safe_hint)
-        )
+        try:
+            _dictation_slots.acquire_nowait()
+        except anyio.WouldBlock:
+            raise HTTPException(status_code=503, detail="Dictation is busy. Please type or try again shortly.")
+        try:
+            text = await anyio.to_thread.run_sync(
+                lambda: speech_analyzer.transcribe_audio(tmp_path, hint=safe_hint)
+            )
+        finally:
+            _dictation_slots.release()
         if not text or not text.strip():
             raise HTTPException(status_code=422, detail="Could not detect speech in recording")
         return {"text": text.strip()}

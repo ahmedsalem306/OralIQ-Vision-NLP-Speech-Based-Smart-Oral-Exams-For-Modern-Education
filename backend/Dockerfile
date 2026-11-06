@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements*.txt ./
 
 # torch from the default index pulls the CUDA build: about 2.5GB of GPU libraries that never run,
 # since every model here is configured for the CPU. The CPU wheel index keeps the image small
@@ -38,7 +38,12 @@ RUN pip install --no-cache-dir \
 
 COPY . .
 
-RUN mkdir -p /models /data
+RUN useradd --system --uid 10001 --create-home --home-dir /home/oraliq oraliq \
+    && mkdir -p /models /data \
+    && chown -R oraliq:oraliq /models /data /home/oraliq
+
+ENV HOME=/home/oraliq
+USER oraliq
 
 # Hugging Face Spaces routes traffic to 7860 (no app_port in README). On a VPS, set PORT=8000.
 ENV PORT=7860

@@ -30,7 +30,7 @@ confirmed from a single weak biometric — a face match and a voice match must a
 **Frontend** — React 19, Vite 7, TypeScript, Tailwind v4. The marketing page is pre-rendered at
 build time; the app is a SPA. Fonts are Alexandria (display) and IBM Plex Sans Arabic.
 
-**Backend** — FastAPI on Python 3.10, SQLAlchemy, PostgreSQL in production and SQLite for local
+**Backend** — FastAPI on Python 3.12, SQLAlchemy, PostgreSQL in production and SQLite for local
 development.
 
 **Models.** Everything on the server runs on CPU, and nothing is sent to a third-party AI API.
@@ -68,7 +68,7 @@ scripts/
 
 ## Running it locally
 
-**Prerequisites:** Python 3.10, Node 20+, and `ffmpeg` on PATH (faster-whisper decodes audio
+**Prerequisites:** Python 3.12, Node 22+, and `ffmpeg` on PATH (faster-whisper decodes audio
 with it).
 
 ```bash
