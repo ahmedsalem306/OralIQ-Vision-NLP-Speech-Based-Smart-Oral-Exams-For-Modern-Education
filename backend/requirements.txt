@@ -1,13 +1,13 @@
 -r requirements-api.txt
 # Model inference dependencies; all run on CPU in the production image.
-librosa
+librosa>=0.11,<1
 transformers>=5.22.2,<6
 torch>=2.15.0,<3
-sentence-transformers>=6.2.0,<7
+sentence-transformers>=5.6.0,<6
 faster-whisper
 resemblyzer
 scipy
 webrtcvad
 onnxruntime
-insightface
+insightface==0.7.3
 av>=19.0.2

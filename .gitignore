@@ -53,6 +53,7 @@ htmlcov/
 *.log
 students.load.json
 security-*-audit.json
+/security-*.txt
 
 # Keys and certificates
 *.pem

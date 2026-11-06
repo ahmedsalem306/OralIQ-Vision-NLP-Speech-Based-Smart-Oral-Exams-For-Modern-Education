@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements*.txt ./
+COPY requirements*.txt constraints-security.txt ./
 
 # torch from the default index pulls the CUDA build: about 2.5GB of GPU libraries that never run,
 # since every model here is configured for the CPU. The CPU wheel index keeps the image small
