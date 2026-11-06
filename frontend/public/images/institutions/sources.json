@@ -1,0 +1,106 @@
+{
+  "alexandria": {
+    "file": "alexandria.webp",
+    "source_page": "https://alexu.edu.eg/",
+    "download_url": "https://alexu.edu.eg/templates/alexandriauniversity/images/logo-alex-en.webp",
+    "bytes": 118092
+  },
+  "mansoura": {
+    "file": "mansoura.png",
+    "source_page": "https://www.mans.edu.eg/",
+    "download_url": "https://www.mans.edu.eg/images/mans_logo_.png",
+    "bytes": 27055
+  },
+  "zewail": {
+    "file": "zewail.svg",
+    "source_page": "https://zewailcity.edu.eg/",
+    "download_url": "https://zewailcity.edu.eg/Images/zcLogo.svg",
+    "bytes": 35486
+  },
+  "guc": {
+    "file": "guc.png",
+    "source_page": "https://www.guc.edu.eg/",
+    "download_url": "https://www.guc.edu.eg/img/guc_logo.png",
+    "bytes": 10747
+  },
+  "bue": {
+    "file": "bue.png",
+    "source_page": "https://www.bue.edu.eg/",
+    "download_url": "https://www.bue.edu.eg/MainSiteAssets/imgs/logo.png",
+    "bytes": 8368
+  },
+  "moodle": {
+    "file": "moodle.svg",
+    "source_page": "https://moodle.com/",
+    "download_url": "https://moodle.com/wp-content/uploads/2024/02/Moodlelogo.svg",
+    "bytes": 3113
+  },
+  "blackboard": {
+    "file": "blackboard.svg",
+    "source_page": "https://www.blackboard.com/",
+    "download_url": "https://www.blackboard.com/assets/ds/logos/mark-green.svg",
+    "bytes": 178781
+  },
+  "coursera": {
+    "file": "coursera.png",
+    "source_page": "https://www.coursera.org/campus/",
+    "download_url": "https://d3njjcbhbojbot.cloudfront.net/web/images/favicons/android-chrome-v2-192x192.png",
+    "bytes": 10226
+  },
+  "openedx": {
+    "file": "openedx.svg",
+    "source_page": "https://openedx.org/brand-assets/",
+    "download_url": "https://openedx.org/wp-content/uploads/2025/08/openedx-logo-2026.svg",
+    "bytes": 7512
+  },
+  "classroom": {
+    "file": "classroom.svg",
+    "source_page": "https://edu.google.com/workspace-for-education/products/classroom/",
+    "download_url": "https://edu.google.com/assets/icons/pages/main/workspace-for-education/classroom/classroom-banner-2.svg",
+    "bytes": 24446
+  },
+  "ejust": {
+    "file": "ejust.png",
+    "source_page": "https://commons.wikimedia.org/wiki/File:E-JUST_logo.png",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/E-JUST_logo.png",
+    "bytes": 168821,
+    "author": "Rasha shata",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "azhar": {
+    "file": "azhar.svg",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Al-Azhar_University_logo.svg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/54/Al-Azhar_University_logo.svg",
+    "bytes": 13837,
+    "author": "Khaled Hosny",
+    "license": "Public domain (see source page)"
+  },
+  "cairo": {
+    "file": "cairo.png",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Cairo_University_new_logo.png",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Cairo_University_new_logo.png",
+    "bytes": 888852,
+    "author": "Unknown author; original source cu.edu.eg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "ainshams": {
+    "file": "ainshams.png",
+    "source_page": "https://www.asu.edu.eg/908/page",
+    "download_url": "https://www.asu.edu.eg/frontend/images/logo.png",
+    "bytes": 11610
+  },
+  "canvas": {
+    "file": "canvas.png",
+    "source_page": "https://www.instructure.com/about/brand-guide/partner-brand-kit",
+    "download_url": "https://www.instructure.com/sites/default/files/image/2025-08/InstructureSignatureLogo-Canvas.png",
+    "bytes": 4136
+  },
+  "teams": {
+    "file": "teams.svg",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Microsoft_Office_Teams_(2025%E2%80%93present).svg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/07/Microsoft_Office_Teams_%282025%E2%80%93present%29.svg",
+    "bytes": 4855
+  }
+}

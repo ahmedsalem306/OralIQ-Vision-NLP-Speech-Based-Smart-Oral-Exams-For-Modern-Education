@@ -24,7 +24,7 @@ export default function LandingPage() {
         { href: "#about", label: l("عن المنصة", "About Platform") },
         { href: "#how", label: l("الخطوات", "Steps") },
         { href: "#video", label: l("الفيديو التعريفي", "Intro Video") },
-        { href: "#clients", label: l("عملاؤنا", "Our Clients") },
+        { href: "#clients", label: l("الجهات المستهدفة", "Who we serve") },
         { href: "#integrate", label: l("انضم كـ فيتشر", "Embed Feature") },
         { href: "#pricing", label: l("الباقات", "Pricing") },
         { href: "#testimonials", label: l("آراء العملاء", "Testimonials") },
