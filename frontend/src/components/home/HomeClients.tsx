@@ -5,8 +5,8 @@ import { gsap, useGSAP, withMotion } from "../../lib/gsap";
 import { Eyebrow, H2, Section } from "./ui";
 
 /**
- * Section 4 (#clients): Our Clients & Impact Stats
- * Features the Two-Row Opposing Marquee ("موثوق من قبل / أبرز العملاء")
+ * Section 4 (#clients): Target institutions & sectors
+ * Features illustrative target institutions, with no client/partnership claim.
  * (Row 1 moving left, Row 2 moving right, frameless on the Warm Espresso stage with left/right fade masks)
  * and responsive 3 sector cards + 4 stat rings.
  */
@@ -83,209 +83,27 @@ export function HomeClients() {
 
     // Row 1 Logos — Egyptian & Regional Universities (Moves Left)
     const row1Logos = [
-        { name: "CAIRO UNIVERSITY", sub: "جامعة القاهرة", kind: "cairo" as const },
-        { name: "AIN SHAMS UNIV", sub: "جامعة عين شمس", kind: "ainshams" as const },
-        { name: "ALEXANDRIA UNIV", sub: "جامعة الإسكندرية", kind: "alexandria" as const },
-        { name: "MANSOURA UNIV", sub: "جامعة المنصورة", kind: "mansoura" as const },
-        { name: "ZEWAIL CITY", sub: "مدينة زويل للعلوم", kind: "zewail" as const },
-        { name: "E-JUST", sub: "الجامعة المصرية اليابانية", kind: "ejust" as const },
-        { name: "GUC • GIU", sub: "الجامعة الألمانية", kind: "guc" as const },
-        { name: "BUE EGYPT", sub: "الجامعة البريطانية", kind: "bue" as const },
+        { name: "CAIRO UNIVERSITY", sub: "جامعة القاهرة", logo: "/images/institutions/cairo.png" },
+        { name: "AIN SHAMS UNIV", sub: "جامعة عين شمس", logo: "/images/institutions/ainshams.png" },
+        { name: "ALEXANDRIA UNIV", sub: "جامعة الإسكندرية", logo: "/images/institutions/alexandria.webp" },
+        { name: "MANSOURA UNIV", sub: "جامعة المنصورة", logo: "/images/institutions/mansoura.png" },
+        { name: "ZEWAIL CITY", sub: "مدينة زويل للعلوم", logo: "/images/institutions/zewail.svg" },
+        { name: "E-JUST", sub: "الجامعة المصرية اليابانية", logo: "/images/institutions/ejust.png" },
+        { name: "GUC", sub: "الجامعة الألمانية بالقاهرة", logo: "/images/institutions/guc.png" },
+        { name: "BUE EGYPT", sub: "الجامعة البريطانية", logo: "/images/institutions/bue.png" },
     ];
 
     // Row 2 Logos — LMS Platforms & Academic Institutions (Moves Right)
     const row2Logos = [
-        { name: "MOODLE LMS", sub: "منصة مودل التعليمية", kind: "moodle" as const },
-        { name: "BLACKBOARD LEARN", sub: "بلاك بورد الجامعي", kind: "blackboard" as const },
-        { name: "CANVAS LMS", sub: "نظام كانفاس التعليمي", kind: "canvas" as const },
-        { name: "COURSERA CAMPUS", sub: "كورسيرا للجامعات", kind: "coursera" as const },
-        { name: "OPEN EDX", sub: "منصة إيدكس المفتوحة", kind: "openedx" as const },
-        { name: "MS TEAMS EDU", sub: "مايكروسوفت تيمز للتعليم", kind: "teams" as const },
-        { name: "GOOGLE CLASSROOM", sub: "جوجل كلاس روم", kind: "classroom" as const },
-        { name: "AL-AZHAR UNIV", sub: "جامعة الأزهر الشريف", kind: "azhar" as const },
+        { name: "MOODLE LMS", sub: "منصة مودل التعليمية", logo: "/images/institutions/moodle.svg" },
+        { name: "BLACKBOARD LEARN", sub: "بلاك بورد الجامعي", logo: "/images/institutions/blackboard.svg" },
+        { name: "CANVAS LMS", sub: "نظام كانفاس التعليمي", logo: "/images/institutions/canvas.png" },
+        { name: "COURSERA CAMPUS", sub: "كورسيرا للجامعات", logo: "/images/institutions/coursera.png" },
+        { name: "OPEN EDX", sub: "منصة إيدكس المفتوحة", logo: "/images/institutions/openedx.svg" },
+        { name: "MS TEAMS EDU", sub: "مايكروسوفت تيمز للتعليم", logo: "/images/institutions/teams.svg" },
+        { name: "GOOGLE CLASSROOM", sub: "جوجل كلاس روم", logo: "/images/institutions/classroom.svg" },
+        { name: "AL-AZHAR UNIV", sub: "جامعة الأزهر الشريف", logo: "/images/institutions/azhar.svg" },
     ];
-
-    const renderMarkSvg = (kind: string) => {
-        switch (kind) {
-            case "cairo":
-                // Cairo University Dome & Clock Tower Crest
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        {/* Outer shield & laurel base */}
-                        <path d="M20 3L7 8v11c0 9 5.5 15.8 13 18 7.5-2.2 13-9 13-18V8L20 3z" strokeOpacity="0.45" />
-                        {/* Iconic Cairo Univ Dome */}
-                        <path d="M12 24c0-4.8 3.6-8.5 8-8.5s8 3.7 8 8.5" fill="currentColor" fillOpacity="0.16" />
-                        <path d="M20 11v4.5M10 24h20M13 24v6M17.5 24v6M22.5 24v6M27 24v6M11 30h18" />
-                    </svg>
-                );
-            case "ainshams":
-                // Ain Shams University Obelisk & Twin Falcons + Sun Disc
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="20" cy="8.5" r="3" fill="currentColor" fillOpacity="0.25" />
-                        {/* Obelisk */}
-                        <path d="M20 12l2.5 3 1.2 17h-7.4l1.2-17L20 12z" fill="currentColor" fillOpacity="0.14" />
-                        {/* Twin Horus wings/falcons */}
-                        <path d="M16 20l-7-3 1.8 7.5L16 27M24 20l7-3-1.8 7.5L24 27" />
-                        <path d="M10 32h20" />
-                    </svg>
-                );
-            case "alexandria":
-                // Alexandria University Pharos Lighthouse & Waves
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="20" cy="10" r="2.8" fill="currentColor" />
-                        {/* Light beams */}
-                        <path d="M9 7l5 2.5M31 7l-5 2.5M8 12h5.5M26.5 12H32" />
-                        {/* Tiered Pharos tower */}
-                        <path d="M16.5 13.5h7l1.5 7h-10l1.5-7zM14 20.5h12l1.8 8.5H12.2l1.8-8.5z" fill="currentColor" fillOpacity="0.14" />
-                        {/* Sea waves */}
-                        <path d="M7 33c2.5-2 5-2 7.5 0s5 2 7.5 0 5-2 7.5 0" />
-                    </svg>
-                );
-            case "mansoura":
-                // Mansoura University Gear, Open Book & Torch
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="20" cy="20" r="13.5" strokeDasharray="3.5 2.5" />
-                        {/* Torch flame */}
-                        <path d="M20 7c2.5 2.5 3 5 0 7.5-3-2.5-2.5-5 0-7.5z" fill="currentColor" />
-                        <path d="M20 14.5v9" />
-                        {/* Open book */}
-                        <path d="M11 22c3.5-1.5 6.5-0.8 9 1.5 2.5-2.3 5.5-3 9-1.5v7c-3.5-1.5-6.5-0.8-9 1.5-2.5-2.3-5.5-3-9-1.5v-7z" fill="currentColor" fillOpacity="0.14" />
-                    </svg>
-                );
-            case "zewail":
-                // Zewail City of Science & Technology Atomic Crest
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75">
-                        <ellipse cx="20" cy="20" rx="15" ry="6" transform="rotate(32 20 20)" />
-                        <ellipse cx="20" cy="20" rx="15" ry="6" transform="rotate(-32 20 20)" />
-                        <ellipse cx="20" cy="20" rx="15" ry="6" transform="rotate(90 20 20)" strokeOpacity="0.55" />
-                        <circle cx="20" cy="20" r="3.2" fill="currentColor" />
-                    </svg>
-                );
-            case "ejust":
-                // E-JUST Pyramid + Japanese Rising Sun Disc
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="24" cy="14" r="6" fill="currentColor" fillOpacity="0.28" />
-                        <path d="M7 31L17.5 13 28 31H7z" fill="currentColor" fillOpacity="0.14" />
-                        <path d="M17.5 13L13 31M7 31h26" />
-                    </svg>
-                );
-            case "guc":
-                // GUC German University Triple Architectural Bars + Crest
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75">
-                        <rect x="6" y="8" width="28" height="24" rx="4" strokeOpacity="0.4" />
-                        <rect x="10" y="12.5" width="20" height="3.8" rx="1" fill="currentColor" />
-                        <rect x="10" y="18.2" width="15" height="3.8" rx="1" fill="currentColor" fillOpacity="0.7" />
-                        <rect x="10" y="24" width="20" height="3.8" rx="1" fill="currentColor" fillOpacity="0.45" />
-                    </svg>
-                );
-            case "bue":
-                // BUE British University Heraldic Crown & Shield
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        {/* Royal Crown */}
-                        <path d="M11 14l2.2-6 6.8 4.2L26.8 8 29 14H11z" fill="currentColor" fillOpacity="0.2" />
-                        {/* Divided Shield */}
-                        <path d="M10 17h20v7.5c0 6.2-4.2 10.5-10 12.5-5.8-2-10-6.3-10-12.5V17z" />
-                        <path d="M20 17v20M10 24h20" strokeOpacity="0.65" />
-                    </svg>
-                );
-            case "moodle":
-                // Iconic Moodle "m" with Graduation Cap
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {/* Slanted Mortarboard Cap */}
-                        <path d="M7 13.5L19 8l11 4.5-11 5-12-4z" fill="currentColor" fillOpacity="0.28" />
-                        <path d="M7 13.5v5.5" />
-                        {/* Bold lowercase 'm' */}
-                        <path d="M10 31V21.5c0-2.5 1.8-4.2 4.2-4.2s4.2 1.7 4.2 4.2V31M18.4 21.5c0-2.5 1.8-4.2 4.2-4.2s4.4 1.7 4.4 4.2V31" strokeWidth="2.6" />
-                    </svg>
-                );
-            case "blackboard":
-                // Iconic Blackboard "Bb" Serif Monogram Badge
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="6" y="6" width="28" height="28" rx="6" fill="currentColor" fillOpacity="0.1" />
-                        <text x="10" y="26.5" fill="currentColor" stroke="none" fontSize="17" fontWeight="800" fontFamily="Georgia, serif">
-                            Bb
-                        </text>
-                        <path d="M10 30h20" strokeOpacity="0.6" />
-                    </svg>
-                );
-            case "canvas":
-                // Iconic Canvas by Instructure 8-Dot Starburst Rosette
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="currentColor">
-                        <circle cx="20" cy="8" r="2.7" />
-                        <circle cx="28.5" cy="11.5" r="2.7" opacity="0.85" />
-                        <circle cx="32" cy="20" r="2.7" />
-                        <circle cx="28.5" cy="28.5" r="2.7" opacity="0.85" />
-                        <circle cx="20" cy="32" r="2.7" />
-                        <circle cx="11.5" cy="28.5" r="2.7" opacity="0.85" />
-                        <circle cx="8" cy="20" r="2.7" />
-                        <circle cx="11.5" cy="11.5" r="2.7" opacity="0.85" />
-                        <circle cx="20" cy="20" r="5.2" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 2.2" />
-                    </svg>
-                );
-            case "coursera":
-                // Coursera Infinity Loop Emblem
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                        <path d="M14.5 14.5c-3.2 0-5.8 2.5-5.8 5.5s2.6 5.5 5.8 5.5c4.5 0 6.5-11 11-11 3.2 0 5.8 2.5 5.8 5.5s-2.6 5.5-5.8 5.5c-4.5 0-6.5-11-11-11z" />
-                    </svg>
-                );
-            case "openedx":
-                // Open edX Intersecting Rings & X
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <circle cx="16" cy="20" r="8.5" fill="currentColor" fillOpacity="0.12" />
-                        <circle cx="24" cy="20" r="8.5" />
-                        <path d="M17 15l6 10M23 15l-6 10" strokeWidth="2.2" />
-                    </svg>
-                );
-            case "teams":
-                // Microsoft Teams Shield & Connected Users
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="7" y="11" width="17" height="18" rx="3.5" fill="currentColor" fillOpacity="0.18" />
-                        <path d="M12.5 16.5h6M15.5 16.5v8" strokeWidth="2.2" />
-                        <circle cx="28.5" cy="14.5" r="3" />
-                        <path d="M24 27v-3.5c0-2.2 2-4 4.5-4s4.5 1.8 4.5 4V27" />
-                    </svg>
-                );
-            case "classroom":
-                // Google Classroom Chalkboard & Silhouettes
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="6" y="8" width="28" height="22" rx="3.5" fill="currentColor" fillOpacity="0.12" />
-                        <circle cx="20" cy="16" r="2.6" fill="currentColor" />
-                        <path d="M15 24c0-2.5 2.2-4.2 5-4.2s5 1.7 5 4.2" />
-                        <circle cx="12.5" cy="18" r="1.8" />
-                        <circle cx="27.5" cy="18" r="1.8" />
-                        <path d="M23 30h6" strokeWidth="2.4" />
-                    </svg>
-                );
-            case "azhar":
-            default:
-                // Al-Azhar University Mosque Dome, Minaret & Crescent
-                return (
-                    <svg className="size-7 sm:size-8 shrink-0" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        {/* Minaret */}
-                        <path d="M29 10v20M27.5 13h3" />
-                        {/* Dome */}
-                        <path d="M10 25c0-4.8 3.6-8.5 8-8.5s8 3.7 8 8.5" fill="currentColor" fillOpacity="0.16" />
-                        <path d="M18 13v3.5M8 25h22M8 30h24" />
-                        {/* Open book base */}
-                        <path d="M12 27.5l6 2 6-2" />
-                    </svg>
-                );
-        }
-    };
 
     const clientSectors = [
         {
@@ -363,9 +181,9 @@ export function HomeClients() {
             <div ref={root} className="mx-auto max-w-[92rem] px-5 sm:px-10 lg:px-14">
                 {/* Two-Row Opposing Marquee Header */}
                 <div className="mx-auto max-w-3xl text-center">
-                    <Eyebrow className="text-[#E3A458]">{l("موثوق من قبل", "Trusted By")}</Eyebrow>
+                    <Eyebrow className="text-[#E3A458]">{l("مصمّم للقطاع التعليمي", "Built for education")}</Eyebrow>
                     <h2 className={`${H2} mt-2 text-[#FAF6F0]`}>
-                        {l("أبرز العملاء والجهات المستفيدة", "Featured Clients & Institutions")}
+                        {l("جهات نستهدف خدمتها", "Institutions we aim to serve")}
                     </h2>
                     <p className="ar-body mt-4 text-base sm:text-lg font-medium leading-[1.85] text-[#FAF6F0]/80">
                         {l(
@@ -373,6 +191,19 @@ export function HomeClients() {
                             "Whether you're a university faculty, school administration, or EdTech founder, OralIQ turns oral assessment into a rapid, verified digital workflow.",
                         )}
                     </p>
+                </div>
+
+                <p className="ar-body mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-[#FAF6F0]/75">
+                    {l(
+                        "الأسماء والشعارات التالية أمثلة توضيحية لجهات ومنصات نستهدف خدمتها، وليست إعلانًا عن عملاء حاليين أو شراكات أو تكاملات معتمدة. العلامات التجارية ملك لأصحابها.",
+                        "These names and logos illustrate institutions and platforms we aim to serve. They do not indicate current clients, partnerships, endorsements or verified integrations. Trademarks belong to their respective owners.",
+                    )}
+                </p>
+
+                <div className="mt-2 text-center">
+                    <a href="/images/institutions/credits.html" className="text-xs text-[#FAF6F0]/65 underline underline-offset-4 hover:text-[#FAF6F0]">
+                        {l("مصادر الشعارات وحقوقها", "Logo sources & credits")}
+                    </a>
                 </div>
 
                 {/* Two-Row Frameless Right-and-Left Marquee */}
@@ -396,10 +227,10 @@ export function HomeClients() {
                             {[...row1Logos, ...row1Logos].map((item, idx) => (
                                 <div
                                     key={`r1-${item.name}-${idx}`}
-                                    className="group/logo flex shrink-0 items-center gap-3.5 text-[#FAF6F0] opacity-80 hover:opacity-100 transition-opacity duration-300"
+                                    className="group/logo flex shrink-0 items-center gap-3.5 text-[#FAF6F0] opacity-100"
                                 >
-                                    <span className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-2xl border border-[#FAF6F0]/15 bg-[#FAF6F0]/[0.06] text-[#E3A458] transition-colors group-hover/logo:border-[#E3A458]/50 group-hover/logo:bg-[#E3A458]/15">
-                                        {renderMarkSvg(item.kind)}
+                                    <span className="flex h-20 w-28 shrink-0 items-center justify-center rounded-2xl border border-[#FAF6F0]/20 bg-white p-3 sm:h-22 sm:w-32">
+                                        <img src={item.logo} alt="" width={104} height={64} loading="lazy" decoding="async" className="max-h-full w-full object-contain" />
                                     </span>
                                     <div className="text-left">
                                         <span className="wb-num block text-sm sm:text-lg font-extrabold tracking-tight text-[#FAF6F0] leading-none">
@@ -433,10 +264,10 @@ export function HomeClients() {
                             {[...row2Logos, ...row2Logos].map((item, idx) => (
                                 <div
                                     key={`r2-${item.name}-${idx}`}
-                                    className="group/logo flex shrink-0 items-center gap-3.5 text-[#FAF6F0] opacity-80 hover:opacity-100 transition-opacity duration-300"
+                                    className="group/logo flex shrink-0 items-center gap-3.5 text-[#FAF6F0] opacity-100"
                                 >
-                                    <span className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-2xl border border-[#FAF6F0]/15 bg-[#FAF6F0]/[0.06] text-[#E3A458] transition-colors group-hover/logo:border-[#E3A458]/50 group-hover/logo:bg-[#E3A458]/15">
-                                        {renderMarkSvg(item.kind)}
+                                    <span className="flex h-20 w-28 shrink-0 items-center justify-center rounded-2xl border border-[#FAF6F0]/20 bg-white p-3 sm:h-22 sm:w-32">
+                                        <img src={item.logo} alt="" width={104} height={64} loading="lazy" decoding="async" className="max-h-full w-full object-contain" />
                                     </span>
                                     <div className="text-left">
                                         <span className="wb-num block text-sm sm:text-lg font-extrabold tracking-tight text-[#FAF6F0] leading-none">
