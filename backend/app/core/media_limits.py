@@ -1,6 +1,24 @@
 """Check compressed image dimensions before allocating decoded pixels; bound decoded audio."""
 from io import BytesIO
 
+_AUDIO_OPTIONS = {
+    "protocol_whitelist": "file,pipe",
+    "format_whitelist": "wav,mp3,ogg,matroska,webm,mov,aac,flac",
+}
+
+
+def check_audio_only(content: bytes) -> None:
+    """Inspect stream metadata before queue persistence, regardless of filename/MIME claims."""
+    import av
+    try:
+        with av.open(BytesIO(content), metadata_errors="ignore", options=_AUDIO_OPTIONS) as container:
+            if container.streams.video:
+                raise ValueError("Video tracks are not accepted; submit an audio-only recording")
+            if not container.streams.audio:
+                raise ValueError("No audio stream")
+    except av.FFmpegError as error:
+        raise ValueError("Invalid or unsupported audio recording") from error
+
 
 def check_image_dimensions(content: bytes) -> None:
     from PIL import Image, UnidentifiedImageError
@@ -20,10 +38,9 @@ def decode_audio_bounded(path: str, max_seconds: int = 600):
     import numpy as np
     chunks, count = [], 0
     limit = max_seconds * 16000
-    with av.open(path, metadata_errors="ignore", options={
-        "protocol_whitelist": "file,pipe",
-        "format_whitelist": "wav,mp3,ogg,matroska,webm,mov,aac,flac",
-    }) as container:
+    with av.open(path, metadata_errors="ignore", options=_AUDIO_OPTIONS) as container:
+        if container.streams.video:
+            raise ValueError("Video tracks are not accepted")
         if not container.streams.audio:
             raise ValueError("No audio stream")
         resampler = av.audio.resampler.AudioResampler(format="fltp", layout="mono", rate=16000)

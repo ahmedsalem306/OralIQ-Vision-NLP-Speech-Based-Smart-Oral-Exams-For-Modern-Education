@@ -8,6 +8,7 @@ from app.core.database import engine, Base, ensure_migrations
 from app.models.user import User  # noqa: F401 — ensures all models are registered
 from app.core.config import current_env, is_dev_env, is_production, parse_allowed_origins, settings
 from app.core.request_limits import MAX_BODY_SIZE, RequestSizeLimitMiddleware
+from app.core.privacy_telemetry import private_error_event
 import jwt as _jwt
 from jwt import InvalidTokenError as _JWTError
 import hashlib
@@ -28,8 +29,12 @@ if _SENTRY_DSN:
         sentry_sdk.init(
             dsn=_SENTRY_DSN,
             integrations=[FastApiIntegration(), SqlalchemyIntegration()],
-            traces_sample_rate=0.1,   # 10% of requests for performance tracing
-            send_default_pii=False,   # never send passwords / tokens
+            traces_sample_rate=0,  # tracing spans may contain queries, URLs and answer data
+            send_default_pii=False,
+            max_request_body_size="never",
+            include_local_variables=False,
+            before_send=private_error_event,
+            before_breadcrumb=lambda breadcrumb, hint: None,
             environment=os.environ.get("ENV", "dev"),
             release=os.environ.get("RAILWAY_DEPLOYMENT_ID") or os.environ.get("SPACE_ID") or "local",
         )

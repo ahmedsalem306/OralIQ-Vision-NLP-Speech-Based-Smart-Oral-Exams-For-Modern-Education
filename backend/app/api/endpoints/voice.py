@@ -1,5 +1,4 @@
 from typing import Any, List, Optional
-import anyio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 import tempfile, os, json, traceback
@@ -7,6 +6,7 @@ import numpy as np
 
 from app.api import deps
 from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_capped
+from app.core.biometric_capacity import run_biometric
 from app.models.user import User
 from app.services import service_pause
 from app.services.voice_ai import voice_service
@@ -112,7 +112,7 @@ async def enroll_voice_print(
         tmp_path = tmp.name
 
     try:
-        embedding = await anyio.to_thread.run_sync(voice_service.extract_embedding, tmp_path)
+        embedding = await run_biometric(voice_service.extract_embedding, tmp_path)
         if not embedding or len(embedding) == 0:
             raise HTTPException(status_code=422, detail="Could not extract voice features from audio")
 
@@ -174,9 +174,11 @@ async def enroll_voice_print_multi(
                 tmp_paths.append(tmp.name)
 
             try:
-                emb = await anyio.to_thread.run_sync(voice_service.extract_embedding, tmp_paths[-1])
+                emb = await run_biometric(voice_service.extract_embedding, tmp_paths[-1])
                 if emb and len(emb) > 0:
                     embeddings.append(emb)
+            except HTTPException:
+                raise
             except Exception as e:
                 print(f"[Voice Enroll] Sample {i+1} extraction error: {e}")
 
@@ -260,7 +262,7 @@ async def verify_voice_print(
 
     try:
         stored_emb = json.loads(current_user.voice_embedding)
-        result = await anyio.to_thread.run_sync(voice_service.verify_voice, tmp_path, stored_emb)
+        result = await run_biometric(voice_service.verify_voice, tmp_path, stored_emb)
         return {
             "ok": True,
             "is_match": bool(result.get("is_match")),

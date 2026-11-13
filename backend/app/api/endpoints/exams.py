@@ -354,6 +354,17 @@ async def submit_exam(
         suffix = _safe_audio_suffix(audio.filename)
         content = await read_upload_capped(audio, MAX_AUDIO_BYTES)
 
+    if content is not None:
+        from app.core.media_limits import check_audio_only
+        try:
+            await anyio.to_thread.run_sync(check_audio_only, content)
+        except ValueError:
+            raise HTTPException(status_code=422, detail={
+                "code": "AUDIO_ONLY_REQUIRED",
+                "message": "نقبل إجابة صوتية فقط بدون مسار فيديو.",
+                "message_en": "Submit a valid audio-only recording without a video track.",
+            })
+
     # Database work (including writing a recording of up to 40MB) off the event loop.
     submission, created = await anyio.to_thread.run_sync(
         lambda: _accept_submission(

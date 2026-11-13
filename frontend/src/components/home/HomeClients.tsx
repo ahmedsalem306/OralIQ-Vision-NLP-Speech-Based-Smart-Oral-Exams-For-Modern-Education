@@ -143,11 +143,11 @@ export function HomeClients() {
 
     const stats = [
         {
-            target: 98,
+            target: 80,
             suffix: "%",
             offset: 16,
             accent: "#E3A458",
-            label: l("دقة التصحيح بالمعنى مقارنة بتقييم الدكتور", "Semantic grading accuracy vs. lecturer scoring"),
+            label: l("وزن المحتوى عند اكتمال بيانات التقييم", "Content weight when grading evidence is complete"),
         },
         {
             target: 478,
@@ -157,11 +157,11 @@ export function HomeClients() {
             label: l("نقطة تتبُّع حيوي على الوجه والعين لمنع الغش", "Biometric face & eye landmarks tracked live"),
         },
         {
-            target: 90,
+            target: 10,
             suffix: "%",
             offset: 32,
             accent: "#D8CFC4",
-            label: l("توفير في وقت اللجان الشفوية والتصحيح", "Time saved on oral exam panels & grading"),
+            label: l("وزن الطلاقة عند اكتمال بيانات التقييم", "Fluency weight when grading evidence is complete"),
         },
         {
             target: 3,
@@ -309,7 +309,7 @@ export function HomeClients() {
                             </div>
                             <div className="mt-6 flex items-center gap-2 border-t border-current/15 pt-4 text-xs font-bold opacity-85">
                                 <ShieldCheck className="size-4 text-[#E3A458]" aria-hidden />
-                                <span>{l("معتمد وجاهز للتشغيل الفوري", "Verified & ready for immediate deployment")}</span>
+                                <span>{l("إعدادات تناسب احتياج مؤسستك", "Settings for your institution's needs")}</span>
                             </div>
                         </article>
                     ))}

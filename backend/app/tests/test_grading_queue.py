@@ -7,6 +7,8 @@ conftest is one connection, so it cannot show a race).
 """
 import threading
 import time
+from io import BytesIO
+import wave
 from datetime import timedelta
 
 import pytest
@@ -26,7 +28,13 @@ from app.services import grading_pipeline
 from app.services import grading_queue as gq
 from app.tests.exam_helpers import ENROLLED, access_check, new_exam, open_sitting
 
-AUDIO = b"RIFF" + b"\x00" * 4096  # stands in for a recording; never decoded
+_audio_buffer = BytesIO()
+with wave.open(_audio_buffer, "wb") as _audio_wave:
+    _audio_wave.setnchannels(1)
+    _audio_wave.setsampwidth(2)
+    _audio_wave.setframerate(16000)
+    _audio_wave.writeframes(b"\x00\x00" * 2048)
+AUDIO = _audio_buffer.getvalue()  # valid audio metadata; AI inference is still mocked
 
 
 def fake_ai(score=80.0):

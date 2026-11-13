@@ -6,10 +6,10 @@ import { HomeHero } from "../components/home/HomeHero";
 import { HomeAbout } from "../components/home/HomeAbout";
 import { HomeSteps } from "../components/home/HomeSteps";
 import { HomeVideo } from "../components/home/HomeVideo";
+import { HomePrivacy } from "../components/home/HomePrivacy";
 import { HomeClients } from "../components/home/HomeClients";
 import { HomePlatform } from "../components/home/HomePlatform";
 import { HomePricing } from "../components/home/HomePricing";
-import { HomeTestimonials } from "../components/home/HomeTestimonials";
 import { HomeContact } from "../components/home/HomeContact";
 import { HomeFooter } from "../components/home/HomeFooter";
 
@@ -24,10 +24,10 @@ export default function LandingPage() {
         { href: "#about", label: l("عن المنصة", "About Platform") },
         { href: "#how", label: l("الخطوات", "Steps") },
         { href: "#video", label: l("الفيديو التعريفي", "Intro Video") },
+        { href: "#privacy", label: l("الخصوصية", "Privacy") },
         { href: "#clients", label: l("الجهات المستهدفة", "Who we serve") },
         { href: "#integrate", label: l("انضم كـ فيتشر", "Embed Feature") },
         { href: "#pricing", label: l("الباقات", "Pricing") },
-        { href: "#testimonials", label: l("آراء العملاء", "Testimonials") },
         { href: "#contact", label: l("تواصل معنا", "Contact Us") },
     ];
 
@@ -49,10 +49,11 @@ export default function LandingPage() {
                     <HomeAbout startHref={startHref} />
                     <HomeSteps />
                     <HomeVideo />
+                    <HomePrivacy />
                     <HomeClients />
                     <HomePlatform />
                     <HomePricing startHref={startHref} />
-                    <HomeTestimonials />
+                    {/* Publish testimonials only after obtaining verifiable customer consent and evidence. */}
                     <HomeContact />
                 </main>
                 <HomeFooter sections={sections} />

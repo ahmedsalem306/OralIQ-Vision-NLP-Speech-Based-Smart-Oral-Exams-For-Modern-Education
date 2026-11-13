@@ -6,6 +6,7 @@ import json
 
 from app.api import deps
 from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_capped
+from app.core.biometric_capacity import run_biometric
 from app.models.user import User
 from app.services import exam_evidence, service_pause
 from app.services.face_biometrics import face_biometrics_service, EMBEDDING_DIM
@@ -72,7 +73,7 @@ async def enroll_face_print(
             if len(raw) < 500:
                 errors.append(f"image[{i}]: too small")
                 continue
-            extracted = await anyio.to_thread.run_sync(face_biometrics_service.extract_embedding, raw)
+            extracted = await run_biometric(face_biometrics_service.extract_embedding, raw)
             embeddings.append(extracted["embedding"])
         except HTTPException:
             raise
@@ -131,7 +132,7 @@ async def verify_face_print(
     stored = json.loads(current_user.face_embedding)
     exam_key = await anyio.to_thread.run_sync(lambda: exam_evidence.exam_key_from_token(db, exam_token))
     try:
-        result = await anyio.to_thread.run_sync(
+        result = await run_biometric(
             lambda: face_biometrics_service.verify_image(stored, raw, threshold=0.55)
         )
     except ValueError as e:
@@ -184,12 +185,14 @@ async def analyze_gaze(
             parsed = json.loads(bbox)
             if isinstance(parsed, list) and len(parsed) == 4:
                 normalized_box = [float(v) for v in parsed]
-        result = await anyio.to_thread.run_sync(
+        result = await run_biometric(
             lambda: gaze_ai_service.analyze_image_bytes(
                 raw,
                 normalized_face_bbox=normalized_box,
             )
         )
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=500, detail="Gaze analysis failed")
     return {"ok": True, **result, "engine": "mobilegaze"}

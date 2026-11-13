@@ -9,6 +9,7 @@ import Logo, { LogoMark } from "../components/Logo";
 import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
+import { ExamPrivacyNotice } from "../components/ExamPrivacyNotice";
 
 import { PageLoader } from "../components/PageLoader";
 
@@ -1950,6 +1951,8 @@ export default function ExamRoom() {
 
                 <h1 className="text-2xl font-bold">{l("قبل ما تبدأ", "Before you start")}</h1>
 
+                <div className="mt-5"><ExamPrivacyNotice /></div>
+
                 {question ? (
 
                     <p className="mt-2 text-ink-2">
@@ -2432,6 +2435,8 @@ export default function ExamRoom() {
 
 
             <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:gap-10 lg:py-10">
+
+                {!recording && <div className="lg:col-span-2"><ExamPrivacyNotice /></div>}
 
                 {/* ── Camera ── */}
 

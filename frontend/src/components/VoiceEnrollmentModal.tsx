@@ -9,6 +9,7 @@ import { DrawnCheck } from "./motion";
 import { buildFaceEnrollForm } from "../lib/faceBiometrics";
 import { isAxiosError } from "axios";
 import { getApiErrorMessage } from "../lib/apiErrors";
+import { ExamPrivacyNotice } from "./ExamPrivacyNotice";
 
 interface VoiceEnrollmentModalProps {
     isOpen: boolean;
@@ -53,6 +54,7 @@ function EnrollmentFlow({
     const [faceModelsReady, setFaceModelsReady] = useState(false);
     const [camAttempt, setCamAttempt] = useState(0);
     const [consent, setConsent] = useState(false);
+    const [cameraReady, setCameraReady] = useState(false);
     const { l } = useI18n();
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -97,9 +99,11 @@ function EnrollmentFlow({
 
     // Face ID camera
     useEffect(() => {
-        if (enrollPhase !== "face") return;
+        if (enrollPhase !== "face" || !consent) return;
+        setCameraReady(false);
 
         let cancelled = false;
+        let camera: MediaStream | null = null;
         (async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -110,6 +114,7 @@ function EnrollmentFlow({
                     stream.getTracks().forEach(t => t.stop());
                     return;
                 }
+                camera = stream;
                 streamRef.current = stream;
                 if (faceVideoRef.current) {
                     faceVideoRef.current.srcObject = stream;
@@ -123,14 +128,19 @@ function EnrollmentFlow({
             }
         })();
 
-        return () => { cancelled = true; };
-    }, [enrollPhase, camAttempt]);
+        return () => {
+            cancelled = true;
+            camera?.getTracks().forEach(track => track.stop());
+            if (streamRef.current === camera) streamRef.current = null;
+        };
+    }, [enrollPhase, camAttempt, consent, l]);
 
     const totalPhrases = PHRASES.length;
 
     const startFaceScan = async () => {
+        if (!consent) return;
         const video = faceVideoRef.current;
-        if (!video) return;
+        if (!video || video.readyState < 2) return;
         setErrorMsg("");
         setFaceScanning(true);
         setFaceScanProgress(0);
@@ -316,6 +326,8 @@ function EnrollmentFlow({
                 : l("خطوتين بس، وبيتعملوا مرة واحدة.", "Two quick steps, done once.")}
             footer={closable && step !== "success" ? <Button variant="ghost" onClick={onClose}>{l("بعدين", "Later")}</Button> : undefined}
         >
+            {step !== "success" && <div className="mb-5"><ExamPrivacyNotice /></div>}
+
             {/* Stage indicator */}
             {step !== "success" && (
                 <ol className="mb-6 flex items-center gap-3 text-sm">
@@ -344,7 +356,7 @@ function EnrollmentFlow({
                         "relative aspect-square w-full max-w-48 overflow-hidden sm:max-w-60 rounded-full bg-sheet-2 ring-4 transition-colors",
                         faceScanning ? "ring-pen" : "ring-rule",
                     )}>
-                        <video ref={faceVideoRef} muted playsInline className="size-full -scale-x-100 object-cover" />
+                        <video ref={faceVideoRef} muted playsInline onLoadedData={() => setCameraReady(true)} className="size-full -scale-x-100 object-cover" />
                         {faceScanning && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                                 <ScanFace className="size-12 text-white motion-safe:animate-pulse" aria-hidden />
@@ -407,14 +419,14 @@ function EnrollmentFlow({
                             className="mt-0.5 size-[18px] shrink-0 accent-[var(--pen)]"
                         />
                         <span>
-                            {l("أوافق إن OralIQ يحفظ بصمة وشّي وصوتي ويستخدمها للتأكد من هويتي في الامتحانات بس. البصمة بتتحفظ كأرقام مش كصور أو تسجيلات، ومحدش يقدر يغيّرها غير بإذن المحاضر.",
-                                "I agree that OralIQ stores my face and voice prints and uses them only to confirm my identity in exams. Prints are stored as numbers, not photos or recordings, and can only be changed with lecturer approval.")}
+                            {l("قرأت إشعار الخصوصية وأوافق على معالجة لقطات التحقق وحفظ قوالب بصمة الوجه والصوت للتأكد من هويتي في الامتحانات. أفهم أن القوالب بيانات حساسة، وأن الإجابات الصوتية تُحفظ مؤقتًا للتصحيح، ولا يُسجّل فيديو للامتحان.",
+                                "I have read the privacy notice and agree to verification-frame processing and storage of face and voice templates for exam identity checks. I understand templates are sensitive data, audio answers are retained temporarily for grading, and exam video is not recorded.")}
                         </span>
                     </label>
                 )}
 
                 {enrollPhase === "face" && !faceScanning && !faceModelsLoading && faceModelsReady && step !== "error" && (
-                    <Button size="lg" className="w-full sm:w-auto" onClick={startFaceScan} disabled={!consent}>
+                    <Button size="lg" className="w-full sm:w-auto" onClick={startFaceScan} disabled={!consent || !cameraReady}>
                         <ScanFace className="size-5" aria-hidden />{l("امسح وشي", "Scan my face")}
                     </Button>
                 )}

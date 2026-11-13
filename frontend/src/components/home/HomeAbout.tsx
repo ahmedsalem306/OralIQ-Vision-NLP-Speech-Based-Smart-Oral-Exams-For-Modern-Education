@@ -113,7 +113,7 @@ export function HomeAbout({ startHref }: { startHref: string }) {
             badge: l("الموديل الثالث", "Model 03"),
             title: l("موديل بصمة الوجه والعين والصوت لمنع الغش", "478-Point Face, Eye-Gaze & Voice Anti-Cheat"),
             body: l(
-                "بيرسم 478 نقطة على وجه الطالب ويتابع حركة عينه لحظة بلحظة مع مطابقة بصمة صوته؛ لو الطالب بص في ورق أو شاشة تانية أو حد غيره اتكلم، الموديل بيكتشفه فوراً فالطالب مش هيعرف يغش.",
+                "بيرسم 478 نقطة على وجه الطالب ويتابع حركة عينه لحظة بلحظة مع مطابقة بصمة صوته؛ لو الطالب بص في ورق أو شاشة تانية أو حد غيره اتكلم، الموديل بيكتشفه فوراً لتسجيل مؤشرات تستدعي مراجعة المحاضر.",
                 "Maps 478 facial landmarks and tracks eye gaze in real time alongside voiceprint verification—if the student reads off another screen or someone else speaks, it flags it immediately.",
             ),
             points: [
@@ -133,7 +133,7 @@ export function HomeAbout({ startHref }: { startHref: string }) {
         {
             tone: "wb-mocha-stage border-[#FAF6F0]/15 text-[#FAF6F0]",
             badgeBg: "bg-[#E3A458] text-[#18110D]",
-            title: l("الطالب مش هيعرف يغش", "Students Cannot Cheat"),
+            title: l("رصد مؤشرات الغش", "Integrity Signals for Review"),
             desc: l("الكاميرا والمايك شغالين بـ 478 نقطة تتبع للعين والوجه وبصمة الصوت، وأول ما السؤال يظهر العد التنازلي بيبدأ فوراً.", "Camera and mic enforce 478-point eye/face tracking and voiceprint matching with an immediate countdown."),
             dark: true,
         },
@@ -165,7 +165,7 @@ export function HomeAbout({ startHref }: { startHref: string }) {
                         {splitWords(l("منصة امتحانات شفوية بالذكاء الاصطناعي", "An AI-powered oral examination platform"))}
                         {splitWords(l("تشتغل أوتوماتيك من غير ما الدكتور يتدخل،", "running automatically with zero lecturer intervention,"), "text-pen")}
                         {splitWords(l("عن طريق 3 موديلات ذكية بتسمع وتصحح الإجابة بالمعنى،", "via 3 AI models that listen and grade semantic meaning,"))}
-                        {splitWords(l("وبتراقب حركة العين والوجه والصوت عشان الطالب مستحيل يغش", "while tracking eye gaze, face & voice so students cannot cheat"))}
+                        {splitWords(l("وبتراقب حركة العين والوجه والصوت للمساعدة في رصد مؤشرات الغش", "while tracking eye gaze, face & voice to help flag potential integrity issues"))}
                         {splitWords(l("ويبقى الكويز الشفوي أونلاين زي أي كويز عادي.", "making the oral quiz online just like any regular quiz."), "text-pen")}
                     </h2>
                 </div>
@@ -257,8 +257,8 @@ export function HomeAbout({ startHref }: { startHref: string }) {
                         <div className="lg:col-span-8">
                             <h3 className="ar-heading font-display text-xl font-bold text-[#FAF6F0] sm:text-3xl">
                                 {l(
-                                    "ليه الطالب مستحيل يغش في كويز OralIQ؟",
-                                    "Why is it impossible for a student to cheat in an OralIQ quiz?",
+                                    "إزاي OralIQ يساعد في رصد مؤشرات الغش؟",
+                                    "How does OralIQ help flag integrity issues?",
                                 )}
                             </h3>
                             <p className="ar-body mt-3 text-sm sm:text-base font-medium leading-[1.85] text-[#FAF6F0]/85">

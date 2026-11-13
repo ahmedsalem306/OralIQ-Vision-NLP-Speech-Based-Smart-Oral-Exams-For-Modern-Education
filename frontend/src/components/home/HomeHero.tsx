@@ -97,8 +97,8 @@ export function HomeHero({ startHref }: { startHref: string }) {
 
                         <p data-hero-fade className="ar-body mt-3.5 sm:mt-5 max-w-[26rem] text-[0.95rem] font-medium leading-[1.82] text-[#FAF6F0]/82 sm:text-[1.05rem]">
                             {l(
-                                "حولنا الامتحان الشفوي لكويز أونلاين ذكي زي أي كويز إلكتروني: الطالب بيجاوب بصوته، و3 موديلات ذكاء اصطناعي بتصحح الإجابة بالمعنى وبتراقب حركة العين وبصمة الوجه والصوت عشان مستحيل يغش.",
-                                "Turn oral exams into an effortless online quiz: students answer by voice while 3 AI models grade meaning and track eye gaze, face mesh, and voiceprint so cheating is impossible.",
+                                "حولنا الامتحان الشفوي لكويز أونلاين ذكي زي أي كويز إلكتروني: الطالب بيجاوب بصوته، و3 موديلات ذكاء اصطناعي بتصحح الإجابة بالمعنى وبتراقب حركة العين وبصمة الوجه والصوت للمساعدة في رصد مؤشرات الغش.",
+                                "Turn oral exams into an effortless online quiz: students answer by voice while 3 AI models grade meaning and track eye gaze, face mesh, and voiceprint to help flag potential integrity issues for lecturer review.",
                             )}
                         </p>
 
@@ -151,8 +151,8 @@ export function HomeHero({ startHref }: { startHref: string }) {
 
                             <p className="ar-body mt-3.5 sm:mt-4 text-xs sm:text-sm font-medium leading-[1.78] text-[#1C1410]/85">
                                 {l(
-                                    "الطالب مش هيعرف يغش: الكاميرا بترسم 478 نقطة على الوجه وبتتابع حركة العين لحظة بلحظة، مع مطابقة بصمة الصوت وتصحيح الإجابة بالمعنى تلقائياً.",
-                                    "Cheating is impossible: the camera maps 478 facial landmarks and tracks eye movement in real time, matching voiceprints and grading answers semantically.",
+                                    "مؤشرات للمحاضر: الكاميرا بترسم 478 نقطة على الوجه وبتتابع حركة العين لحظة بلحظة، مع مطابقة بصمة الصوت وتصحيح الإجابة بالمعنى تلقائياً.",
+                                    "Integrity signals for your lecturer: the camera maps 478 facial landmarks and tracks eye movement in real time, matching voiceprints and grading answers semantically.",
                                 )}
                             </p>
 
