@@ -1,11 +1,11 @@
 # Production and privacy review — 2026-11-13
 
-This records preparation and local validation, not a certificate that the application
-has no vulnerabilities or a claim that the purchased VPS is deployed. The server IP and
-Linux platform were supplied in screenshots; domain, exact OS/resources and verified secure
-access are still pending. A strict SSH attempt stopped because its host key was not yet
-trusted; no password was supplied in the screenshots. No production database or real
-student's biometric data was inspected.
+This records preparation and validation, not a certificate that the application has no
+vulnerabilities or that production cutover is complete. On November 14, the purchased VPS
+was inspected through an authenticated SSH session: Ubuntu 24.04.5 LTS, 8 CPUs, 23.5 GiB
+RAM and about 290 GiB disk. An isolated staging API/PostgreSQL deployment now runs there.
+The user supplied `oralliq.com`; DNS/HTTPS and production data migration remain pending.
+No production database or real student's biometric data was inspected.
 
 ## Implemented in this release
 
@@ -51,9 +51,12 @@ student's biometric data was inspected.
    authorization or choose and evaluate a properly authorized replacement. The MIT license
    on library code does not change the supplied model weights' terms. No purchase or license
    acceptance has been made on the user's behalf.
-3. **Actual Linux/VPS validation:** build the Python 3.12 Docker image, run dependency checks
-   and container scanning, preload authorized models and run real Arabic audio/identity smoke
-   tests before traffic. Local Windows dependency resolution/unit tests do not establish this.
+3. **Actual Linux/VPS validation:** the Python 3.12 CPU Docker image builds, `pip check`
+   passes and staging API/PostgreSQL health checks pass. Linux tests found a PyAV 19
+   incompatibility that broke audio inspection/decoding; it was fixed by removing the
+   deleted `metadata_errors` argument, then 56 focused tests passed, including actual
+   PostgreSQL concurrent queue admission. Container/OS advisory scanning, authorized model
+   preloading and real Arabic audio/identity smoke tests remain required before traffic.
 4. **Migration and secure cutover:** confirm the source database type, pause writes during
    migration, preserve user IDs/templates/payment records and signing-key strategy, verify
    restored counts and resume only one authoritative database. Do not switch Vercel's API
@@ -70,7 +73,7 @@ student's biometric data was inspected.
 - Frontend audit (2026-11-13): zero known advisory findings in the current lockfile.
 - Python audit (2026-11-13): zero known findings for the 119 resolved pinned versions;
   not an audit of the Linux image or OS packages and not a proof of absence of vulnerabilities.
-- Frontend typecheck, lint and final production build passed; 15 Node tests passed. Existing
+- Frontend typecheck, lint and final production build passed; 16 Node tests passed. Existing
   lint warnings remain (25 in the full lint run; two `any` warnings in the changed enrollment
   component). No claim is made that all lint warnings or all UI flows are covered.
 - Full backend suite passed: **364 passed, 1 skipped** (PostgreSQL concurrent admission test
@@ -80,8 +83,25 @@ student's biometric data was inspected.
   tests: **5 passed**, including raw asyncio cancellation retaining CPU capacity until the
   actual inference thread finishes. Audio-container/queue regression run: **27 passed**,
   including a real encoded video upload rejected with no submission/job persisted.
-- Real Linux build, real model inference, 500-student server load, DNS/HTTPS and backup restore:
-  **not performed** in this session; need the purchased server details and secure access.
+- Linux validation (November 14): Docker build, dependency consistency check, CPU Torch
+  (`2.15.0+cpu`, no CUDA), OpenCV, PyAV, Transformers, Resemblyzer, SentenceTransformer and
+  InsightFace library imports passed. Container runs as UID 10001. These import checks do
+  not establish model inference accuracy or authorization to use face weights commercially.
+- Isolated API and PostgreSQL are healthy. API binds only `127.0.0.1:18000`; PostgreSQL
+  has no published host port. `/docs`, `/redoc`, `/openapi.json`, `/debug` and `/health/keys`
+  return 404; unauthenticated accommodation requests return 401. Automatic face/gaze
+  preloading is disabled in staging; Whisper/SBERT worker inference is not running yet.
+- Actual Linux runtime Python advisory audit: no known findings among checked packages;
+  `torch==2.15.0+cpu` was skipped because that build is not listed on PyPI. This is not
+  an audit of OS packages, model files, all application logic or the skipped CPU wheel.
+- UFW was enabled after explicit approval: incoming SSH 22 is limited, web 80/443 allowed,
+  other incoming connections denied, outgoing allowed, with IPv4/IPv6 rules verified.
+  The current SSH session still works. No persistent root SSH key was installed.
+- A staging `pg_dump`/`pg_restore --exit-on-error` completed into a separate restore-check
+  database: both contain 16 public tables and zero users. This proves an empty-schema
+  backup round trip only; it is not a restore test of real student data or off-site backups.
+- Real Arabic speech/identity model inference, 500-student server load, public DNS/HTTPS,
+  production-data migration and encrypted off-site backup restore remain **not performed**.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
 
@@ -94,6 +114,7 @@ users/exams that need preserving before any migration. No server data should be 
 "start fresh" without an explicit decision about those records.
 
 Use [Contabo deployment](../deploy/contabo/README.md),
+[the concrete oralliq.com cutover plan](../deploy/contabo/oralliq-cutover.md),
 [real-model and school load tests](../ops/loadtest/README.md), and
 [encrypted off-site backups](../ops/backup/README.md).
 

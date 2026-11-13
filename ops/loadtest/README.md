@@ -2,8 +2,10 @@
 
 This is a preparation kit, not a capacity result. No load has been sent to the live
 site. The local selfcheck uses mocked HTTP responses: its 1,000 accepted/graded
-answers prove the driver's accounting and retry behavior only. Real Linux builds,
-model inference, PostgreSQL, resource use and exam capacity remain to be measured.
+answers prove the driver's accounting and retry behavior only. The Linux image and
+isolated API/PostgreSQL startup were validated on November 14; 56 focused tests passed
+after fixing PyAV 19 audio decoding, including real PostgreSQL queue concurrency.
+Real model inference, resource use under an exam cohort and capacity remain to be measured.
 There is no agreed grading-time SLA; measure first, then set one.
 
 ## What is exercised
@@ -98,7 +100,9 @@ Whisper, SBERT, Resemblyzer and InsightFace on actual inputs, with the worker's 
 limits. It reports timings and booleans without transcripts or biometric vectors.
 The Docker build also checks VAD/Resemblyzer imports; its narrow legacy VAD patch
 changes only package version lookup to Python's `importlib.metadata`.
-Neither these Linux commands nor the Docker image have been run on a VPS yet.
+The Docker image, dependency consistency and model-library imports were checked on
+the purchased VPS. The real-input smoke command above has **not** run: no consenting
+speech/identity inputs were supplied and face-weight authorization remains unresolved.
 
 Automatic API/worker preloading defaults off in this isolated fixture. Authorize and
 preload the models explicitly before a real cohort; the InsightFace supplied face

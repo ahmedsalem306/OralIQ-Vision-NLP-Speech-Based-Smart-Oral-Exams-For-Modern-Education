@@ -1,0 +1,7 @@
+# Use with: docker compose -f compose.yaml -f compose.nginx.yaml ...
+# Keep the existing host Nginx on 80/443; do not start Caddy in this configuration.
+services:
+  proxy:
+    profiles: [standalone-caddy]
+  api:
+    ports: ["127.0.0.1:18001:8000"]

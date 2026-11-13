@@ -1,7 +1,8 @@
 # OralIQ — Contabo deployment (8 vCPU / 24 GB)
 
-This is the deployment package, not proof of a running or validated server. The VPS and domain
-have been purchased; record their addresses and arrange secure access before the cutover.
+This is the deployment package. The VPS now runs an isolated staging API/PostgreSQL setup;
+production cutover, HTTPS and real-input model tests remain pending. See the concrete
+[oralliq.com DNS and existing-Nginx plan](oralliq-cutover.md) before using the commands below.
 Frontend stays on Vercel. PostgreSQL, API, grading worker, HTTPS proxy and local backups run here.
 No Supabase or Hugging Face *hosting* is required. Model files still download from their original
 registries (including Hugging Face Hub) and are cached in the persistent `models` volume.
@@ -121,8 +122,8 @@ Named model/data volumes created by an older root image may need their ownership
 10001 during maintenance before this image can write to them. Do not grant world-write access.
 Never run `docker compose down -v`
 against production: that removes the database/model volumes. Test the release and rollback on
-staging first; this local environment has no Docker CLI, and the purchased VPS has not yet been
-inspected in this session. Do not treat local tests as a successful Linux container build.
+staging first. The purchased VPS was inspected and the Linux image was built on November 14;
+this is separate from the still-pending production data migration and real-model capacity test.
 
 Before paid production, resolve the current InsightFace model's non-commercial weight license,
 confirm the covered-face verification design, and complete the
