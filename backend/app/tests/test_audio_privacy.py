@@ -18,6 +18,21 @@ def test_audio_only_wav_is_allowed():
     check_audio_only(buffer.getvalue())
 
 
+def test_audio_decoding_resamples_to_mono_and_caps_duration(tmp_path):
+    path = tmp_path / "stereo.wav"
+    with wave.open(str(path), "wb") as stream:
+        stream.setnchannels(2)
+        stream.setsampwidth(2)
+        stream.setframerate(48000)
+        samples = np.full((48000 * 2, 2), 1000, dtype="<i2")
+        stream.writeframes(samples.tobytes())
+    decoded = decode_audio_bounded(str(path), max_seconds=1)
+    assert decoded.shape == (16000,)
+    assert decoded.dtype == np.float32
+    assert np.isfinite(decoded).all()
+    assert np.max(np.abs(decoded)) > 0
+
+
 def video_bytes():
     buffer = BytesIO()
     with av.open(buffer, mode="w", format="matroska") as output:

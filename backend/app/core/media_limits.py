@@ -11,7 +11,7 @@ def check_audio_only(content: bytes) -> None:
     """Inspect stream metadata before queue persistence, regardless of filename/MIME claims."""
     import av
     try:
-        with av.open(BytesIO(content), metadata_errors="ignore", options=_AUDIO_OPTIONS) as container:
+        with av.open(BytesIO(content), options=_AUDIO_OPTIONS) as container:
             if container.streams.video:
                 raise ValueError("Video tracks are not accepted; submit an audio-only recording")
             if not container.streams.audio:
@@ -38,7 +38,7 @@ def decode_audio_bounded(path: str, max_seconds: int = 600):
     import numpy as np
     chunks, count = [], 0
     limit = max_seconds * 16000
-    with av.open(path, metadata_errors="ignore", options=_AUDIO_OPTIONS) as container:
+    with av.open(path, options=_AUDIO_OPTIONS) as container:
         if container.streams.video:
             raise ValueError("Video tracks are not accepted")
         if not container.streams.audio:
