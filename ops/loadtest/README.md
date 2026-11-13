@@ -5,6 +5,7 @@ site. The local selfcheck uses mocked HTTP responses: its 1,000 accepted/graded
 answers prove the driver's accounting and retry behavior only. The Linux image and
 isolated API/PostgreSQL startup were validated on November 14; 56 focused tests passed
 after fixing PyAV 19 audio decoding, including real PostgreSQL queue concurrency.
+The subsequent full Linux backend suite passed all 376 tests (mocked AI inference).
 Real model inference, resource use under an exam cohort and capacity remain to be measured.
 There is no agreed grading-time SLA; measure first, then set one.
 

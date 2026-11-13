@@ -55,6 +55,10 @@ temporarily serve only `/.well-known/acme-challenge/` from `/var/www/oraliq-acme
 in a port-80 virtual host; return 503 for other API requests until TLS is ready.
 Do not expose the load-test API at port 18000 or point Nginx at it.
 
+The Compose override was validated on the VPS and the virtual host passed `nginx -t`
+using a temporary self-signed certificate in a separate configuration. This is a
+syntax check, not public TLS issuance, renewal verification or a live proxy test.
+
 After issuance, install the complete virtual host, run `nginx -t`, then reload.
 Verify certificate renewal and its Nginx reload hook. The template overwrites
 forwarded identity headers and omits API access logs to reduce student-data

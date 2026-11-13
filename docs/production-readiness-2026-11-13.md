@@ -87,6 +87,10 @@ No production database or real student's biometric data was inspected.
   (`2.15.0+cpu`, no CUDA), OpenCV, PyAV, Transformers, Resemblyzer, SentenceTransformer and
   InsightFace library imports passed. Container runs as UID 10001. These import checks do
   not establish model inference accuracy or authorization to use face weights commercially.
+- Full Linux/Python 3.12 backend run after the PyAV fix: **376 passed, no skipped tests**
+  in 347 seconds, including the real PostgreSQL admission test in a disposable schema.
+  The suite uses mocked AI inference; 2,690 deprecation warnings were reported. This
+  supersedes the earlier Windows-only full-suite result for the current backend code.
 - Isolated API and PostgreSQL are healthy. API binds only `127.0.0.1:18000`; PostgreSQL
   has no published host port. `/docs`, `/redoc`, `/openapi.json`, `/debug` and `/health/keys`
   return 404; unauthenticated accommodation requests return 401. Automatic face/gaze
@@ -97,6 +101,13 @@ No production database or real student's biometric data was inspected.
 - UFW was enabled after explicit approval: incoming SSH 22 is limited, web 80/443 allowed,
   other incoming connections denied, outgoing allowed, with IPv4/IPv6 rules verified.
   The current SSH session still works. No persistent root SSH key was installed.
+- The production existing-Nginx override passes Compose validation: Caddy is excluded,
+  PostgreSQL is private and API binds only loopback port 18001. The prepared Nginx virtual
+  host passes `nginx -t` using a temporary self-signed certificate in a separate test
+  configuration. It is not enabled, and no public TLS certificate has been issued.
+- Staging CORS preflight accepts the configured Vercel origin and rejects an unrelated
+  origin without an allow-origin header. The OS reports a required restart; it has not
+  been rebooted during the current administrative session.
 - A staging `pg_dump`/`pg_restore --exit-on-error` completed into a separate restore-check
   database: both contain 16 public tables and zero users. This proves an empty-schema
   backup round trip only; it is not a restore test of real student data or off-site backups.
