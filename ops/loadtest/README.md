@@ -100,6 +100,11 @@ The Docker build also checks VAD/Resemblyzer imports; its narrow legacy VAD patc
 changes only package version lookup to Python's `importlib.metadata`.
 Neither these Linux commands nor the Docker image have been run on a VPS yet.
 
+Automatic API/worker preloading defaults off in this isolated fixture. Authorize and
+preload the models explicitly before a real cohort; the InsightFace supplied face
+weights require a suitable license before commercial use. This switch does not disable
+verification requirements or make an unready model pass identity checks.
+
 ## Enroll one pilot, then prepare the cohort
 
 From `ops/loadtest`:

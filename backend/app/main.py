@@ -472,6 +472,6 @@ async def global_exception_handler(request, exc):
 
 
 # Start background model preloading after the app is fully configured
-if current_env() != "test":
+if current_env() != "test" and os.environ.get("API_PRELOAD_MODELS", "1").strip().lower() not in ("0", "false", "no"):
     _preload_thread = threading.Thread(target=_preload_models, daemon=True)
     _preload_thread.start()
