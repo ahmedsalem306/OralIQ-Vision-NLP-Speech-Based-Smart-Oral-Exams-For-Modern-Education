@@ -50,10 +50,10 @@ export default function StudentsPage() {
         return m;
     }, [subs]);
 
-    const ready = students.filter((s) => s.has_faceprint && s.has_voiceprint).length;
+    const ready = students.filter((s) => (s.has_faceprint || s.identity_mode === "covered") && s.has_voiceprint).length;
 
     const visible = students.filter((s) => {
-        if (filter === "missing" && s.has_faceprint && s.has_voiceprint) return false;
+        if (filter === "missing" && (s.has_faceprint || s.identity_mode === "covered") && s.has_voiceprint) return false;
         if (filter === "unlocked" && !s.voice_reenroll_allowed) return false;
         const q = query.trim().toLowerCase();
         return !q || s.full_name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
@@ -134,7 +134,7 @@ export default function StudentsPage() {
                                         <p className="truncate text-sm font-bold text-ink-2 ltr">{s.email}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge tone={s.has_faceprint ? "pass" : "warn"} icon={<ScanFace aria-hidden />}>{s.has_faceprint ? l("الوجه", "Face") : l("بدون وجه", "No face")}</Badge>
+                                        <Badge tone={s.identity_mode === "covered" ? "warn" : s.has_faceprint ? "pass" : "warn"} icon={<ScanFace aria-hidden />}>{s.identity_mode === "covered" ? l("منتقبة — موافقة لكل امتحان", "Covered face — approval per exam") : s.has_faceprint ? l("الوجه", "Face") : l("بدون وجه", "No face")}</Badge>
                                         <Badge tone={s.has_voiceprint ? "pass" : "warn"} icon={<Mic aria-hidden />}>{s.has_voiceprint ? l("الصوت", "Voice") : l("بدون صوت", "No voice")}</Badge>
                                     </div>
                                     <div className="w-28 text-sm">

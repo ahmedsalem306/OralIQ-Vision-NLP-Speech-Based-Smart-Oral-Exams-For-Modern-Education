@@ -130,12 +130,16 @@ def get_students(
     # is how a lecturer tells their students apart and how the mobile app's "send by e-mail" finds
     # one, and it only ever covers students who chose to sit this lecturer's exam.
     students = student_access.accessible_students(db, current_user).order_by(User.id.desc()).limit(2000).all()
+    from app.models.accommodation import BiometricPreference
+    covered_ids = {user_id for (user_id,) in db.query(BiometricPreference.user_id).filter(
+        BiometricPreference.mode == "covered", BiometricPreference.user_id.in_([s.id for s in students])).all()}
     return [{
         "id": s.id,
         "full_name": s.full_name,
         "email": s.email,
         "has_voiceprint": bool(s.voice_embedding and len(s.voice_embedding) > 10),
         "has_faceprint": bool(s.face_embedding and len(s.face_embedding) > 10),
+        "identity_mode": "covered" if s.id in covered_ids else "face",
         "voice_locked": bool(s.voice_locked),
         "face_locked": bool(s.face_locked),
         "voice_reenroll_allowed": bool(s.voice_reenroll_allowed),

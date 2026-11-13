@@ -10,6 +10,7 @@ import LanguageToggle, { ThemeToggle } from "../components/LanguageToggle";
 
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
 import { ExamPrivacyNotice } from "../components/ExamPrivacyNotice";
+import { EyeVisibilityMonitor } from "../components/exam/EyeVisibilityMonitor";
 
 import { PageLoader } from "../components/PageLoader";
 
@@ -57,7 +58,7 @@ import { buildFaceVerifyForm } from "../lib/faceBiometrics";
 
 
 
-type Phase = "loading" | "voice_required" | "info" | "preview" | "recording" | "processing" | "done" | "failed";
+type Phase = "loading" | "voice_required" | "accommodation_required" | "info" | "preview" | "recording" | "processing" | "done" | "failed";
 
 
 
@@ -255,6 +256,7 @@ export default function ExamRoom() {
     const faceScoresRef = useRef<number[]>([]);
 
     const hasServerFaceRef = useRef(false);
+    const [coveredFace,setCoveredFace] = useState(false);
 
 
 
@@ -468,7 +470,16 @@ export default function ExamRoom() {
                             setPhase("voice_required");
                             return;
                         }
-                        hasServerFaceRef.current = !!vr.data.has_faceprint;
+                        const covered = vr.data.identity_mode === "covered";
+                        setCoveredFace(covered);
+                        hasServerFaceRef.current = !covered && !!vr.data.has_faceprint;
+                        if (covered && examToken) {
+                            const approval = await api.post(`/accommodations/requests/${encodeURIComponent(examToken)}`);
+                            if (approval.data.status !== "approved") {
+                                setPhase("accommodation_required");
+                                return;
+                            }
+                        }
                     } catch {
                         setPhase("voice_required");
                         return;
@@ -1297,7 +1308,7 @@ export default function ExamRoom() {
 
     useEffect(() => {
 
-        if (stream) {
+        if (stream && !coveredFace) {
 
             initFaceMesh();
 
@@ -1311,7 +1322,7 @@ export default function ExamRoom() {
 
         canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
 
-    }, [stream]);
+    }, [stream, coveredFace]);
 
 
 
@@ -1895,6 +1906,13 @@ export default function ExamRoom() {
 
 
 
+    if (phase === "accommodation_required") return <Sheet><Panel className="p-6 sm:p-8">
+        <h1 className="text-xl font-bold">{l("بانتظار اعتماد المحاضر للهوية", "Waiting for lecturer identity approval")}</h1>
+        <p className="mt-3">{l("تم إرسال طلب وضع النقاب لهذا الامتحان. تواصلي مع المحاضر للتحقق المناسب، ثم تحققي من حالة الطلب. لا يلزم كشف الوجه أمام الكاميرا.","Your covered-face request was sent for this exam. Contact your lecturer for appropriate verification, then check the request status. Uncovering on camera is not required.")}</p>
+        <Button className="mt-5" onClick={()=>window.location.reload()}>{l("تحقق من الموافقة", "Check approval")}</Button>
+        <Button variant="ghost" className="ms-3" onClick={()=>navigate("/dashboard")}>{l("العودة", "Back")}</Button>
+    </Panel></Sheet>;
+
     if (phase === "voice_required") return (
 
         <Sheet>
@@ -2441,6 +2459,7 @@ export default function ExamRoom() {
                 {/* ── Camera ── */}
 
                 <section className="lg:order-2" aria-label={l("الكاميرا", "Camera")}>
+                    {coveredFace && <EyeVisibilityMonitor videoRef={videoRef} examToken={examToken || ""} active={recording} />}
 
                     <div className={cn(
 

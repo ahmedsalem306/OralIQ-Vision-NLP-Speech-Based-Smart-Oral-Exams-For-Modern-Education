@@ -23,7 +23,7 @@ from app.models.question import Question
 from app.models.user import User
 
 STUDENT_KEYS = {"id", "full_name", "email", "has_voiceprint", "has_faceprint", "voice_locked", "face_locked",
-                "voice_reenroll_allowed"}
+                "voice_reenroll_allowed", "identity_mode"}
 
 
 @pytest.fixture()

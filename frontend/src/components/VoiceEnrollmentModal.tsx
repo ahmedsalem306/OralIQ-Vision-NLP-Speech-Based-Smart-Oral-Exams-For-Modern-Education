@@ -55,6 +55,10 @@ function EnrollmentFlow({
     const [camAttempt, setCamAttempt] = useState(0);
     const [consent, setConsent] = useState(false);
     const [cameraReady, setCameraReady] = useState(false);
+    const [preferenceChosen, setPreferenceChosen] = useState(false);
+    const [gender, setGender] = useState(""); // UI choice only; not uploaded or stored
+    const [coveredMode, setCoveredMode] = useState(false);
+    const [savingPreference, setSavingPreference] = useState(false);
     const { l } = useI18n();
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -99,7 +103,7 @@ function EnrollmentFlow({
 
     // Face ID camera
     useEffect(() => {
-        if (enrollPhase !== "face" || !consent) return;
+        if (!preferenceChosen || enrollPhase !== "face" || !consent) return;
         setCameraReady(false);
 
         let cancelled = false;
@@ -133,7 +137,7 @@ function EnrollmentFlow({
             camera?.getTracks().forEach(track => track.stop());
             if (streamRef.current === camera) streamRef.current = null;
         };
-    }, [enrollPhase, camAttempt, consent, l]);
+    }, [enrollPhase, camAttempt, consent, l, preferenceChosen]);
 
     const totalPhrases = PHRASES.length;
 
@@ -310,20 +314,40 @@ function EnrollmentFlow({
     const completedCount = recordedBlobs.length;
     const closable = !isRequired && !!onClose && step !== "uploading" && !faceScanning;
 
+    if (!preferenceChosen) return <Modal open onClose={() => onClose?.()} size="md" title={l("اختيار طريقة التحقق", "Choose identity verification")}>
+        <ExamPrivacyNotice />
+        <fieldset className="mt-5 space-y-3">
+            <legend className="font-semibold">{l("النوع (لإظهار الاختيارات المناسبة فقط؛ لا يُرسل للسيرفر)", "Gender (only adjusts these choices; not sent to the server)")}</legend>
+            {[["female", "بنت / طالبة", "Female"], ["male", "ولد / طالب", "Male"], ["skip", "أفضل عدم التحديد", "Prefer not to say"]].map(([value, ar, en]) => <label key={value} className="me-4 inline-flex items-center gap-2"><input type="radio" name="enrollment-gender" checked={gender === value} onChange={() => { setGender(value); setCoveredMode(false); }} />{l(ar,en)}</label>)}
+        </fieldset>
+        {gender && gender !== "male" && <label className="mt-4 flex items-start gap-2"><input type="checkbox" checked={coveredMode} onChange={event => setCoveredMode(event.target.checked)} />{l("منتقبة وأحتاج التحقق بالصوت دون كشف الوجه", "I wear a face covering and need voice verification without uncovering")}</label>}
+        {coveredMode && <p className="mt-3 text-sm text-ink-2">{l("لن نطلب بصمة وجه. يلزم اعتماد المحاضر للهوية لكل امتحان. مراقبة ظهور العين ليست بصمة قزحية، وقد تتعذر وتحتاج مراجعة بشرية.", "No face enrollment is required. Your lecturer must approve your identity for each exam. Eye visibility monitoring is not iris recognition and may be unavailable, requiring manual review.")}</p>}
+        <label className="mt-5 flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />{l("قرأت إشعار الخصوصية وأوافق على معالجة بيانات التحقق بالطريقة المختارة، ومشاركة طلب التيسير مع محاضر الامتحان.", "I have read the privacy notice and consent to the selected verification method and sharing an accommodation request with my exam lecturer.")}</label>
+        {errorMsg && <p role="alert" className="mt-3 text-warn">{errorMsg}</p>}
+        <Button className="mt-5 w-full" disabled={!gender || !consent || savingPreference} onClick={async () => {
+            setSavingPreference(true); setErrorMsg("");
+            try {
+                await api.put("/accommodations/preference", {mode: coveredMode ? "covered" : "face"});
+                setEnrollPhase(coveredMode ? "voice" : "face"); setPreferenceChosen(true);
+            } catch (error) { setErrorMsg(getApiErrorMessage(error, l("تعذر حفظ طريقة التحقق. حاول مرة أخرى.", "Could not save verification mode. Please retry."))); }
+            finally { setSavingPreference(false); }
+        }}>{l("متابعة", "Continue")}</Button>
+    </Modal>;
+
     const stages = [
         { key: "face", label: l("الوجه", "Face"), done: enrollPhase === "voice" || step === "success" },
         { key: "voice", label: l("الصوت", "Voice"), done: step === "success" },
-    ];
+    ].filter(stage => !coveredMode || stage.key === "voice");
 
     return (
         <Modal
             open
             onClose={() => { if (closable) onClose?.(); }}
             size="md"
-            title={step === "success" ? l("هويتك اتسجلت", "Your identity is registered") : l("تسجيل الوجه والصوت", "Register your face and voice")}
+            title={step === "success" ? l("هويتك اتسجلت", "Your identity is registered") : coveredMode ? l("تسجيل الصوت — وضع النقاب", "Voice enrollment — covered-face mode") : l("تسجيل الوجه والصوت", "Register your face and voice")}
             description={step === "success"
-                ? l("هنقارن وشك وصوتك بيهم تلقائياً في كل امتحان.", "We'll compare your face and voice against these in every exam.")
-                : l("خطوتين بس، وبيتعملوا مرة واحدة.", "Two quick steps, done once.")}
+                ? coveredMode ? l("تم تسجيل الصوت. ما زالت موافقة المحاضر مطلوبة لكل امتحان.", "Voice registered. Lecturer approval is still required for each exam.") : l("هنقارن وشك وصوتك بيهم تلقائياً في كل امتحان.", "We'll compare your face and voice against these in every exam.")
+                : coveredMode ? l("نسجّل الصوت فقط، دون طلب كشف الوجه.", "Register your voice only, without uncovering your face.") : l("خطوتين بس، وبيتعملوا مرة واحدة.", "Two quick steps, done once.")}
             footer={closable && step !== "success" ? <Button variant="ghost" onClick={onClose}>{l("بعدين", "Later")}</Button> : undefined}
         >
             {step !== "success" && <div className="mb-5"><ExamPrivacyNotice /></div>}

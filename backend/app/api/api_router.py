@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.endpoints import auth, questions, interviews, users, exams, voice, face, speech, system, billing
+from app.api.endpoints import accommodations
 
 api_router = APIRouter()
 api_router.include_router(auth.router, tags=["login"])
@@ -12,3 +13,4 @@ api_router.include_router(face.router, prefix="/face", tags=["face"])
 api_router.include_router(speech.router, prefix="/speech", tags=["speech"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
+api_router.include_router(accommodations.router, prefix="/accommodations", tags=["accommodations"])

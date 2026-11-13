@@ -65,16 +65,20 @@ def _lecturer_linked_to_student(db: Session, lecturer: User, student_id: int) ->
 
 @router.get("/status")
 def get_voice_status(
+    db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """Returns whether the current logged-in user has enrolled a voice print."""
     has_voice = _has_voiceprint(current_user)
     has_face = _has_faceprint(current_user)
     status = voice_service.get_status()
+    from app.services.accommodations import covered_face
+    covered = covered_face(db, current_user.id)
     return {
         "has_voiceprint": has_voice,
         "has_faceprint": has_face,
-        "biometrics_complete": has_voice and has_face,
+        "biometrics_complete": has_voice and (has_face or covered),
+        "identity_mode": "covered" if covered else "face",
         "user_id": current_user.id,
         "full_name": current_user.full_name,
         "engine": status["engine"],

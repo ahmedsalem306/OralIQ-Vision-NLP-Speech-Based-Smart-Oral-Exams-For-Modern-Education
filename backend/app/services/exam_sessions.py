@@ -61,12 +61,18 @@ def max_attempts_of(questions: List[Question]) -> int:
     return max(1, int(questions[0].max_attempts or 1)) if questions else 1
 
 
-def require_enrollment(user: User) -> None:
+def require_enrollment(user: User, db: Optional[Session] = None, key: Optional[str] = None) -> None:
     """Students sit exams only with face and voice enrolled (the identity checks need both)."""
     if user.role != "student":
         return   # lecturers previewing their own exam, as the exam page already allowed
     from app.api.endpoints.voice import _has_voiceprint
     from app.services.exam_evidence import has_faceprint
+    from app.services import accommodations
+    if db is not None and accommodations.covered_face(db, user.id):
+        if not _has_voiceprint(user):
+            raise refuse(403, "BIOMETRICS_REQUIRED", "سجّلي بصمة الصوت أولًا.", "Register your voice first.")
+        accommodations.require_approval(db, user.id, key or "")
+        return
     if not (_has_voiceprint(user) and has_faceprint(user)):
         raise refuse(403, "BIOMETRICS_REQUIRED",
                      "لازم تسجّل بصمة الوجه والصوت قبل ما تبدأ الامتحان.",
@@ -117,7 +123,7 @@ def check_can_start(db: Session, user: User, key: str, questions: Optional[List[
     if questions:
         from app.services.exam_schedule import require_admission
         require_admission(questions[0], now())
-    require_enrollment(user)
+    require_enrollment(user, db, key)
     limit = max_attempts_of(questions)
     used = db.query(func.count(ExamSitting.id)).filter(
         ExamSitting.user_id == user.id, ExamSitting.exam_key == key).scalar() or 0
@@ -190,7 +196,7 @@ def check_submission(db: Session, user: User, question: Question) -> Dict[str, A
     attempt number to record; raises a coded 403/409 otherwise. Called inside the submit request,
     so direct API calls get exactly the same checks as the apps.
     """
-    require_enrollment(user)
+    require_enrollment(user, db, exam_key_of(question))
     key = exam_key_of(question)
     sitting = active_sitting(db, user, key)
     if sitting is None:

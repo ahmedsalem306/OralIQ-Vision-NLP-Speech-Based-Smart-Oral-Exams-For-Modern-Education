@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Check, Plus, Mic, ShieldCheck, ShieldAlert, ScanFace, Inbox, ClipboardList, Lock, EyeOff, Lamp, MessagesSquare, HeartHandshake, PartyPopper } from "lucide-react";
 import { cn } from "../lib/utils";
 import VoiceEnrollmentModal from "../components/VoiceEnrollmentModal";
+import { AccommodationInbox } from "../components/AccommodationInbox";
 import api from "../lib/api";
 import { examTitleOf } from "../lib/types";
 import { useI18n } from "../i18n";
@@ -137,6 +138,7 @@ export default function Overview() {
                 />
 
                 <SubscriptionQuotaBar refreshTrigger={questions.length} />
+                <AccommodationInbox />
 
                 {results.length === 0 && (
                     <Panel className="mb-8">

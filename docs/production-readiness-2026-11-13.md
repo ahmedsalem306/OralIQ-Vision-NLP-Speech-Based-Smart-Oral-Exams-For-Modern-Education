@@ -1,9 +1,11 @@
 # Production and privacy review — 2026-11-13
 
 This records preparation and local validation, not a certificate that the application
-has no vulnerabilities or a claim that the purchased VPS is deployed. Server IP,
-domain, operating system and secure access have been requested but are not yet available
-in this session. No production database or real student's biometric data was inspected.
+has no vulnerabilities or a claim that the purchased VPS is deployed. The server IP and
+Linux platform were supplied in screenshots; domain, exact OS/resources and verified secure
+access are still pending. A strict SSH attempt stopped because its host key was not yet
+trusted; no password was supplied in the screenshots. No production database or real
+student's biometric data was inspected.
 
 ## Implemented in this release
 
@@ -39,12 +41,11 @@ in this session. No production database or real student's biometric data was ins
 
 ## Release blockers and decisions
 
-1. **Covered-face identity verification is not implemented.** Existing MediaPipe eye/iris
-   landmarks are not an iris biometric. There is no eye-enrollment template, validated
-   matcher, liveness guarantee or accuracy evaluation for a niqab workflow. Do not relabel
-   face embeddings or lower face thresholds to claim support. The proposed alternative is
-   voice matching plus lecturer-approved identity accommodation, pending the user's choice.
-   No face-enrollment bypass has been enabled in the meantime.
+1. **Covered-face accommodation now has a release candidate**, after the user approved
+   voice verification plus lecturer identity approval per exam. See [the workflow and
+   limitations](covered-face-mode.md). Eye-region visibility is experimental, not iris
+   matching, gaze direction or liveness. It requires real consenting niqab/device testing
+   before actual classes; neither eye failure nor overload creates a cheating penalty.
 2. **Face-model commercial authorization:** the current InsightFace `buffalo_sc` package is
    supplied for non-commercial research use. Before paid production, obtain the appropriate
    authorization or choose and evaluate a properly authorized replacement. The MIT license

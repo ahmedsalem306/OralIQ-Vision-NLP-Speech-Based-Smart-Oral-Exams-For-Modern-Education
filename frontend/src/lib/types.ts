@@ -56,10 +56,10 @@ export interface Submission {
     /** queued | processing | completed | failed — scores are empty until "completed". */
     grading_status?: "queued" | "processing" | "completed" | "failed";
     /** Server face checks behind face_score; null on answers graded before they were recorded. */
-    face_verification?: "verified" | "uncertain" | "mismatch" | "no_face" | "unverified" | "not_enrolled" | null;
+    face_verification?: "verified" | "uncertain" | "mismatch" | "no_face" | "unverified" | "not_enrolled" | "covered_approved" | null;
     face_checks?: number | null;
     /** server_sampled: facial_score measured from server face checks; insufficient_data: not measured. */
-    integrity_status?: "server_sampled" | "insufficient_data" | null;
+    integrity_status?: "server_sampled" | "insufficient_data" | "manual_review" | null;
     /** What the student's browser reported (JSON) — indicators only, never evidence. */
     client_alerts?: string | null;
     /** Whether the grade may be shown to its student; for a student it is null-blanked until then. */
@@ -79,6 +79,7 @@ export interface Assignment {
 }
 
 export interface StudentRow {
+    identity_mode?: "face" | "covered";
     id: number;
     full_name: string;
     email: string;
@@ -102,7 +103,7 @@ export interface BiometricStatus {
 /** Integrity needs a human look: severe proctoring events or identity not confirmed. */
 export function needsReview(s: Pick<Submission, "facial_score" | "cheat_report">): boolean {
     if (s.facial_score != null && s.facial_score < 70) return true;
-    return !!s.cheat_report && s.cheat_report.includes("NOT VERIFIED");
+    return !!s.cheat_report && (s.cheat_report.includes("NOT VERIFIED") || s.cheat_report.includes("MANUAL REVIEW REQUIRED"));
 }
 
 /** Student-facing exam title: subject name, never the question text (it must stay hidden until the exam starts). */

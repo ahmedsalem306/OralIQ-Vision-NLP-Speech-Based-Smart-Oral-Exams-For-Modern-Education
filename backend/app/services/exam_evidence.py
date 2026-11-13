@@ -86,6 +86,12 @@ def face_evidence(db: Session, user: User, question: Question, now: Optional[dat
     """
     now = now or datetime.utcnow()
     key = exam_key_for(question)
+    from app.services import accommodations
+    if accommodations.covered_face(db, user.id):
+        accommodations.require_approval(db, user.id, key)
+        return {"face_checks": 0, "has_faceprint": False, "face_score": None,
+                "facial_score": None, "face_verification": "covered_approved",
+                "integrity_status": "manual_review"}
     enrolled = has_faceprint(user)
     start = since if since is not None else now - _exam_window(db, key)
     checks = []

@@ -79,6 +79,9 @@ def run_ai_pipeline(
 def _identity_line(face_verification: Optional[str], face_id_score: Optional[float], voice_score: Optional[float]) -> str:
     voice_ok = voice_score is not None and voice_score >= 75
     voice_txt = f"Voice {voice_score:.1f}%" if voice_score is not None else "Voice not checked"
+    if face_verification == "covered_approved":
+        return ("[MANUAL REVIEW REQUIRED] وضع النقاب: المحاضر وافق على التحقق من الهوية؛ لا توجد مطابقة وجه. "
+                + voice_txt + (" — voice matched; monitoring requires manual review" if voice_ok else " — voice requires manual review"))
     if face_verification == "verified" and voice_ok:
         return f"✅ Identity verified: Face {face_id_score:.1f}% (server checks) + {voice_txt}"
     reason = {

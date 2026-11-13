@@ -524,7 +524,7 @@ export default function Dashboard() {
                         <ul className="divide-y divide-rule">
                             {filteredStudents.map((s) => {
                                 const done = assigned.has(s.id);
-                                const bioReady = s.has_voiceprint && s.has_faceprint;
+                                const bioReady = s.has_voiceprint && (s.has_faceprint || s.identity_mode === "covered");
                                 return (
                                     <li key={s.id} className="flex flex-wrap items-center gap-3 px-4 py-3.5">
                                         <Avatar name={s.full_name} size="sm" />
