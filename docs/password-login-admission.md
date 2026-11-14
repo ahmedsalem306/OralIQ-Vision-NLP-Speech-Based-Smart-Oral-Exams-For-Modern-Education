@@ -41,3 +41,34 @@ the counters, like the previous middleware. The bounded queue is not a promise o
 
 Security reference: [OWASP login throttling](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#login-throttling).
 Async primitive: [AnyIO capacity limiters](https://anyio.readthedocs.io/en/stable/api.html#capacity-limiter).
+
+## Validation and private rollout — November 15
+
+- Actual isolated HTTP probe offered 500 valid password logins over 60 seconds from
+  one IP, with the real 600,000-round password hashes. All 500 logged in and all 500
+  authenticated `/users/me` checks passed; zero transport errors. Final completion
+  was 63.29 seconds; login p50 0.5423 seconds, p95 5.0856 seconds, max 5.5722 seconds.
+  The full suite was running separately on the same VPS during this probe.
+- Repeating one account hit its fifth-attempt budget. Twenty wrong passwords across
+  distinct nonexistent accounts were checked, then further valid/forged-header attempts
+  from that IP returned 429. Registration's existing strict IP limiter still passes tests.
+- The probe API used `--no-proxy-headers` and `TRUST_PROXY=0`. Initially, Uvicorn's own
+  default trusted-loopback proxy handling changed the client before app middleware;
+  that probe configuration was corrected and all protection checks rerun. The candidate
+  remains behind its existing Nginx, which must overwrite client identity headers;
+  the private API port is not a public entry point.
+- Full Linux/Python 3.12/PostgreSQL suite: **427 passed, 0 skipped**, in 224.13 seconds.
+  The first run had one mock driver check expire on a 50-ms test-only observation window;
+  successful mock retry observation now allows one second, and the full suite was rerun.
+  No application deadline, password-hash cost or real benchmark timeout was relaxed.
+- An actual HTTP workflow with ten fixture students/two questions passed fourteen checks:
+  scheduled admission, continued sittings after close, covered-mode lecturer review,
+  twenty unique accepted answers with idempotent retries, result isolation, manual
+  publication and successful-audio cleanup. Enrollment vectors and one-second audio were
+  synthetic and inference simulated. It proves backend workflow, not human identity,
+  real model quality, six-minute recordings, browser behavior or exam-cohort capacity.
+- Image `fc8ba0e` passed the recovery smoke and a verified 18-table pre-release archive
+  before private rollout. API/mailer health and worker running state pass. Public HTTPS
+  remains maintenance 503; the Vercel frontend is not cut over.
+- Browser UI verification did not complete: Computer Use could not determine Chrome's
+  URL confidently enough to enforce its policy and stopped. No browser coverage is claimed.

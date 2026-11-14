@@ -205,6 +205,21 @@ No production database or real student's biometric data was inspected.
   Private API health is 200; public HTTPS remains maintenance 503. Mail metrics are
   healthy with zero messages sent/reserved. The final raw upload was removed and private
   reports were copied to the owner's D drive. No full browser-exam or 500-student claim.
+- November 15 school-login follow-up: private image `fc8ba0e` replaces the password
+  login's shared 20/IP attempt cap with per-account throttling, a retained 20-wrong-password
+  IP budget, a total IP ceiling and bounded actual hashing/queue admission. The real
+  isolated HTTP probe admitted **500/500** valid accounts over the 60-second ramp;
+  all subsequent identity reads passed, with no transport errors. Abuse/forged-header
+  checks passed after explicitly disabling proxy-header trust in the probe container.
+  Full Linux/PostgreSQL suite: **427 passed, no skipped tests** after correcting a
+  test-only mock timeout and rerunning the suite. Synthetic ten-student/two-question
+  HTTP workflow passed fourteen checks, including twenty idempotent queued answers,
+  covered-mode review, schedule boundaries and manual publication. No real enrollment,
+  AI inference or browser recording is represented by that workflow smoke.
+  Candidate rollout and health passed; SMTP counters remain empty; public TLS is still
+  maintenance. Computer Use ended because Chrome's current URL could not be determined
+  confidently for policy enforcement; the browser flow still requires verification.
+  [Detailed controls, measurements and limitations](password-login-admission.md).
 
 ## Server handoff
 

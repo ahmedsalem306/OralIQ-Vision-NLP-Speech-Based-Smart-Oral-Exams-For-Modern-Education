@@ -134,3 +134,10 @@ The current staging database has fresh test secrets and is not a migrated user D
   health is 200, public TLS remains maintenance 503, and mail monitoring has no issues
   or reserved/sent messages. Raw uploaded probe files were removed. The detailed audio
   reports/transcripts are private and excluded from Git.
+- Shared-school password-login image `fc8ba0e` is now deployed privately after all
+  427 Linux/PostgreSQL tests passed, a real 500/500 valid-login probe and password
+  abuse checks passed, and the synthetic ten-student HTTP exam workflow passed.
+  Recovery smoke and an 18-table backup archive passed before updating API/worker/mailer.
+  Private health is 200, public HTTPS remains maintenance 503, mail monitoring has no
+  issues and no real mail was sent by these tests. See the measured limits and remaining
+  [workflow/browser/capacity boundaries](../../docs/password-login-admission.md).
