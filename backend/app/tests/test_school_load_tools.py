@@ -113,6 +113,31 @@ def test_prepare_isolated_fixture_does_not_pretend_fake_biometrics_are_real():
     engine.dispose()
 
 
+def test_fixture_accounts_can_pass_real_user_response_validation(client, db):
+    manifest = prepare(db, "http://localhost", students=1, questions=2, minutes=3)
+    for account in [manifest["lecturer"], manifest["students"][0]]:
+        response = client.get("/api/v1/users/me", headers={"Authorization": "Bearer " + account["token"]})
+        assert response.status_code == 200
+        assert response.json()["id"] == account["id"]
+        assert response.json()["email"] == account["email"]
+        assert account["email"].endswith("@loadtest.example.com")
+
+
+def test_recovery_smoke_refuses_production_databases_and_unsafe_schemas(monkeypatch):
+    from scripts.grading_recovery_smoke import database, require_staging
+    monkeypatch.setenv("LOAD_TEST_ENABLED", "0")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost/oraliq_loadtest")
+    with pytest.raises(ValueError, match="LOAD_TEST_ENABLED"):
+        require_staging()
+    monkeypatch.setenv("LOAD_TEST_ENABLED", "1")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost/oraliq")
+    with pytest.raises(ValueError, match="separate PostgreSQL"):
+        require_staging()
+    for schema in ("public", "recovery_smoke_public", 'recovery_smoke_";DROP SCHEMA public;--'):
+        with pytest.raises(ValueError, match="disposable schema"):
+            database(schema)
+
+
 def test_model_check_requires_cache_and_does_not_download_by_default(tmp_path):
     with patch.dict(os.environ):
         with pytest.raises(ValueError, match="cache is missing"):

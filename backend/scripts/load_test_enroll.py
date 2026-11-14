@@ -20,7 +20,7 @@ def main():
     if len(manifest["students"]) != 1 or not 3 <= len(args.face_images) <= 10:
         parser.error("Use a one-student scaffold and 3–10 consenting face frames")
     pilot = manifest["students"][0]
-    if not pilot["email"].endswith("@loadtest.invalid"):
+    if not pilot["email"].endswith("@loadtest.example.com"):
         parser.error("Only the isolated pilot fixture may be enrolled")
     if (not Path(args.audio).is_file() or Path(args.audio).stat().st_size > 40 * 1024**2
             or any(not Path(path).is_file() or Path(path).stat().st_size > 8 * 1024**2 for path in args.face_images)):
@@ -40,7 +40,7 @@ def main():
         status.raise_for_status()
         if not status.json().get("biometrics_complete") or not status.json().get("engine_ready"):
             raise ValueError("Real face/Resemblyzer enrollment did not complete")
-    print("Pilot enrolled. Use its loadtest.invalid email as --identity-user-email on the staging fixture tool.")
+    print("Pilot enrolled. Use its loadtest.example.com email as --identity-user-email on the staging fixture tool.")
 
 
 if __name__ == "__main__":

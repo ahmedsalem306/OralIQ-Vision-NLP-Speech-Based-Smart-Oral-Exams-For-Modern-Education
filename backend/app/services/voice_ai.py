@@ -46,6 +46,10 @@ class VoiceBiometricsService:
 
     def _convert_to_wav(self, audio_path: str) -> str:
         """Convert audio file to WAV format using ffmpeg if needed."""
+        # Worker-owned anonymous Linux files are decoded in-process by bounded PyAV.
+        # An ffmpeg child cannot use /proc/self/fd from its parent's descriptor table.
+        if audio_path.startswith('/proc/self/fd/'):
+            return audio_path
         ext = os.path.splitext(audio_path)[1].lower()
         if ext in ('.wav', '.wave'):
             return audio_path

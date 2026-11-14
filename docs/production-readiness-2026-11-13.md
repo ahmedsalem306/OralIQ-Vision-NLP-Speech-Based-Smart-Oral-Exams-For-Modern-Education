@@ -163,6 +163,20 @@ No production database or real student's biometric data was inspected.
   Adequate provider quota, full real signup delivery and independent external alerts remain open.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
+- November 14 operational follow-up: a real SIGKILL/replacement-process PostgreSQL smoke
+  passed all 15 checks, including preserved queued audio, two persisted/released results,
+  rejection of a stale holder's write and schema cleanup. AI computation was simulated;
+  test leases were shortened only in the test processes, not the running services.
+  This does not prove an in-flight browser recording or real model inference.
+- Linux worker audio now uses anonymous temporary files so an interrupted inference leaves
+  no named recording behind after process death. Actual PyAV decoding of that descriptor
+  and its removal after SIGKILL passed. Windows has normal-exit named-file cleanup only.
+  Focused queue/load-tool regression run: **41 passed**; no local ML weights were loaded.
+- Actual isolated school-NAT login probe: 500 logins offered over 60 seconds from one IP,
+  **20 HTTP 200 / 480 HTTP 429**, no transport errors, no exams started. Existing IP-based
+  authentication throttling remains enabled. School login/admission design still blocks
+  promising 500 students from one network. The fixture-only reserved-domain validation bug
+  found at preflight was fixed without changing application email validation.
 
 ## Server handoff
 

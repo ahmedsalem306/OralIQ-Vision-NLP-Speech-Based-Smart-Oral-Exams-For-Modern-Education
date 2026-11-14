@@ -46,6 +46,36 @@ def fake_ai(score=80.0):
     return pipeline
 
 
+def test_temporary_recording_is_decodable_and_removed_after_failure():
+    from pathlib import Path
+    from app.core.media_limits import decode_audio_bounded
+    path = None
+    with pytest.raises(RuntimeError, match="simulated inference error"):
+        with worker_mod._recording_file(AUDIO, ".wav") as path:
+            assert Path(path).read_bytes() == AUDIO
+            assert len(decode_audio_bounded(path)) == 2048
+            raise RuntimeError("simulated inference error")
+    assert path and not Path(path).exists()
+
+
+def test_anonymous_recording_does_not_spawn_ffmpeg(monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    import subprocess
+    import sys
+    from types import SimpleNamespace
+    # Load this module separately with a stub encoder: never load/download ML weights locally.
+    monkeypatch.setitem(sys.modules, "resemblyzer", SimpleNamespace(VoiceEncoder=lambda: object()))
+    spec = importlib.util.spec_from_file_location("voice_path_check", Path(grading_pipeline.__file__).with_name("voice_ai.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Anonymous descriptors must be decoded inside the worker")
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    service = module.VoiceBiometricsService.__new__(module.VoiceBiometricsService)
+    assert service._convert_to_wav("/proc/self/fd/42") == "/proc/self/fd/42"
+
+
 # ── Fixtures: a private SQLite file per test ──────────────────────────────────
 
 @pytest.fixture()

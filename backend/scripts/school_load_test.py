@@ -129,7 +129,7 @@ class Runner:
                                       headers={"Authorization": f"Bearer {owner['token']}"})
         body = self.body(response)
         if (body.get("email") != owner["email"] or body.get("id") != owner["id"]
-                or not owner["email"].endswith("@loadtest.invalid")):
+                or not owner["email"].endswith("@loadtest.example.com")):
             raise ValueError("Staging identity check failed; refusing to start cohort")
         pilot = self.manifest["students"][0]
         headers = {"Authorization": f"Bearer {pilot['token']}"}

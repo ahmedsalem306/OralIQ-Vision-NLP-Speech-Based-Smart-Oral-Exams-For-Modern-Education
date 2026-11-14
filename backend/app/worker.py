@@ -22,6 +22,7 @@ import threading
 import time
 import traceback
 import uuid
+from contextlib import contextmanager, ExitStack
 from typing import Callable, Optional
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -57,6 +58,29 @@ def _rss_mb() -> Optional[float]:
         return round(pages * os.sysconf("SC_PAGE_SIZE") / (1024 * 1024), 1)
     except Exception:
         return None
+
+
+@contextmanager
+def _recording_file(audio: bytes, suffix: str):
+    """Linux recordings have no directory entry and disappear even after SIGKILL."""
+    if sys.platform.startswith("linux") and os.path.isdir("/proc/self/fd"):
+        with tempfile.TemporaryFile(suffix=suffix) as recording:
+            recording.write(audio)
+            recording.flush()
+            recording.seek(0)
+            yield f"/proc/self/fd/{recording.fileno()}"
+    else:
+        # Windows decoders need a closed named file. Always remove it on normal exits.
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as recording:
+            path = recording.name
+            recording.write(audio)
+        try:
+            yield path
+        finally:
+            try:
+                os.unlink(path)
+            except FileNotFoundError:
+                pass
 
 
 class _Heartbeat:
@@ -109,6 +133,7 @@ def process_job(
 
     db = session_factory()
     tmp_path = None
+    recordings = ExitStack()
     try:
         job = (
             db.query(GradingJob)
@@ -133,9 +158,7 @@ def process_job(
             "face_checks": submission.face_checks,
         }
         if job.audio:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=job.audio_suffix or ".webm") as tmp:
-                tmp.write(job.audio)
-                tmp_path = tmp.name
+            tmp_path = recordings.enter_context(_recording_file(job.audio, job.audio_suffix or ".webm"))
         attempt = job.attempts
         alerts, voice_emb, has_face = job.anti_cheat_alerts or "{}", job.voice_embedding, bool(job.has_faceprint)
         db.rollback()  # don't hold a transaction open for the minutes grading may take
@@ -175,11 +198,7 @@ def process_job(
         return "error"
     finally:
         db.close()
-        if tmp_path:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        recordings.close()
 
 
 class Worker:

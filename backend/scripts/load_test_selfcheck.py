@@ -9,9 +9,9 @@ from scripts.school_load_test import Config, Runner, write_report
 
 
 def mock_school(students=500, *, reject_first=False, lose_response=False, grading_status="completed"):
-    accounts = [{"id": i + 100, "email": f"student-{i}@loadtest.invalid", "password": "MOCK-password",
+    accounts = [{"id": i + 100, "email": f"student-{i}@loadtest.example.com", "password": "MOCK-password",
                  "token": f"MOCK-student-{i}"} for i in range(students)]
-    owner = {"id": 1, "email": "owner@loadtest.invalid", "token": "MOCK-owner"}
+    owner = {"id": 1, "email": "owner@loadtest.example.com", "token": "MOCK-owner"}
     manifest = {"allowed_origin": "http://localhost", "biometric_mode": "scaffold_unenrolled",
                 "lecturer": owner, "metrics_admin": {"token": "MOCK-admin"},
                 "exam": {"key": "mock-exam", "question_ids": [11, 22], "question_seconds": 180},

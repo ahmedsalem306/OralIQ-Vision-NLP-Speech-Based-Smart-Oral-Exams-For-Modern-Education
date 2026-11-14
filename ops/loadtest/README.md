@@ -9,6 +9,42 @@ The subsequent full Linux backend suite passed all 376 tests (mocked AI inferenc
 Real model inference, resource use under an exam cohort and capacity remain to be measured.
 There is no agreed grading-time SLA; measure first, then set one.
 
+## Measured on November 14: recovery and school login
+
+- A real Linux grading child process was killed with SIGKILL during simulated inference,
+  against PostgreSQL in a randomly named disposable schema of the isolated load-test DB.
+  Both the interrupted recording and the next queued answer survived. A replacement
+  process recovered and completed both, rejected a late write from the old holder, and
+  purged the successful recordings. The schema was removed afterward.
+- Linux worker recordings now use anonymous temporary files, readable through the current
+  process's `/proc/self/fd`. Bounded PyAV decoding passed and the kernel removed the open
+  recording when the child was killed. Voice verification skips external ffmpeg conversion
+  for these descriptors and uses its existing in-process decoder. Windows keeps named
+  temporary files with normal-exit cleanup; the crash-unlink result applies to Linux.
+- Recovery smoke used a 5-second lease **only in its test processes** to shorten the run;
+  the service default remains 120 seconds. Inference was simulated: this is a durability
+  check, not a model-accuracy, browser-upload or 500-student exam result.
+- A real local HTTP login probe offered **500 password logins over 60 seconds from one IP**:
+  **20 succeeded, 480 returned 429**, zero transport errors. Login p95 was 0.0628 seconds,
+  predominantly fast rejections. No exam attempt or model inference was started. The
+  20/IP/minute authentication protection remained enabled. School admission/login design
+  remains a release blocker; do not quote this latency as successful-login capacity.
+- The initial probe stopped at preflight because `@loadtest.invalid` is rejected by
+  the API's email response validator. Fixture addresses now use the reserved documentation
+  domain `@loadtest.example.com`; application email validation was not weakened. A real
+  `/users/me` regression test covers the lecturer/student fixtures. No email is sent.
+
+Run the recovery smoke from the isolated environment with a fresh report filename:
+
+```sh
+docker compose exec api python -m scripts.grading_recovery_smoke \
+  --confirm-staging --report /data/recovery-smoke.json
+```
+
+It refuses production DB names, requires `LOAD_TEST_ENABLED=1`, creates only a generated
+`recovery_smoke_<uuid>` schema and removes that schema in cleanup. Never run it against
+the candidate production database or replace its DB-name guard to do so.
+
 ## What is exercised
 
 The default scenario starts 500 students over 60 seconds. Each records two answers
@@ -132,7 +168,7 @@ python -m scripts.load_test_enroll --accounts ../loadtest-artifacts/pilot.json \
 ```
 
 Read the pilot student's email privately from `pilot.json`. From `ops/loadtest`,
-replace `PILOT_EMAIL` below with that `@loadtest.invalid` email:
+replace `PILOT_EMAIL` below with that `@loadtest.example.com` email:
 
 ```sh
 docker compose exec api python -m scripts.load_test_prepare \

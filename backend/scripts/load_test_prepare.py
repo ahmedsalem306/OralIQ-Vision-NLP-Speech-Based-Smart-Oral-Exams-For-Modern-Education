@@ -34,16 +34,16 @@ def prepare(db, base_url, students=500, questions=2, minutes=3, identity_email=N
     prefix = "load-" + uuid.uuid4().hex[:12]
     password = secrets.token_urlsafe(24)
     hashed = security.get_password_hash(password)
-    owner = User(email=f"{prefix}-lecturer@loadtest.invalid", full_name="Load-test lecturer", role="lecturer",
+    owner = User(email=f"{prefix}-lecturer@loadtest.example.com", full_name="Load-test lecturer", role="lecturer",
                  hashed_password=hashed, email_verified=True, requires_email_verification=False,
                  plan_tier="enterprise", custom_max_students=students, custom_max_exams=100,
                  is_active=True)
-    admin = User(email=f"{prefix}-metrics@loadtest.invalid", full_name="Load-test metrics", role="admin",
+    admin = User(email=f"{prefix}-metrics@loadtest.example.com", full_name="Load-test metrics", role="admin",
                  hashed_password=hashed, email_verified=True, requires_email_verification=False, is_active=True)
     face = voice = None
     if identity_email:
-        if not identity_email.endswith("@loadtest.invalid"):
-            raise ValueError("Only a consenting, enrolled loadtest.invalid fixture identity may be copied")
+        if not identity_email.endswith("@loadtest.example.com"):
+            raise ValueError("Only a consenting, enrolled loadtest.example.com fixture identity may be copied")
         identity = db.query(User).filter(User.email == identity_email, User.role == "student").first()
         if not identity or not valid_embedding(identity.face_embedding, 512) or not valid_embedding(identity.voice_embedding, 256):
             raise ValueError("The staging identity needs real InsightFace and Resemblyzer enrollment first")
@@ -62,7 +62,7 @@ def prepare(db, base_url, students=500, questions=2, minutes=3, identity_email=N
         exam.append(question)
     accounts = []
     for index in range(students):
-        user = User(email=f"{prefix}-student-{index + 1:04d}@loadtest.invalid", full_name=f"Load student {index + 1}",
+        user = User(email=f"{prefix}-student-{index + 1:04d}@loadtest.example.com", full_name=f"Load student {index + 1}",
                     role="student", hashed_password=hashed, email_verified=True, requires_email_verification=False,
                     face_embedding=face, voice_embedding=voice, face_locked=bool(face), voice_locked=bool(voice),
                     is_active=True)
