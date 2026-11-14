@@ -63,7 +63,7 @@ All 500 access checks passed in each case. In the 1200-limit case, request p95
 was 1.8949/1.4475 seconds and the entire seeded-access/submission scenario was
 160.378 seconds. This excludes an external student's network and does not prove
 500 simultaneous active uploads, camera streams, registration or payments.
-The two databases' fixture cohorts had matching submission/job counts (500/500
+The two fixture cohorts had matching submission/job counts (500/500
 and 1000/1000), no orphan answers, and zero retained synthetic audio after cleanup.
 Both cases ran in the separate `*_loadtest` database. Production's queue limit
 remains 500, so it must not be advertised as admitting 1,000 pending answers.
