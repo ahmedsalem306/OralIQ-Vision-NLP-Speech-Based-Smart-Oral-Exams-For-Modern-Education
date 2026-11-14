@@ -88,8 +88,8 @@ def _session(user: User, **extra: Any) -> dict:
 _CHECK_YOUR_EMAIL = {
     "ok": True,
     "verification_required": True,
-    "message": "لو البريد ده ينفع يتسجّل بيه، بعتنا عليه رابط تأكيد. افتح الرابط واكتب كلمة المرور اللي اخترتها.",
-    "message_en": "If this address can be used, we sent it a confirmation link. Open it and enter the password you chose.",
+    "message": "استلمنا طلبك. راجع بريدك والرسائل غير المرغوبة لرابط التأكيد. إذا لم تصلك رسالة، حاول مجددًا لاحقًا أو استخدم تسجيل الدخول بحساب Google.",
+    "message_en": "Your request has been received. Check your inbox and spam folder for a confirmation link. If no message arrives, try again later or sign in with Google.",
 }
 
 

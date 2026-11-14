@@ -132,6 +132,11 @@ No production database or real student's biometric data was inspected.
 - Real Arabic speech/identity model inference, 500-student load, frontend cutover and
   encrypted off-site backup restore remain **not performed**. The current backup services
   provide local copies; off-site storage and alert delivery still need configuration.
+- Email quota follow-up: registration/resend API and UI now acknowledge the request rather
+  than claiming delivery. Focused authentication/email-ownership tests: **30 passed**;
+  frontend typecheck passed. This copy change was checked after the 376-test Linux run.
+  A durable email outbox, bounded retries, token-expiry handling and operator quota/delivery
+  monitoring remain open, alongside provider setup and a quota adequate for school signup.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
 

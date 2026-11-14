@@ -36,3 +36,20 @@ Do not declare email ready merely because an SMTP connection or authentication s
 
 References: [SMTP settings](https://resend.com/docs/send-with-smtp),
 [verified domains](https://resend.com/docs/dashboard/domains/introduction).
+
+## Quota and delivery behavior before rollout
+
+The current backend sends verification mail synchronously; it has no durable email
+outbox, automatic delivery retry or operator quota alert. A 202 response acknowledges
+the request without revealing whether the address exists. API and UI text now say
+the request was received instead of claiming that a message was sent. SMTP acceptance
+would not prove inbox delivery either. Per-account resend throttling remains in place.
+
+Google login verifies the Google account's email through its signed identity token and
+does not send a site verification email. It can reduce transactional email demand for
+a pilot. Users who need password signup still need a working email provider/quota.
+
+Before a high-volume launch, provision adequate quota and implement/test bounded email
+queuing/retries, expiry handling, abuse controls and operator delivery/quota monitoring.
+A paid plan removes its daily cap; it does not remove provider burst-rate restrictions.
+These requirements remain open; the wording correction is not an email queue.

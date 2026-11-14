@@ -56,7 +56,7 @@ export default function VerifyEmail() {
         if (!email.trim()) return;
         try {
             await api.post("/auth/resend-verification", { email: email.trim() });
-            setResent(l("لو ينفع، هيوصلك رابط جديد خلال دقايق.", "If possible, a new link will arrive in a few minutes."));
+            setResent(l("استلمنا طلب إعادة الإرسال. راجع بريدك والـ Spam. لو ماوصلتش رسالة، حاول تاني لاحقًا.", "Your resend request has been received. Check your inbox and spam. If no message arrives, try again later."));
         } catch (err) {
             setResent(getApiErrorMessage(err));
         }
@@ -96,7 +96,7 @@ export default function VerifyEmail() {
                 <form onSubmit={resend} className="mt-5 space-y-4">
                     <p className="text-sm text-ink-2 leading-relaxed">
                         {error || l("الرابط ده مش كامل أو مش صالح.", "This link is incomplete or invalid.")}{" "}
-                        {l("اكتب بريدك وهنبعتلك رابط جديد.", "Enter your e-mail and we'll send a new link.")}
+                        {l("اكتب بريدك لطلب رابط جديد.", "Enter your e-mail to request a new link.")}
                     </p>
                     <input
                         type="email"

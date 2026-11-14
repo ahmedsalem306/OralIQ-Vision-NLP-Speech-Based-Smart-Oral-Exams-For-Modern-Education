@@ -183,7 +183,7 @@ export function LoginPage() {
                                         onClick={async () => {
                                             try {
                                                 await api.post("/auth/resend-verification", { email: formData.email.trim() });
-                                                setResendNote(l("لو ينفع، هيوصلك رابط جديد خلال دقايق.", "If possible, a new link will arrive in a few minutes."));
+                                                setResendNote(l("استلمنا طلب إعادة الإرسال. راجع بريدك والـ Spam. لو ماوصلتش رسالة، حاول تاني لاحقًا.", "Your resend request has been received. Check your inbox and spam. If no message arrives, try again later."));
                                             } catch (e) {
                                                 setResendNote(getApiErrorMessage(e));
                                             }

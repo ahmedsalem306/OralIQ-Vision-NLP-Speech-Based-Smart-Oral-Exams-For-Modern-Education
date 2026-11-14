@@ -69,7 +69,7 @@ export default function RegisterPage() {
         setResendNote("");
         try {
             await api.post("/auth/resend-verification", { email: sentTo });
-            setResendNote(l("لو ينفع، هيوصلك رابط جديد خلال دقايق. افحص الـ Spam كمان.", "If possible, a new link will arrive in a few minutes. Check spam too."));
+            setResendNote(l("استلمنا طلب إعادة الإرسال. راجع بريدك والـ Spam. لو ماوصلتش رسالة، حاول تاني لاحقًا.", "Your resend request has been received. Check your inbox and spam. If no message arrives, try again later."));
         } catch (err) {
             setResendNote(getApiErrorMessage(err));
         }
@@ -122,11 +122,11 @@ export default function RegisterPage() {
 
                     {sentTo ? (
                         <div data-reg-item className="rounded-xl border border-rule bg-sheet px-5 py-5 text-ink" role="status">
-                            <p className="text-lg font-bold">{l("افتح بريدك عشان تكمّل", "Check your e-mail to finish")}</p>
+                            <p className="text-lg font-bold">{l("استلمنا طلبك", "Request received")}</p>
                             <p className="mt-2 text-sm text-ink-2 leading-relaxed">
                                 {l(
-                                    "لو البريد ده ينفع يتسجّل بيه، بعتنا عليه رابط تأكيد. افتح الرابط واكتب نفس كلمة المرور اللي لسه اخترتها، وبعدها هتدخل على حسابك.",
-                                    "If this address can be used, we sent it a confirmation link. Open it and enter the password you just chose; then you're in.",
+                                    "راجع بريدك والرسائل غير المرغوبة لرابط التأكيد. لو وصلتك رسالة، افتح الرابط واكتب نفس كلمة المرور اللي اخترتها. لو ماوصلتش، حاول تاني لاحقًا أو ارجع لتسجيل الدخول واستخدم Google.",
+                                    "Check your inbox and spam for a confirmation link. If a message arrives, open the link and enter the password you chose. If none arrives, try again later or return to sign-in and continue with Google.",
                                 )}
                             </p>
                             <p className="mt-2 text-sm font-bold text-ink [overflow-wrap:anywhere]" dir="ltr">{sentTo}</p>
