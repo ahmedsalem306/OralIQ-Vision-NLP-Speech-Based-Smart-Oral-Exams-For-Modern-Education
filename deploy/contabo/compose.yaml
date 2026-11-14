@@ -115,7 +115,7 @@ services:
     networks: [database]
     mem_limit: 512m
     depends_on:
-      db: {condition: service_healthy}
+      api: {condition: service_healthy}
     logging: *logging
 
 volumes:

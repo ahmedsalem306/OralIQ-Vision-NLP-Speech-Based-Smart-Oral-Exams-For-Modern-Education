@@ -4,7 +4,8 @@ This records preparation and validation, not a certificate that the application 
 vulnerabilities or that production cutover is complete. On November 14, the purchased VPS
 was inspected through an authenticated SSH session: Ubuntu 24.04.5 LTS, 8 CPUs, 23.5 GiB
 RAM and about 290 GiB disk. An isolated staging API/PostgreSQL deployment now runs there.
-The user supplied `oralliq.com`; DNS/HTTPS and production data migration remain pending.
+The user supplied `oralliq.com`; API DNS/HTTPS are now verified. The public frontend
+cutover and application-level production checks remain pending.
 No production database or real student's biometric data was inspected.
 
 ## Implemented in this release
@@ -113,6 +114,11 @@ No production database or real student's biometric data was inspected.
   backup round trip only; it is not a restore test of real student data or off-site backups.
 - Real Arabic speech/identity model inference, 500-student server load, public DNS/HTTPS,
   production-data migration and encrypted off-site backup restore remain **not performed**.
+  Update after the owner's DNS change: API DNS, public HTTPS, HTTP redirect and simulated
+  certificate renewal now pass. The API serves an intentional maintenance response;
+  it does not yet serve the public application. The owner confirmed existing site data
+  are experiments only; no old records have been deleted. A private production candidate
+  with a separate DB/worker/local-backup stack has started; live payments and SMTP are pending.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
 

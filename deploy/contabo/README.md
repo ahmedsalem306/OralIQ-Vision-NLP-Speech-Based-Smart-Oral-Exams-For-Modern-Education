@@ -98,8 +98,10 @@ a dedicated data conversion before migration; `pg_restore` cannot import SQLite.
 
 ## Backups, recovery and updates
 
-The backup service writes a compressed custom-format dump immediately and every 24 hours,
-validates its archive listing and keeps 14 days under `./backups`. It exits on failure so Docker
+The backup service waits for the API schema setup and health check, then writes a compressed
+custom-format dump immediately and every 24 hours. It validates the archive listing and at least
+16 tables (`BACKUP_MIN_TABLES`), and keeps 14 days under `./backups`. An empty but readable
+PostgreSQL dump is rejected before publication or pruning. It exits on failure so Docker
 restarts it. Watch its error logs and the newest dump timestamp; configure external alerts.
 Backups on the same VPS do not protect against loss of the VPS: copy them encrypted to a separate
 provider every day. Disk must hold active DB/WAL, queued audio, model cache and the retained dumps.

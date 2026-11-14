@@ -1,14 +1,15 @@
 # oralliq.com cutover
 
-The user supplied `oralliq.com` on 2026-11-14. Public DNS currently resolves the
-apex/www to parking addresses; `api.oralliq.com` has no address. Nameservers are
-`ns73.domaincontrol.com` and `ns74.domaincontrol.com`. This is a DNS observation,
-not confirmation of access to the owner's DNS account. No DNS records were changed.
+The user supplied `oralliq.com` and added the API DNS record on 2026-11-14.
+Google and Cloudflare DNS both resolve `api.oralliq.com` to `217.76.56.223`, with
+no API AAAA record. The apex/www still resolve to parking addresses. Nameservers
+are `ns73.domaincontrol.com` and `ns74.domaincontrol.com`. The owner manages DNS;
+no access to the owner's GoDaddy account has been granted to the agent.
 
 ## DNS and frontend
 
-Create an **A** record named **api**, value **217.76.56.223**, TTL 600 (or the
-provider's default). Do not create an API AAAA record without verified IPv6 routing.
+The **A** record named **api**, value **217.76.56.223**, is now verified. Do not
+create an API AAAA record without verified IPv6 routing.
 Keep frontend DNS separate: add `oralliq.com` and `www.oralliq.com` to the existing
 Vercel project and copy its exact required DNS records. Do not guess a generic
 Vercel IP/CNAME or point the frontend at this API-only VPS.
@@ -66,3 +67,24 @@ exposure; retain private error logs and aggregate operational metrics.
 
 Before enabling real writes, complete [the migration and release checks](README.md).
 The current staging database has fresh test secrets and is not a migrated user DB.
+
+## Verified server state after the DNS update
+
+- Let's Encrypt issued the API certificate, valid until February 12, 2027. Certbot's
+  renewal timer is enabled. A dry-run renewal **including the deploy hook** passed;
+  the hook validates and reloads Nginx after successful renewal.
+- The installed virtual host currently serves **TLS maintenance responses**, not
+  the full proxy template above. External HTTPS validation succeeds and `/health`
+  returns intentional 503 with `Retry-After: 300`; HTTP redirects to HTTPS. The
+  ACME HTTP challenge route stays available. No test database is public.
+- A separate candidate checkout is `/srv/oraliq`, Compose project `oraliq`. Its API
+  uses loopback 18001 and a new PostgreSQL database; a worker and local backup service
+  run beside it. Fresh secrets are mode 0600. Test-fixture mode is disabled. The API
+  health check passes and the first scheduled local database dump completed.
+- The owner confirmed the old site's data are experiments only. No old database
+  has been deleted or overwritten. The new database has not been migrated from it.
+- Kashier Live activation is still pending. SMTP account/domain verification and
+  real delivery checks are pending. Do not cut over the public frontend yet.
+- The API's automatic face/gaze preload remains disabled pending resolution of face
+  weight authorization. Worker Whisper/SBERT/voice loading is checked separately;
+  loading a model is not an Arabic exam, biometric-accuracy or capacity result.
