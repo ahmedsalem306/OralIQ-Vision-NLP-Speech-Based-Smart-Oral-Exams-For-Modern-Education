@@ -125,3 +125,12 @@ The current staging database has fresh test secrets and is not a migrated user D
   maintenance 503. This test used simulated inference and a test-only 5-second lease.
   A separate actual 500-account login probe returned 20 successes and 480 rate limits;
   [school login admission remains unresolved](../../ops/loadtest/README.md).
+- Private speech release `5e25455` was built and checked with the owner's actual
+  34.539-second audio, using application defaults without experimental wrappers.
+  It reproduced the controlled transcript and 97.9 content score exactly; the full
+  fresh-process pipeline took 70.687 seconds including model initialization. Before
+  rollout the exact image also passed 15 isolated PostgreSQL recovery checks, and an
+  18-table backup archive was verified. API/worker/mailer updated successfully, private
+  health is 200, public TLS remains maintenance 503, and mail monitoring has no issues
+  or reserved/sent messages. Raw uploaded probe files were removed. The detailed audio
+  reports/transcripts are private and excluded from Git.

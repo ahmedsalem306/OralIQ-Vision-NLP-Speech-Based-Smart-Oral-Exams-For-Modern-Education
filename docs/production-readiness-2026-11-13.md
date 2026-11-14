@@ -198,6 +198,13 @@ No production database or real student's biometric data was inspected.
   [faster-whisper implementation](https://github.com/SYSTRAN/faster-whisper/blob/master/faster_whisper/transcribe.py).
   Transcription-settings and queue regressions: **29 passed**, using stubbed models;
   no weights were loaded on the owner's Windows machine.
+  Release image `5e25455` then reproduced the controlled transcript and content score
+  using unmodified application defaults, with a full fresh-process pipeline of 70.687
+  seconds including initialization. Its isolated recovery smoke passed 15 checks;
+  the 18-table pre-release dump was verified and the private candidate rollout completed.
+  Private API health is 200; public HTTPS remains maintenance 503. Mail metrics are
+  healthy with zero messages sent/reserved. The final raw upload was removed and private
+  reports were copied to the owner's D drive. No full browser-exam or 500-student claim.
 
 ## Server handoff
 
