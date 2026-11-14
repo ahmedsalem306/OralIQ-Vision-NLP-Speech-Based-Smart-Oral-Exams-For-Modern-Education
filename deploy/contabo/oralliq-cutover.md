@@ -118,3 +118,10 @@ The current staging database has fresh test secrets and is not a migrated user D
   and public keys were preserved. Previous SSH configuration is saved privately under
   `/root/ssh-before-oraliq-ops-*` for provider-console recovery. Credentials are kept
   outside the repository on the owner's machine; never copy them into deployment docs.
+- Private candidate release `71678d1` adds Linux anonymous grading-audio files and the
+  recovery smoke. The exact built image passed all 15 recovery checks against an isolated
+  load-test schema before rollout. A fresh 18-table archive was verified, then API/worker/
+  mailer were updated successfully. Private health is 200 and public HTTPS remains
+  maintenance 503. This test used simulated inference and a test-only 5-second lease.
+  A separate actual 500-account login probe returned 20 successes and 480 rate limits;
+  [school login admission remains unresolved](../../ops/loadtest/README.md).
