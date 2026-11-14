@@ -88,3 +88,16 @@ The current staging database has fresh test secrets and is not a migrated user D
 - The API's automatic face/gaze preload remains disabled pending resolution of face
   weight authorization. Worker Whisper/SBERT/voice loading is checked separately;
   loading a model is not an Arabic exam, biometric-accuracy or capacity result.
+- Whisper medium CPU int8, SBERT and voice preloading passed in the candidate worker
+  (`GRADING_PRELOAD_MODELS=1`); idle worker RSS was about 1.85 GiB. API face/gaze
+  preloading remains off. Model weights are cached on the VPS, not the operator's C drive.
+- The initial local dump was created before schema setup and had zero tables. That
+  archive is quarantined under root's private directory. Backup now waits for API health
+  and requires 16 tables. The corrected dump passed an actual separate-database restore;
+  an intentionally empty database was rejected with exit 1 and no published dump.
+- Email setup is prepared in [email-setup.md](email-setup.md). The owner requested email
+  setup and confirmed Kashier activation is still in progress; no provider key is present.
+- A controlled reboot applied kernel `6.8.0-149-generic`. Docker/Nginx/certificate timer
+  and candidate API/DB/worker/backup returned automatically. Private health is 200,
+  public TLS remains maintenance 503. Active grading queue was empty before reboot;
+  recovery of an in-flight real grading job still needs a separate pilot test.

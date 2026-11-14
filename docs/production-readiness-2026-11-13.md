@@ -56,8 +56,9 @@ No production database or real student's biometric data was inspected.
    passes and staging API/PostgreSQL health checks pass. Linux tests found a PyAV 19
    incompatibility that broke audio inspection/decoding; it was fixed by removing the
    deleted `metadata_errors` argument, then 56 focused tests passed, including actual
-   PostgreSQL concurrent queue admission. Container/OS advisory scanning, authorized model
-   preloading and real Arabic audio/identity smoke tests remain required before traffic.
+   PostgreSQL concurrent queue admission. Whisper, SBERT and voice models now load in the
+   private candidate worker. Container/OS advisory scanning and real Arabic audio/identity
+   smoke tests remain required before traffic.
 4. **Migration and secure cutover:** confirm the source database type, pause writes during
    migration, preserve user IDs/templates/payment records and signing-key strategy, verify
    restored counts and resume only one authoritative database. Do not switch Vercel's API
@@ -107,18 +108,30 @@ No production database or real student's biometric data was inspected.
   host passes `nginx -t` using a temporary self-signed certificate in a separate test
   configuration. It is not enabled, and no public TLS certificate has been issued.
 - Staging CORS preflight accepts the configured Vercel origin and rejects an unrelated
-  origin without an allow-origin header. The OS reports a required restart; it has not
-  been rebooted during the current administrative session.
+  origin without an allow-origin header. The required OS restart was then completed:
+  kernel is now `6.8.0-149-generic`. Docker, Nginx and the certificate timer restarted
+  automatically; candidate API/DB are healthy, worker/backup are running, private API
+  health is 200 and public TLS maintenance is 503. This is an empty-queue restart check,
+  not proof of recovery during an active recorded exam or in-flight grading job.
 - A staging `pg_dump`/`pg_restore --exit-on-error` completed into a separate restore-check
   database: both contain 16 public tables and zero users. This proves an empty-schema
   backup round trip only; it is not a restore test of real student data or off-site backups.
-- Real Arabic speech/identity model inference, 500-student server load, public DNS/HTTPS,
-  production-data migration and encrypted off-site backup restore remain **not performed**.
-  Update after the owner's DNS change: API DNS, public HTTPS, HTTP redirect and simulated
-  certificate renewal now pass. The API serves an intentional maintenance response;
-  it does not yet serve the public application. The owner confirmed existing site data
-  are experiments only; no old records have been deleted. A private production candidate
-  with a separate DB/worker/local-backup stack has started; live payments and SMTP are pending.
+- API DNS, public HTTPS, HTTP redirect and simulated certificate renewal now pass. The
+  public API hostname serves an intentional maintenance response. A private production
+  candidate with a separate DB/worker/local-backup stack has started. The owner confirmed
+  existing site data are experiments only; no old records have been deleted. Kashier Live
+  activation and SMTP account/domain verification/delivery remain pending.
+- Candidate worker loading passed: Whisper medium CPU int8, SBERT and Resemblyzer, about
+  1.85 GiB worker RSS after startup. This is idle model-loading memory, **not peak grading
+  memory, an Arabic inference-quality result or a 500-student capacity measurement**.
+- First-boot backup validation exposed a race: the backup started after PostgreSQL became
+  healthy but before API schema setup, yielding a readable zero-table archive. Backup now
+  waits for API health and requires at least 16 tables before publication/pruning. The old
+  empty archive was quarantined. A real empty-DB test exits 1 and publishes no `.dump`;
+  the new 16-table production-candidate dump restores successfully into a separate DB.
+- Real Arabic speech/identity model inference, 500-student load, frontend cutover and
+  encrypted off-site backup restore remain **not performed**. The current backup services
+  provide local copies; off-site storage and alert delivery still need configuration.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
 
