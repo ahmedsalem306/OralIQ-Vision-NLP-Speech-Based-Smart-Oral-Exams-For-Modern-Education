@@ -106,3 +106,15 @@ The current staging database has fresh test secrets and is not a migrated user D
   and candidate API/DB/worker/backup returned automatically. Private health is 200,
   public TLS remains maintenance 503. Active grading queue was empty before reboot;
   recovery of an in-flight real grading job still needs a separate pilot test.
+- The queued-mail release `a7f3dd8` is now deployed on the private candidate stack after
+  verifying a pre-release database dump. API and mailer health pass. The mailer has a
+  fresh DB heartbeat and zero queued/sent/reserved messages; no additional real mail
+  was sent for the queue tests. `/system/email-delivery` requires admin authentication.
+  The public API virtual host continues to serve maintenance responses.
+- SSH administration now uses the explicitly approved `oraliq-ops` account with
+  key authentication and password-required sudo. Fresh key/sudo sessions passed before
+  and after disabling root SSH and SSH password/keyboard-interactive authentication.
+  The existing root session was retained during validation. Existing unrelated accounts
+  and public keys were preserved. Previous SSH configuration is saved privately under
+  `/root/ssh-before-oraliq-ops-*` for provider-console recovery. Credentials are kept
+  outside the repository on the owner's machine; never copy them into deployment docs.

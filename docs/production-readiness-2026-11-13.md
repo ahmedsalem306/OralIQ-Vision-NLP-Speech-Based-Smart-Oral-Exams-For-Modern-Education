@@ -102,7 +102,15 @@ No production database or real student's biometric data was inspected.
   an audit of OS packages, model files, all application logic or the skipped CPU wheel.
 - UFW was enabled after explicit approval: incoming SSH 22 is limited, web 80/443 allowed,
   other incoming connections denied, outgoing allowed, with IPv4/IPv6 rules verified.
-  The current SSH session still works. No persistent root SSH key was installed.
+- After explicit owner approval on November 14, `oraliq-ops` was created with an
+  Ed25519 authorized key and password-required sudo. Fresh key-only login and an actual
+  sudo command passed both before and after SSH hardening; passwordless sudo was rejected.
+  Effective SSH settings are `PermitRootLogin no`, `PasswordAuthentication no`,
+  `KbdInteractiveAuthentication no`, `PubkeyAuthentication yes`; configuration validation
+  and service reload passed. Existing keys/accounts were preserved. A root-private copy
+  of the previous SSH configuration is retained for console recovery. The temporary
+  uploaded sudo password was removed; the private key and generated sudo password remain
+  in owner-only files outside this checkout. Post-change API health was 200 and mailer healthy.
 - The production existing-Nginx override passes Compose validation: Caddy is excluded,
   PostgreSQL is private and API binds only loopback port 18001. The prepared Nginx virtual
   host passes `nginx -t` using a temporary self-signed certificate in a separate test
@@ -142,7 +150,16 @@ No production database or real student's biometric data was inspected.
   token-expiry checks, global sending leases/budgets and admin-only dashboard warnings.
   Local queue tests: **23 passed**; combined auth/queue/config check: **69 passed** before
   the final two queue tests. Frontend typecheck, targeted lint and production build pass.
-  Linux/PostgreSQL concurrency and candidate-service rollout still need verification.
+  Linux validation: **398 cases passed** in the full run; four PostgreSQL cases initially
+  could not connect because the isolated staging DB had stopped after the earlier reboot.
+  After starting that test DB, **all four PostgreSQL cases passed**, including queue admission,
+  cross-worker delivery leases and simultaneous per-account resend throttling: 402 passing
+  cases across the full run and targeted infrastructure rerun. No test mail reached SMTP.
+  Candidate image `a7f3dd8` is deployed privately. The API and independent mailer are healthy;
+  queued mode, zero pending/reserved test messages, fresh heartbeat, a 1,000-entry cap and
+  90/day local pilot budget were verified. Admin monitoring rejects anonymous requests (401).
+  A 16-table pre-release backup was verified before the additive outbox/state schema update.
+  The admin dashboard UI is built on the release branch, not on the current public site.
   Adequate provider quota, full real signup delivery and independent external alerts remain open.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
