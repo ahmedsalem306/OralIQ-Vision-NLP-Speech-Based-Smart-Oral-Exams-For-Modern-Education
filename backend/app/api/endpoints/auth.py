@@ -93,8 +93,9 @@ _CHECK_YOUR_EMAIL = {
 }
 
 
-def _email_signup_available() -> None:
-    if not mailer.configured():
+def _email_signup_available(db: Session) -> None:
+    from app.services.email_delivery import queue_full
+    if not mailer.configured() or queue_full(db):
         raise HTTPException(status_code=503, detail={
             "code": "EMAIL_SIGNUP_UNAVAILABLE",
             "message": "التسجيل بالبريد مش متاح دلوقتي. سجّل بحساب Google.",
@@ -112,7 +113,7 @@ def register_user(
     Creates the account, unverified, and e-mails a confirmation link; no session until it is used.
     The reply is the same for a new address, a pending one and a taken one.
     """
-    _email_signup_available()
+    _email_signup_available(db)
     email_norm = user_in.email.strip().lower()
     full_name = (user_in.full_name or "").strip()[:120] or None
     password_hash = security.get_password_hash(user_in.password)   # hashed on every path: same timing
@@ -149,7 +150,7 @@ class ResendIn(BaseModel):
 @router.post("/auth/resend-verification", status_code=202)
 def resend_verification(payload: ResendIn, db: Session = Depends(deps.get_db)) -> Any:
     """A fresh link for an unverified account (throttled). Same answer for every address."""
-    _email_signup_available()
+    _email_signup_available(db)
     user = db.query(User).filter(User.email == payload.email.strip().lower()).first()
     if user is not None and user.is_active and not user.email_verified and not user.google_sub:
         ev.issue_and_send(db, user, ev.latest_pending_password_hash(db, user))
@@ -162,11 +163,12 @@ def request_my_verification(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """A signed-in account from before verification existed asks to verify its address."""
-    _email_signup_available()
+    _email_signup_available(db)
     if current_user.email_verified:
         return {"ok": True, "email_verified": True}
     sent = ev.issue_and_send(db, current_user, current_user.hashed_password)
-    return {"ok": True, "sent": sent}
+    from app.services.email_delivery import queued_delivery
+    return {"ok": True, "sent": sent and not queued_delivery(), "queued": sent and queued_delivery()}
 
 
 class VerifyIn(BaseModel):

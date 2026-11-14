@@ -206,6 +206,14 @@ def production_config_problems() -> List[str]:
     except ConfigError as e:
         problems.append(str(e))
     problems.extend(billing_test_mode_problems())
+    if (os.environ.get("EMAIL_DELIVERY_MODE") or "queued").strip().lower() != "queued":
+        problems.append("EMAIL_DELIVERY_MODE must be queued in production.")
+    for name, minimum, maximum in (("EMAIL_DAILY_SEND_LIMIT", 0, 1_000_000),
+            ("EMAIL_MONTHLY_SEND_LIMIT", 0, 1_000_000), ("EMAIL_QUEUE_MAX_PENDING", 1, 10000),
+            ("EMAIL_MIN_INTERVAL_SECONDS", 1, 60), ("EMAIL_MAX_ATTEMPTS", 1, 30)):
+        value = os.environ.get(name)
+        if value is not None and (not value.strip().isdigit() or not minimum <= int(value) <= maximum):
+            problems.append(f"{name} must be an integer between {minimum} and {maximum}.")
     return problems
 
 

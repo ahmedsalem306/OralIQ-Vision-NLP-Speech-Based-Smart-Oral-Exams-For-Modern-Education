@@ -22,7 +22,31 @@ outbox: List[EmailMessage] = []
 
 
 class MailError(Exception):
-    pass
+    def __init__(self, message: str, code: str = "DELIVERY_FAILED", retryable: bool = True):
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
+
+
+def _classify_error(error: Exception) -> tuple[str, bool]:
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return "AUTH_FAILED", True
+    if isinstance(error, smtplib.SMTPRecipientsRefused):
+        temporary = all(400 <= int(value[0]) < 500 for value in error.recipients.values())
+        return ("RECIPIENT_TEMPORARY", True) if temporary else ("RECIPIENT_REJECTED", False)
+    # Inspect provider replies only in memory; never persist or log them.
+    reply = getattr(error, "smtp_error", b"")
+    reply = reply.decode("utf-8", "replace") if isinstance(reply, bytes) else str(reply)
+    reply = reply.lower()
+    if "quota" in reply or "limit" in reply:
+        if "month" in reply:
+            return "MONTHLY_QUOTA", True
+        if "daily" in reply or "per day" in reply:
+            return "DAILY_QUOTA", True
+        return "PROVIDER_LIMIT", True
+    if isinstance(error, smtplib.SMTPResponseException) and error.smtp_code >= 500:
+        return "PROVIDER_REJECTED", False
+    return "TRANSPORT_FAILED", True
 
 
 def _env(name: str, default: str = "") -> str:
@@ -65,7 +89,7 @@ def configured() -> bool:
     return True
 
 
-def send(to: str, subject: str, text: str) -> None:
+def send(to: str, subject: str, text: str, *, idempotency_key: Optional[str] = None) -> None:
     b = backend()
     if not configured():
         raise MailError("e-mail is not configured")
@@ -73,6 +97,10 @@ def send(to: str, subject: str, text: str) -> None:
     msg["To"] = to
     msg["From"] = _env("SMTP_FROM", "OralIQ <no-reply@localhost>")
     msg["Subject"] = subject
+    if idempotency_key is not None:
+        if not idempotency_key or len(idempotency_key) > 256 or not all(c.isalnum() or c in "-_/." for c in idempotency_key):
+            raise MailError("Invalid delivery identifier", "PAYLOAD_INVALID", False)
+        msg["Resend-Idempotency-Key"] = idempotency_key
     msg.set_content(text)
     if b == "memory":
         outbox.append(msg)
@@ -97,4 +125,5 @@ def send(to: str, subject: str, text: str) -> None:
             server.send_message(msg)
     except (OSError, smtplib.SMTPException) as e:
         # Never echo the server's reply verbatim: some include the login name.
-        raise MailError(f"SMTP delivery failed ({type(e).__name__})") from None
+        code, retryable = _classify_error(e)
+        raise MailError(f"SMTP delivery failed ({type(e).__name__})", code, retryable) from None

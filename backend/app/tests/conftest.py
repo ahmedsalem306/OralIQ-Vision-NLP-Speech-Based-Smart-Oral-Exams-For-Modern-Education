@@ -4,6 +4,9 @@ import os
 # in-memory signing key, nothing written into the project).
 os.environ["ENV"] = "test"
 os.environ.pop("SPACE_ID", None)
+# A developer's server environment must never turn unit tests into real mail sends.
+os.environ["EMAIL_BACKEND"] = "memory"
+os.environ.pop("EMAIL_DELIVERY_MODE", None)
 # The API would otherwise start a real grading worker process (Whisper and all) on startup.
 os.environ.setdefault("GRADING_WORKER_MODE", "off")
 

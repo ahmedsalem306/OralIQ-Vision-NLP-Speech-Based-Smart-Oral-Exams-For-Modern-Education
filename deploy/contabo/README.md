@@ -21,7 +21,7 @@ official instructions. Run from `deploy/contabo` in a checkout of the approved r
    database port 5432 or API port 8000. Compose publishes only the HTTPS proxy.
 3. `docker compose config --quiet` validates required settings without displaying secrets.
 4. `docker compose up -d --build`
-5. `docker compose ps` and `docker compose logs --tail=100 api worker backup`
+5. `docker compose ps` and `docker compose logs --tail=100 api worker mailer backup`
 6. Check `https://<API_DOMAIN>/health`. Warm the model cache before the first real class using a
    test account and recording; first use downloads models. Submit an answer and wait for `completed`.
 
@@ -36,11 +36,15 @@ by the existing worker. Failed audio is kept for 72 hours, configurable in `.env
 | API + biometric endpoints | 2 | 4 GB |
 | Grading worker | 5 | 14 GB |
 | PostgreSQL | 1 | 3 GB |
+| Verification mail worker | 0.25 | 256 MB |
 | Proxy / backups | shared | 256 MB / 512 MB |
 
 Two grading jobs run at once, each Whisper job uses two CPU threads and Whisper has two inference
 workers. One API worker keeps the existing process-local rate limiter coherent. Model caches and
 PostgreSQL use persistent named volumes. Leave the remaining RAM to Linux and disk cache.
+CPU limits are ceilings, not reserved cores. Include the mail worker and OS in actual
+capacity measurements. Production email uses the independent `mailer` service and
+[bounded encrypted outbox](email-setup.md); do not omit that service from selective deploys.
 
 Admission stops at `GRADING_MAX_PENDING_JOBS=500` or 2GB of retained audio (failed recordings count
 until purged), returning a retryable 503. PostgreSQL serializes the capacity check across API

@@ -45,19 +45,58 @@ Do not declare email ready merely because an SMTP connection or authentication s
 References: [SMTP settings](https://resend.com/docs/send-with-smtp),
 [verified domains](https://resend.com/docs/dashboard/domains/introduction).
 
-## Quota and delivery behavior before rollout
+## Queued delivery candidate
 
-The current backend sends verification mail synchronously; it has no durable email
-outbox, automatic delivery retry or operator quota alert. A 202 response acknowledges
-the request without revealing whether the address exists. API and UI text now say
-the request was received instead of claiming that a message was sent. SMTP acceptance
-would not prove inbox delivery either. Per-account resend throttling remains in place.
+Production defaults to `EMAIL_DELIVERY_MODE=queued` and refuses inline mode. Run the
+new `mailer` Compose service alongside API/database; it does not import speech/vision
+models. The two new tables are additive. Existing accounts, links and exam data remain.
+API requests persist the verification token and encrypted outbox entry atomically;
+they do not call SMTP. A 202 acknowledges the request without revealing whether the
+address exists or promising delivery. Full-queue/unconfigured responses are checked
+before looking up the account. Per-account resend throttling is serialized in PostgreSQL.
+
+Messages use authenticated Fernet encryption with an HKDF subkey derived from the
+persistent application `SECRET_KEY`. A database-only leak does not expose plaintext
+verification links. Protect/backup that secret separately; rotating it with pending
+mail makes those payloads unreadable, which fails closed. Do not log decrypted payloads.
+Encrypted payloads are erased on success, permanent failure, expiry or cancellation;
+terminal metadata is retained for seven days. Existing database backups have their
+own retention and can contain earlier encrypted payloads.
+
+The worker serializes sends using a global PostgreSQL lease, recovers abandoned work
+after 180 seconds, retries transient errors with bounded backoff (maximum eight attempts),
+and stops at the original 24-hour expiry. Already-verified/changed/inactive accounts
+and cancelled/used links are skipped. Email text states the absolute UTC expiry;
+expired requests can obtain a fresh link using the last pending signup password.
+
+Stable `Resend-Idempotency-Key` headers reduce duplicate sends after ambiguous network
+or database failures. Resend retains these keys for 24 hours; this queue never retries
+past its original 24-hour expiry. SMTP acceptance still does not prove inbox delivery,
+and other SMTP providers may not honor this header: do not claim exactly-once delivery.
+
+Pilot defaults reserve at most **90 local attempts per UTC day** and 2,700 per UTC
+month, leaving headroom under the provider's free cap. Reservations include retries
+and ambiguous failures; they are not fetched provider-account usage. Manual sends,
+other API keys and inbound mail can consume the provider's quota separately. Provider
+daily/monthly-quota rejections pause retries until the corresponding UTC reset. A
+1,000-message pending cap bounds storage; expired mail is not sent merely to drain it.
+
+`GET /api/v1/system/email-delivery` is admin-only and returns aggregate counters,
+worker heartbeat and bounded issue codes, never recipients, payloads or keys. The
+admin dashboard polls it every 30 seconds and warns at 80% of budget/capacity, on
+worker/authentication failures, or failed/expired messages. Worker logs emit status
+changes without message data. This is an on-site dashboard/log alert, not an offline
+email/SMS/push notification; independent external monitoring still needs configuration.
 
 Google login verifies the Google account's email through its signed identity token and
 does not send a site verification email. It can reduce transactional email demand for
 a pilot. Users who need password signup still need a working email provider/quota.
 
-Before a high-volume launch, provision adequate quota and implement/test bounded email
-queuing/retries, expiry handling, abuse controls and operator delivery/quota monitoring.
-A paid plan removes its daily cap; it does not remove provider burst-rate restrictions.
-These requirements remain open; the wording correction is not an email queue.
+Before a high-volume launch, provision adequate provider quota and adjust the local
+budgets deliberately. The queue cannot fit 500 same-day activation mails into a
+100-mail daily plan. Validate real signup delivery, abuse controls and external alerts.
+Paid-plan quota changes do not remove provider rate restrictions.
+
+References: [provider quotas and UTC resets](https://resend.com/docs/knowledge-base/account-quotas-and-limits),
+[SMTP idempotency](https://resend.com/docs/send-with-smtp),
+[24-hour idempotency window](https://resend.com/docs/dashboard/emails/idempotency-keys).

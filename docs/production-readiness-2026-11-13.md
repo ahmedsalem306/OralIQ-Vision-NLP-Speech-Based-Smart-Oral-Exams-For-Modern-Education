@@ -138,8 +138,12 @@ No production database or real student's biometric data was inspected.
 - Email quota follow-up: registration/resend API and UI now acknowledge the request rather
   than claiming delivery. Focused authentication/email-ownership tests: **30 passed**;
   frontend typecheck passed. This copy change was checked after the 376-test Linux run.
-  A durable email outbox, bounded retries, token-expiry handling and operator quota/delivery
-  monitoring remain open, alongside provider setup and a quota adequate for school signup.
+  The subsequent release candidate adds an encrypted durable outbox, bounded retries,
+  token-expiry checks, global sending leases/budgets and admin-only dashboard warnings.
+  Local queue tests: **23 passed**; combined auth/queue/config check: **69 passed** before
+  the final two queue tests. Frontend typecheck, targeted lint and production build pass.
+  Linux/PostgreSQL concurrency and candidate-service rollout still need verification.
+  Adequate provider quota, full real signup delivery and independent external alerts remain open.
 - Prepared CI template is still `ops/ci/security.yml`; the previous credential lacked workflow
   permission. Do not report it as an active or successful GitHub Actions workflow.
 

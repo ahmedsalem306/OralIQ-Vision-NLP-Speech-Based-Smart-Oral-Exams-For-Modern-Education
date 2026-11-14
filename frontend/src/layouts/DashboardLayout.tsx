@@ -15,6 +15,7 @@ import { usePageTitle } from "../lib/usePageTitle";
 import { useTheme } from "../lib/theme";
 import { CommandPalette, type Command } from "../components/CommandPalette";
 import PaymentReturnNotice from "../components/PaymentReturnNotice";
+import { EmailDeliveryStatus } from "../components/EmailDeliveryStatus";
 
 type Me = { full_name: string; email: string; role: string };
 
@@ -239,6 +240,7 @@ export function DashboardLayout() {
                             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                         >
                             <PaymentReturnNotice enabled={isLecturer} />
+                            {user?.role === "admin" && <EmailDeliveryStatus />}
                             <Outlet />
                         </motion.div>
                     </MotionConfig>

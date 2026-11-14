@@ -13,3 +13,4 @@ from app.models.face_check import FaceCheck
 from app.models.exam_sitting import ExamSitting
 from app.models.team_invitation import TeamInvitation
 from app.models.accommodation import BiometricPreference, ExamAccommodation
+from app.models.email_outbox import EmailOutbox, EmailDeliveryState

@@ -6,8 +6,9 @@ from app.core.database import Base
 
 class EmailVerificationToken(Base):
     """
-    One e-mailed verification link. Only the SHA-256 of the link's secret is stored, so a database
-    leak doesn't hand out working links. Completing it also needs the password chosen at sign-up
+    One verification link. This record stores only its secret's SHA-256. Queued mail holds
+    an authenticated-encrypted payload under a separate key derived from the application secret.
+    Completing a link also needs the password chosen at sign-up
     (kept here as a hash, applied to the account only on success): whoever registered and whoever
     reads the mailbox must be the same person.
     """
