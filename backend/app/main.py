@@ -9,6 +9,7 @@ from app.models.user import User  # noqa: F401 — ensures all models are regist
 from app.core.config import current_env, is_dev_env, is_production, parse_allowed_origins, settings
 from app.core.request_limits import MAX_BODY_SIZE, RequestSizeLimitMiddleware
 from app.core.privacy_telemetry import private_error_event
+from app.services.password_login import LOGIN_PATH, gate_for
 import jwt as _jwt
 from jwt import InvalidTokenError as _JWTError
 import hashlib
@@ -190,8 +191,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if path in ("/", "/health", "/debug"):
             return await call_next(request)
 
+        if path == LOGIN_PATH and request.method == "POST":
+            # Password login has account/failure throttles and bounded CPU admission.
+            # Do not also apply the 20/IP auth or 300/IP anonymous request allowance.
+            ip = _client_ip(request)
+            try:
+                gate_for(request).preflight(ip)
+            except HTTPException as error:
+                return JSONResponse(status_code=error.status_code, content={"detail": error.detail}, headers=error.headers)
+            request.state.password_login_ip = ip
+            request.state.password_login_preflight = True
+            return await call_next(request)
+
         # Strict brute-force rate limit on login & registration endpoints (per IP)
-        if path in ("/api/v1/login/access-token", "/api/v1/register", "/api/v1/login/google",
+        if path in ("/api/v1/register", "/api/v1/login/google",
                     "/api/v1/auth/verify-email", "/api/v1/auth/resend-verification",
                     "/api/v1/auth/email-verification/request"):
             ip_key = "auth:" + _client_ip(request)

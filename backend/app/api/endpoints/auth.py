@@ -17,6 +17,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate
 from app.services import email_verification as ev
 from app.services import mailer
+from app.services.password_login import LoginTicket, password_login_permit
 
 router = APIRouter()
 
@@ -33,13 +34,21 @@ _RETIRED_FAKE_OAUTH_PASSWORDS = {
 def login_access_token(
     db: Session = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
+    ticket: LoginTicket = Depends(password_login_permit),
 ) -> Any:
+    with ticket.gate.work(ticket):
+        return _password_session(db, form_data, ticket)
+
+
+def _password_session(db: Session, form_data: OAuth2PasswordRequestForm, ticket: LoginTicket) -> Any:
     email_norm = (form_data.username or "").strip().lower()
     raw_password = form_data.password or ""
     if len(email_norm) > 254 or len(raw_password) > 128:
+        ticket.rejected = True
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if raw_password.strip().lower() in _RETIRED_FAKE_OAUTH_PASSWORDS:
         security.verify_password(raw_password, _DUMMY_HASH)
+        ticket.rejected = True
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     user = db.query(User).filter(User.email == email_norm).first()
@@ -49,8 +58,10 @@ def login_access_token(
 
     if not user:
         security.verify_password(form_data.password, _DUMMY_HASH)  # same timing as a real miss
+        ticket.rejected = True
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if not security.verify_password(form_data.password, user.hashed_password):
+        ticket.rejected = True
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")

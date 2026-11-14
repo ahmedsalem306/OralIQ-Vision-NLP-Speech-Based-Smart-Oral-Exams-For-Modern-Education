@@ -12,6 +12,9 @@ class RequestSizeLimitMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
+        limit = self.max_bytes
+        if scope.get("path") == "/api/v1/login/access-token" and scope.get("method") == "POST":
+            limit = min(limit, 16 * 1024)  # bound URL-encoded/chunked login forms before parsing
         headers = dict(scope.get("headers", []))
         if b"content-length" in headers:
             try:
@@ -20,7 +23,7 @@ class RequestSizeLimitMiddleware:
                     raise ValueError()
             except ValueError:
                 return await JSONResponse({"detail": "Invalid Content-Length header."}, status_code=400)(scope, receive, send)
-            if length > self.max_bytes:
+            if length > limit:
                 return await JSONResponse({"detail": "Request body too large."}, status_code=413)(scope, receive, send)
         consumed = 0
         started = False
@@ -30,7 +33,7 @@ class RequestSizeLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 consumed += len(message.get("body", b""))
-                if consumed > self.max_bytes:
+                if consumed > limit:
                     raise HTTPException(status_code=413, detail="Request body too large.")
             return message
 

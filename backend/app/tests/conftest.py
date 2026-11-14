@@ -31,6 +31,12 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def isolated_password_login_limits():
+    from app.services.password_login import PasswordLoginGate
+    app.state.password_login_gate = PasswordLoginGate()
+
+
 @pytest.fixture(scope="module")
 def db() -> Generator:
     Base.metadata.create_all(bind=engine)
