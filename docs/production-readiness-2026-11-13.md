@@ -177,6 +177,27 @@ No production database or real student's biometric data was inspected.
   authentication throttling remains enabled. School login/admission design still blocks
   promising 500 students from one network. The fixture-only reserved-domain validation bug
   found at preflight was fixed without changing application email validation.
+- Owner-supplied Arabic audio probe (November 14): a 34.539-second AAC recording, inside
+  a file named `.ogg`, passed actual container/stream inspection and anonymous-file decoding.
+  An offline, separate container used the candidate's cached medium model, CPU
+  `int8_float32`, two inference workers/two threads and a five-CPU ceiling. No enrollment,
+  database exam, browser/upload, face or voice-match test was performed.
+  Baseline repeated transcriptions were unstable (content scores 18.7–99.7), despite
+  identical input audio. Supplying the expected answer as an ASR prompt was removed from
+  grading, filler-word priming removed, and decoding temperature fixed at 0. Dictation
+  retains bounded optional vocabulary context. The reference answer is used only by NLP.
+  In the controlled comparison all four transcripts/content scores were identical:
+  content 97.9/100, fluency 95/100 (model scores, not measured accuracy or lecturer validation).
+  Warm single pipeline: 52.266 seconds; two concurrent copies: 58.760 seconds total;
+  process peak RSS 2,846.2 MiB. The first controlled pipeline was 59.814 seconds but
+  **excluded prior Whisper initialization**, so it is not a complete cold-start measure.
+  This single short reading cannot establish three-minute or 500-student capacity.
+  Raw server upload copies were removed after each probe. Detailed transcripts remain
+  in private reports outside Git; no real email or third-party inference API was used.
+  Relevant decoding behavior is documented in the
+  [faster-whisper implementation](https://github.com/SYSTRAN/faster-whisper/blob/master/faster_whisper/transcribe.py).
+  Transcription-settings and queue regressions: **29 passed**, using stubbed models;
+  no weights were loaded on the owner's Windows machine.
 
 ## Server handoff
 

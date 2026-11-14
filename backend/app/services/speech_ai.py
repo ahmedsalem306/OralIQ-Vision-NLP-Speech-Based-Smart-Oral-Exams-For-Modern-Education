@@ -80,7 +80,6 @@ class SpeechAnalyzer:
         self._model = None
         self._load_failed = False
         self._lock = threading.Lock()
-        self.filler_prompt = "اه يعني اممم طيب بصراحة خلاص كدة تمام ممم إه"
 
     @property
     def model(self):
@@ -130,7 +129,9 @@ class SpeechAnalyzer:
 
     def _transcribe(self, audio_path: str, hint: str = "", word_timestamps: bool = False):
         """Run a transcription, return (full_text, segments_list, info)."""
-        prompt = (hint + " " + self.filler_prompt).strip()
+        # Dictation may supply short vocabulary context. Never prime a graded recording
+        # with its expected answer or filler words that could be counted against a student.
+        prompt = (hint or "").strip()[:500] or None
         language_hint = os.environ.get("WHISPER_LANGUAGE", "").strip() or None
         from app.core.media_limits import decode_audio_bounded
         waveform = decode_audio_bounded(audio_path, self.MAX_AI_AUDIO_SECONDS)
@@ -138,6 +139,7 @@ class SpeechAnalyzer:
             waveform,
             language=language_hint,  # None lets Whisper detect Arabic/English automatically.
             initial_prompt=prompt,
+            temperature=0.0,           # no stochastic fallback changing a repeated grade
             word_timestamps=word_timestamps,
             vad_filter=True,            # skip pure-silence regions
             vad_parameters={"min_silence_duration_ms": 500},
@@ -157,7 +159,8 @@ class SpeechAnalyzer:
         return text
 
     def analyze_fluency(self, audio_path: str, hint: str = "") -> dict:
-        transcript, segments, _info = self._transcribe(audio_path, hint, word_timestamps=True)
+        # Keep the legacy argument for callers, but a model answer belongs only in NLP grading.
+        transcript, segments, _info = self._transcribe(audio_path, word_timestamps=True)
 
         if not transcript or not segments:
             return {

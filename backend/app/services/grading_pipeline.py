@@ -40,7 +40,7 @@ def run_ai_pipeline(
         from app.services.voice_ai import voice_service
 
         try:
-            fluency = speech_analyzer.analyze_fluency(audio_path, hint=model_answer or "")
+            fluency = speech_analyzer.analyze_fluency(audio_path)
         except Exception as e:
             print(f"[AI Pipeline] Whisper failed: {traceback.format_exc()}")
             raise GradingError(f"speech-to-text failed: {e}") from e
