@@ -1,8 +1,16 @@
 # Transactional email setup for oralliq.com
 
-No email service account or key has been created. The owner agreed to set up email;
-the following is a concrete Resend SMTP configuration, pending account/domain verification.
-The existing application already supports SMTP; no new vendor SDK is required.
+The owner created a Resend account and verified `auth.oralliq.com` on November 14,
+2026. The supplied key was transferred privately and configured in the candidate
+server's mode-0600 environment file. SMTP authentication succeeded with TLS 1.3
+both from the host and inside the API container; application mail configuration is active.
+No key value is stored in this runbook or git. The existing application supports SMTP;
+no new vendor SDK is required.
+
+The owner explicitly approved one test message to their Gmail address. The application's
+mailer sent it and SMTP accepted it. The owner confirmed that it arrived in **Inbox**.
+Recipient authentication-header checks still need separate confirmation. No signup flow or
+password-reset delivery is established by this transport test.
 
 1. Owner signs into [Resend](https://resend.com/signup). Start with the free tier for
    pilot testing; its 100-email daily cap cannot cover 500 same-day new registrations.

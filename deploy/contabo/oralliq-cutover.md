@@ -84,7 +84,10 @@ The current staging database has fresh test secrets and is not a migrated user D
 - The owner confirmed the old site's data are experiments only. No old database
   has been deleted or overwritten. The new database has not been migrated from it.
 - Kashier Live activation is still pending. SMTP account/domain verification and
-  real delivery checks are pending. Do not cut over the public frontend yet.
+  authentication inside the API now pass. One explicitly approved test message was
+  accepted by SMTP and the owner confirmed Inbox arrival. End-to-end signup and
+  recipient authentication-header checks remain separate.
+  Do not cut over the public frontend yet.
 - The API's automatic face/gaze preload remains disabled pending resolution of face
   weight authorization. Worker Whisper/SBERT/voice loading is checked separately;
   loading a model is not an Arabic exam, biometric-accuracy or capacity result.
@@ -95,8 +98,10 @@ The current staging database has fresh test secrets and is not a migrated user D
   archive is quarantined under root's private directory. Backup now waits for API health
   and requires 16 tables. The corrected dump passed an actual separate-database restore;
   an intentionally empty database was rejected with exit 1 and no published dump.
-- Email setup is prepared in [email-setup.md](email-setup.md). The owner requested email
-  setup and confirmed Kashier activation is still in progress; no provider key is present.
+- [Email setup](email-setup.md) uses a privately supplied Resend key and
+  `OralIQ <noreply@auth.oralliq.com>`. The key is in the private server environment,
+  not source or frontend settings. The temporary upload copy was removed after
+  API-container authentication passed. Kashier activation remains in progress.
 - A controlled reboot applied kernel `6.8.0-149-generic`. Docker/Nginx/certificate timer
   and candidate API/DB/worker/backup returned automatically. Private health is 200,
   public TLS remains maintenance 503. Active grading queue was empty before reboot;

@@ -120,7 +120,10 @@ No production database or real student's biometric data was inspected.
   public API hostname serves an intentional maintenance response. A private production
   candidate with a separate DB/worker/local-backup stack has started. The owner confirmed
   existing site data are experiments only; no old records have been deleted. Kashier Live
-  activation and SMTP account/domain verification/delivery remain pending.
+  activation remains pending. SMTP account/domain verification and TLS authentication
+  inside the API now pass; one owner-approved test message was accepted by SMTP
+  and confirmed received in Inbox. End-to-end signup and recipient authentication
+  headers still need their own checks.
 - Candidate worker loading passed: Whisper medium CPU int8, SBERT and Resemblyzer, about
   1.85 GiB worker RSS after startup. This is idle model-loading memory, **not peak grading
   memory, an Arabic inference-quality result or a 500-student capacity measurement**.
