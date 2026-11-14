@@ -220,6 +220,17 @@ No production database or real student's biometric data was inspected.
   maintenance. Computer Use ended because Chrome's current URL could not be determined
   confidently for policy enforcement; the browser flow still requires verification.
   [Detailed controls, measurements and limitations](password-login-admission.md).
+- November 15 capacity assessment completed: eight real ASR/NLP jobs on composed
+  one-minute Arabic speech measured 1.1762 answers/minute at the current 2×2 setup
+  and 1.5467 at an isolated 4×1 comparison, under the existing 5-CPU grading ceiling.
+  Four jobs took 204.052/155.171 seconds respectively; peak process RSS was about
+  2.94/4.17 GiB. A hypothetical 1,000-answer drain is about 14/11 hours at those
+  rates; it was not an actual 1,000-job inference run and excludes biometric/camera load.
+  Separate real HTTP/PostgreSQL admission with ten in-flight uploads accepted only
+  500/1000 answers at the existing pending cap, and 1000/1000 at an isolated 1200 cap.
+  Upload audio/identities were synthetic; cleanup and no orphan answers were verified.
+  Production limits/routing were preserved. Do not call the current setup ready for
+  500 students with fast results. See [full methodology and estimates](server-capacity-2026-11-15.md).
 
 ## Server handoff
 
