@@ -52,7 +52,7 @@ def config():
 
 def test_lost_submit_response_recovers_same_durable_answer():
     manifest, transport, accepted, _ = mock_school(1, lose_response=True)
-    result = asyncio.run(Runner(config(), manifest, [b"one", b"two"], [b"face"], transport=transport).run())
+    result = asyncio.run(Runner(replace(config(), wait_seconds=1), manifest, [b"one", b"two"], [b"face"], transport=transport).run())
     assert len(accepted) == result["accepted_answers"] == 2
     assert result["transport_errors"] == 2
     assert result["all_answers_received_and_graded"]
@@ -65,7 +65,8 @@ def test_retries_reuse_the_same_key_and_report_first_rejections(monkeypatch):
         await original_sleep(min(delay, .001))
     monkeypatch.setattr(asyncio, "sleep", quick_sleep)
     manifest, transport, accepted, seen = mock_school(1, reject_first=True)
-    result = asyncio.run(Runner(config(), manifest, [b"one", b"two"], [b"face"], transport=transport).run())
+    # A loaded CI host must not expire a successful mock run on a 50-ms wall clock.
+    result = asyncio.run(Runner(replace(config(), wait_seconds=1), manifest, [b"one", b"two"], [b"face"], transport=transport).run())
     assert len(accepted) == result["accepted_answers"] == 2
     assert seen[0][0] == seen[1][0] and seen[2][0] == seen[3][0]
     assert result["first_submit_rejections"] == 2
