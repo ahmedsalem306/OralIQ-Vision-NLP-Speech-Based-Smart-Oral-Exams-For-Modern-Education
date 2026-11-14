@@ -14,7 +14,7 @@ def mock_school(students=500, *, reject_first=False, lose_response=False, gradin
     owner = {"id": 1, "email": "owner@loadtest.example.com", "token": "MOCK-owner"}
     manifest = {"allowed_origin": "http://localhost", "biometric_mode": "scaffold_unenrolled",
                 "lecturer": owner, "metrics_admin": {"token": "MOCK-admin"},
-                "exam": {"key": "mock-exam", "question_ids": [11, 22], "question_seconds": 180},
+                "exam": {"key": "mock-exam", "question_ids": [11, 22], "question_seconds": 60},
                 "students": accounts}
     identities = {f"Bearer {account['token']}": account for account in [owner, *accounts]}
     accepted, attempts, seen_keys = {}, {}, []
@@ -65,7 +65,7 @@ async def selfcheck(students=500):
                     session_interval_seconds=.001, poll_interval_seconds=.001, metrics_interval_seconds=.1,
                     wait_seconds=2, max_inflight=500, submit_attempts=1)
     result = await Runner(config, manifest, [b"MOCK-audio-1", b"MOCK-audio-2"], [b"MOCK-face"], transport=transport).run()
-    result["intended_real_scenario"] = {"students": students, "questions": 2, "question_seconds": 180}
+    result["intended_real_scenario"] = {"students": students, "questions": 2, "question_seconds": 60}
     return result
 
 

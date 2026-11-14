@@ -27,7 +27,7 @@ def valid_embedding(raw, dimension):
         return False
 
 
-def prepare(db, base_url, students=500, questions=2, minutes=3, identity_email=None):
+def prepare(db, base_url, students=500, questions=2, minutes=1, identity_email=None):
     from app.core import security
     from app.models.user import User
     from app.models.question import Question
@@ -86,7 +86,7 @@ def main():
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--students", type=int, default=500)
     parser.add_argument("--questions", type=int, default=2)
-    parser.add_argument("--minutes", type=int, default=3)
+    parser.add_argument("--minutes", type=int, default=1)
     parser.add_argument("--identity-user-email")
     parser.add_argument("--output", required=True)
     parser.add_argument("--confirm-staging", action="store_true", required=True)

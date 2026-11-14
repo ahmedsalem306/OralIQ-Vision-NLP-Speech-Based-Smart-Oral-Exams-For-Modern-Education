@@ -23,7 +23,7 @@ class Config:
     base_url: str
     students: int = 500
     questions: int = 2
-    question_seconds: float = 180
+    question_seconds: float = 60
     ramp_seconds: float = 60
     submit_window_seconds: float = 30
     face_interval_seconds: float = 4  # matches ExamRoom's current face-check interval

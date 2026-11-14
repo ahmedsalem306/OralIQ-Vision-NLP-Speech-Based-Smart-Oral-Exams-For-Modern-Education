@@ -1,4 +1,9 @@
-# School load test: 500 students, two 3-minute questions
+# School load test: 500 students, two 1-minute questions
+
+On November 15, the owner changed the next capacity scenario to one minute per
+question, two questions per student. Driver defaults, fixture defaults and commands
+below match that scenario. Existing exams and historical measurements retain their
+original durations. This is an audio-duration change, not an HTTP timeout or grading SLA.
 
 This is a preparation kit, not a capacity result. No load has been sent to the live
 site. The local selfcheck uses mocked HTTP responses: its 1,000 accepted/graded
@@ -6,7 +11,9 @@ answers prove the driver's accounting and retry behavior only. The Linux image a
 isolated API/PostgreSQL startup were validated on November 14; 56 focused tests passed
 after fixing PyAV 19 audio decoding, including real PostgreSQL queue concurrency.
 The subsequent full Linux backend suite passed all 376 tests (mocked AI inference).
-Real model inference, resource use under an exam cohort and capacity remain to be measured.
+Resource use under a real exam cohort and capacity remain to be measured; the separate
+short Arabic audio probe and subsequent login validation are recorded in
+[the readiness log](../../docs/production-readiness-2026-11-13.md).
 There is no agreed grading-time SLA; measure first, then set one.
 
 ## Measured on November 14: recovery and school login
@@ -28,7 +35,9 @@ There is no agreed grading-time SLA; measure first, then set one.
   **20 succeeded, 480 returned 429**, zero transport errors. Login p95 was 0.0628 seconds,
   predominantly fast rejections. No exam attempt or model inference was started. The
   20/IP/minute authentication protection remained enabled. School admission/login design
-  remains a release blocker; do not quote this latency as successful-login capacity.
+  was a release blocker at that point; do not quote this latency as successful-login capacity.
+  The subsequent [school-login update](../../docs/password-login-admission.md) passed
+  500/500 actual logins. That is not an exam-grading capacity measurement.
 - The initial probe stopped at preflight because `@loadtest.invalid` is rejected by
   the API's email response validator. Fixture addresses now use the reserved documentation
   domain `@loadtest.example.com`; application email validation was not weakened. A real
@@ -48,14 +57,14 @@ the candidate production database or replace its DB-name guard to do so.
 ## What is exercised
 
 The default scenario starts 500 students over 60 seconds. Each records two answers
-for 180 seconds, verifies a face roughly every 4 seconds, resumes/checks its session
+for 60 seconds, verifies a face roughly every 4 seconds, resumes/checks its session
 every 30 seconds and submits within a 30-second jitter window. After recording, each
 student polls one accepted answer every 3 seconds, rotating its answers. Stable
 submission keys survive bounded retries and lost responses. Reports distinguish
 received, graded, failed and pending answers, errors, queue observations and p95
 HTTP latency (including client connection/slot wait).
 
-That means **1,000 answers and 3,000 audio minutes**. The default queue admits up to
+That means **1,000 answers and 1,000 audio minutes**. The default queue admits up to
 500 pending jobs and retains at most 2 GiB of audio, including failed-job audio.
 With only two grading slots, the second wave may be rejected with 503. This is a
 finding to measure, not a reason to silently remove the limits. Inspect throughput,
@@ -114,7 +123,7 @@ refuses ordinary production hostnames and mismatched fixture origins.
 ## Real model smoke test, before any cohort
 
 Prepare consenting face photos (3–10 JPEG frames), two real Arabic speech clips
-of about 180 seconds each, a separate voice-enrollment clip and a UTF-8 reference
+of about 60 seconds each, a separate voice-enrollment clip and a UTF-8 reference
 answer. Use realistic compressed uploads, not generated silence. Keep the files
 private and outside git. Copy the required smoke inputs, for example:
 
@@ -152,7 +161,7 @@ From `ops/loadtest`:
 
 ```sh
 docker compose exec api python -m scripts.load_test_prepare \
-  --base-url http://127.0.0.1:18000 --students 1 --questions 2 --minutes 3 \
+  --base-url http://127.0.0.1:18000 --students 1 --questions 2 --minutes 1 \
   --output /data/pilot.json --confirm-staging
 docker compose cp api:/data/pilot.json ../../loadtest-artifacts/pilot.json
 chmod 600 ../../loadtest-artifacts/pilot.json
@@ -172,7 +181,7 @@ replace `PILOT_EMAIL` below with that `@loadtest.example.com` email:
 
 ```sh
 docker compose exec api python -m scripts.load_test_prepare \
-  --base-url http://127.0.0.1:18000 --students 500 --questions 2 --minutes 3 \
+  --base-url http://127.0.0.1:18000 --students 500 --questions 2 --minutes 1 \
   --identity-user-email PILOT_EMAIL --output /data/accounts-500.json --confirm-staging
 docker compose cp api:/data/accounts-500.json ../../loadtest-artifacts/accounts-500.json
 chmod 600 ../../loadtest-artifacts/accounts-500.json
