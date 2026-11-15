@@ -17,7 +17,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, func, or_, text, update
+from sqlalchemy import and_, case, func, or_, text, update
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -212,6 +212,30 @@ def complete(db: Session, job_id: int, worker_id: str, fields: Dict[str, Any]) -
     )
     db.commit()
     return True
+
+
+def defer_provider(db: Session, job_id: int, worker_id: str, reason: str, delay: int) -> Optional[str]:
+    """Keep accepted audio queued on provider admission/cooldown, preserving failure budget."""
+    job = db.query(GradingJob).filter(GradingJob.id == job_id).first()
+    if job is None:
+        db.rollback()
+        return None
+    now = utcnow()
+    res = db.execute(update(GradingJob).where(
+        GradingJob.id == job_id, GradingJob.status == PROCESSING, GradingJob.locked_by == worker_id,
+    ).values(
+        status=QUEUED, available_at=now + timedelta(seconds=max(1, min(86400, int(delay)))),
+        attempts=case((GradingJob.attempts > 0, GradingJob.attempts - 1), else_=0),
+        locked_by=None, locked_at=None, finished_at=None,
+        last_error="speech_provider_wait:" + reason[:64],
+        process_ms=_ms(now - (job.started_at or now)),
+    ))
+    if res.rowcount != 1:
+        db.rollback()
+        return None
+    _set_submission_status(db, job.submission_id, QUEUED)
+    db.commit()
+    return QUEUED
 
 
 def fail_attempt(db: Session, job_id: int, worker_id: str, error: str) -> Optional[str]:

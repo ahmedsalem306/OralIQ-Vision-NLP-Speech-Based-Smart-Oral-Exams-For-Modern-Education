@@ -232,6 +232,43 @@ No production database or real student's biometric data was inspected.
   Production limits/routing were preserved. Do not call the current setup ready for
   500 students with fast results. See [full methodology and estimates](server-capacity-2026-11-15.md).
 
+- November 15 smaller-model follow-up: eight real offline minute-long ASR/NLP
+  jobs plus one original-recording pipeline tested Whisper small under the same
+  5-CPU/14-GiB ceiling. Four-job batches took 68.531 seconds (2 jobs / 2 threads)
+  and 57.660 seconds (4 jobs / 1 thread), approximately 3.0x / 2.7x the earlier
+  medium throughput. Inspected Arabic output had additional word distortions;
+  no model switch or paid service was activated. Successful executions do not
+  establish acceptable exam accuracy, and the faster sample still extrapolates
+  to about four hours for 1,000 answers. Uploaded raw audio was removed, inference
+  containers were removed, and private API health returned 200. Production model,
+  limits and public routing were preserved. See the
+  [comparison and decision](local-speech-comparison-2026-11-15.md).
+
+- November 16 owner-authorized Groq experiment: all six external transcription
+  requests returned HTTP 200 with nonempty text and usable word timestamps.
+  The 34.539-second source took 0.424–0.460 seconds on Turbo and 0.727–0.928
+  seconds on Large; a composed one-minute input took 0.508/1.221 seconds. The
+  original transcript repeated identically per model. Visible word errors remain;
+  no accuracy certification, full grading latency or school-concurrency claim.
+  No billing was activated and no production provider/configuration was changed.
+  Temporary source/key copies and the container were removed. Account revocation
+  of the owner-shared temporary key remains an owner action. Detailed methodology:
+  [Groq speech probe](groq-speech-probe-2026-11-16.md).
+
+- November 16 optional Groq integration: local speech remains default; Groq gains
+  bounded external transcription, strict word evidence and database-backed shared
+  quota/cooldown admission. Provider waits preserve accepted recordings and do not
+  spend the failure budget. Full Linux suite **455 passed, no skipped tests**,
+  including concurrent PostgreSQL reservation. An isolated real HTTP workflow with
+  three fixture students/two answers each completed real Groq, fluency and SBERT
+  grading: six-job batch 12.509 seconds after 17.443 seconds SBERT preload; whole
+  script 38.458 seconds. Manual publication, result authorization, idempotency,
+  injected wait/resume and successful audio purge passed. One repeated real speaker;
+  synthetic admission vectors; no biometric/browser/500-student capacity claim.
+  Pilot container and temporary audio/key copies removed; candidate health 200.
+  Production routing/provider/limits/pricing remain unchanged. See the
+  [integration pilot](groq-integration-pilot-2026-11-16.md).
+
 ## Server handoff
 
 Provide only the server's public IP, intended frontend/API domains and OS here. Do not paste

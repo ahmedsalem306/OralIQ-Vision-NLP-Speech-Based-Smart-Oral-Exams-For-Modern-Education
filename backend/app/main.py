@@ -10,6 +10,7 @@ from app.core.config import current_env, is_dev_env, is_production, parse_allowe
 from app.core.request_limits import MAX_BODY_SIZE, RequestSizeLimitMiddleware
 from app.core.privacy_telemetry import private_error_event
 from app.services.password_login import LOGIN_PATH, gate_for
+from app.core.speech_config import provider_name
 import jwt as _jwt
 from jwt import InvalidTokenError as _JWTError
 import hashlib
@@ -428,7 +429,8 @@ def health_check():
             "gaze": "ready" if gaze_status.get("ready") else ("error" if gaze_status.get("error") else "lazy"),
         },
         "config": {} if not is_dev_env() else {
-            "whisper_model": speech_analyzer.MODEL_SIZE,
+            "whisper_model": speech_analyzer.active_model,
+            "speech_provider": provider_name(),
             "anti_cheat_alerts": list(face_analyzer.ALERT_WEIGHTS.keys()),
             "voice_engine": voice_status["engine"],
             "voice_embedding_dim": voice_status["embedding_dim"],

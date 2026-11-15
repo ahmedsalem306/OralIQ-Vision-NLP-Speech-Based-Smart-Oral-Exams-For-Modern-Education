@@ -206,6 +206,8 @@ def production_config_problems() -> List[str]:
     except ConfigError as e:
         problems.append(str(e))
     problems.extend(billing_test_mode_problems())
+    from app.core.speech_config import speech_config_problems
+    problems.extend(speech_config_problems())
     if (os.environ.get("EMAIL_DELIVERY_MODE") or "queued").strip().lower() != "queued":
         problems.append("EMAIL_DELIVERY_MODE must be queued in production.")
     for name, minimum, maximum in (("EMAIL_DAILY_SEND_LIMIT", 0, 1_000_000),

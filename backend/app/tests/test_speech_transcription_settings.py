@@ -70,3 +70,14 @@ def test_pipeline_sends_reference_only_to_content_grading(monkeypatch):
     result = grading_pipeline.run_ai_pipeline("fixture.wav", "EXPECTED ANSWER", "", "{}", None)
     assert result["nlp_score"] == 85
     assert result["voice_score"] is None
+
+
+def test_pipeline_preserves_provider_wait_for_the_durable_worker(monkeypatch):
+    from app.core.speech_config import SpeechProviderDeferred
+    def wait(*args):
+        raise SpeechProviderDeferred("groq_rate_limit", 17)
+    monkeypatch.setitem(sys.modules, "app.services.speech_ai", SimpleNamespace(speech_analyzer=SimpleNamespace(analyze_fluency=wait)))
+    monkeypatch.setitem(sys.modules, "app.services.voice_ai", SimpleNamespace(voice_service=object()))
+    with pytest.raises(SpeechProviderDeferred) as error:
+        grading_pipeline.run_ai_pipeline("fixture.wav", "EXPECTED ANSWER", "", "{}", None)
+    assert error.value.retry_after == 17

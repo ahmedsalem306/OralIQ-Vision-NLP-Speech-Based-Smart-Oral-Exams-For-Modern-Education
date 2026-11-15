@@ -8,6 +8,7 @@ import traceback
 from app.api import deps
 from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_capped
 from app.models.user import User
+from app.core.speech_config import SpeechProviderDeferred
 
 router = APIRouter()
 _dictation_slots = anyio.CapacityLimiter(1)
@@ -59,6 +60,9 @@ async def transcribe_speech(
         if not text or not text.strip():
             raise HTTPException(status_code=422, detail="Could not detect speech in recording")
         return {"text": text.strip()}
+    except SpeechProviderDeferred as error:
+        raise HTTPException(status_code=503, detail="Speech service is busy. Please type or try again later.",
+                            headers={"Retry-After": str(error.retry_after)})
     except HTTPException:
         raise
     except Exception:

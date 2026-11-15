@@ -77,6 +77,11 @@ waiting behavior must be deliberately configured and the full monitoring/browser
 workload validated before accepting a large school exam. Increasing queued jobs
 does not increase speech throughput.
 
+Follow-up: an isolated [Whisper small comparison](local-speech-comparison-2026-11-15.md)
+measured approximately 2.7–3.0x higher throughput, but visibly added Arabic word
+distortions and still extrapolates to hours for 1,000 answers. It was not adopted;
+production settings remain unchanged.
+
 Raw owner upload copies were removed, constructed personal audio remained only
 in anonymous worker temporary files and memory, and test containers were removed.
 The upload tests used non-personal generated noise; their jobs were marked as

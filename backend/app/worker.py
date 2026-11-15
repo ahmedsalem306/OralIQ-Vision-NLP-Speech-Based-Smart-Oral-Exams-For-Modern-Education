@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.services import grading_queue as gq
 from app.services.grading_pipeline import compute_grade, run_ai_pipeline
+from app.core.speech_config import SpeechProviderDeferred
 
 POLL_SECONDS = float(os.environ.get("GRADING_POLL_SECONDS", "1.0") or 1.0)
 MAINTENANCE_SECONDS = 30
@@ -168,6 +169,10 @@ def process_job(
             try:
                 ai = pipeline(tmp_path, model_answer, keywords, alerts, voice_emb)
                 fields = compute_grade(ai, face_id_score, has_face, **evidence)
+            except SpeechProviderDeferred as e:
+                status = gq.defer_provider(db, job_id, worker_id, e.reason, e.retry_after)
+                _log("provider_wait", job=job_id, delay=e.retry_after, reason=e.reason)
+                return status or "lost"
             except Exception as e:
                 status = gq.fail_attempt(db, job_id, worker_id, f"{type(e).__name__}: {e}")
                 _log("attempt_failed", job=job_id, attempt=attempt, new_status=status,
@@ -281,7 +286,7 @@ class Worker:
 
 def _preload_models() -> None:
     for name, load in (
-        ("whisper", lambda: __import__("app.services.speech_ai", fromlist=["x"]).speech_analyzer.model),
+        ("speech", lambda: __import__("app.services.speech_ai", fromlist=["x"]).speech_analyzer.prepare()),
         ("sbert", lambda: __import__("app.services.nlp_ai", fromlist=["x"]).nlp_analyzer.model),
         ("voice", lambda: __import__("app.services.voice_ai", fromlist=["x"]).voice_service.encoder),
     ):

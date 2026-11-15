@@ -148,6 +148,37 @@ def submission_of(Session, submission_id):
         db.close()
 
 
+def test_provider_deferral_preserves_audio_failure_budget_and_can_finish(Session, seed):
+    from app.core.speech_config import SpeechProviderDeferred
+    sub_id, _ = accept(Session, seed, key="provider-wait")
+    def deferred(*args):
+        raise SpeechProviderDeferred("groq_budget", 300)
+    assert worker_mod.Worker(Session, 1, pipeline=deferred).run_one(0) == "queued"
+    job = job_of(Session, sub_id)
+    assert job.audio == AUDIO and job.attempts == 0 and job.locked_by is None
+    assert job.available_at > gq.utcnow() + timedelta(seconds=290)
+    assert submission_of(Session, sub_id).overall_score is None
+    assert worker_mod.Worker(Session, 1, pipeline=fake_ai()).run_one(0) is None
+    with Session() as db:
+        db.query(GradingJob).filter(GradingJob.id == job.id).update({"available_at": gq.utcnow() - timedelta(seconds=1)})
+        db.commit()
+    assert worker_mod.Worker(Session, 1, pipeline=fake_ai()).run_one(0) == "completed"
+    completed = job_of(Session, sub_id)
+    assert completed.audio is None and completed.attempts == 1
+    assert submission_of(Session, sub_id).overall_score is not None
+    with Session() as db:
+        assert db.query(ExamSubmission).filter(ExamSubmission.id == sub_id).count() == 1
+
+
+def test_provider_deferral_cannot_overwrite_another_workers_lease(Session, seed):
+    sub_id, _ = accept(Session, seed, key="provider-lease")
+    with Session() as db:
+        job_id = gq.claim_next(db, "current-holder")
+        assert gq.defer_provider(db, job_id, "old-holder", "groq_budget", 300) is None
+    job = job_of(Session, sub_id)
+    assert job.status == "processing" and job.locked_by == "current-holder" and job.attempts == 1
+
+
 # ── 1. Submit answers at once with "queued" ───────────────────────────────────
 
 def test_queue_capacity_refuses_without_orphan_submission_and_allows_idempotent_retry(Session, seed, monkeypatch):

@@ -16,6 +16,7 @@ import threading
 import time
 import traceback
 import warnings
+from app.core.speech_config import provider_name, groq_key, groq_settings, SpeechProviderError
 warnings.filterwarnings("ignore")
 
 
@@ -83,6 +84,8 @@ class SpeechAnalyzer:
 
     @property
     def model(self):
+        if provider_name() != "local":
+            raise SpeechProviderError("local_speech_model_disabled_for_external_provider")
         # Submissions are graded in parallel worker threads, so two of them can reach an unloaded
         # model at the same moment. Without the lock both would load their own copy of Whisper —
         # two gigabytes each — and the second would quietly replace the first.
@@ -123,7 +126,25 @@ class SpeechAnalyzer:
                     ) from e
 
     def is_ready(self) -> bool:
+        if provider_name() == "groq":
+            try:
+                groq_settings()
+                groq_key()
+                return True  # configured, not a network/quota health guarantee
+            except SpeechProviderError:
+                return False
         return self._model is not None
+
+    def prepare(self):
+        if provider_name() == "groq":
+            groq_settings()
+            groq_key()
+        else:
+            _ = self.model
+
+    @property
+    def active_model(self):
+        return groq_settings().model if provider_name() == "groq" else self.MODEL_SIZE
 
     MAX_AI_AUDIO_SECONDS = 600  # Resource & compute spend limit: max 10 minutes per answer
 
@@ -135,6 +156,9 @@ class SpeechAnalyzer:
         language_hint = os.environ.get("WHISPER_LANGUAGE", "").strip() or None
         from app.core.media_limits import decode_audio_bounded
         waveform = decode_audio_bounded(audio_path, self.MAX_AI_AUDIO_SECONDS)
+        if provider_name() == "groq":
+            from app.services.groq_speech import transcribe
+            return transcribe(waveform, hint=prompt or "", word_timestamps=word_timestamps)
         segments_iter, info = self.model.transcribe(
             waveform,
             language=language_hint,  # None lets Whisper detect Arabic/English automatically.

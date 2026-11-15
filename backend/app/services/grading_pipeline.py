@@ -11,6 +11,7 @@ silently storing an empty grade. A voice-match or anti-cheat error stays non-fat
 import json
 import traceback
 from typing import Any, Dict, Optional
+from app.core.speech_config import SpeechProviderDeferred
 
 
 class GradingError(Exception):
@@ -41,6 +42,8 @@ def run_ai_pipeline(
 
         try:
             fluency = speech_analyzer.analyze_fluency(audio_path)
+        except SpeechProviderDeferred:
+            raise  # quotas/cooldowns defer the durable job without spending failure attempts
         except Exception as e:
             print(f"[AI Pipeline] Whisper failed: {traceback.format_exc()}")
             raise GradingError(f"speech-to-text failed: {e}") from e
