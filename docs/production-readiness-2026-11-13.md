@@ -281,6 +281,17 @@ No production database or real student's biometric data was inspected.
   owner-preview worker was upgraded; historical grades and production stay intact.
   See [details and measured limitations](arabic-scoring-normalization-2026-11-16.md).
 
+- November 16 bounded grading pressure: 10 then 20 lecturer-preview fixtures
+  submitted/completed **20/20 and 40/40** real minute-long Groq/SBERT/fluency jobs,
+  with ten uploads maximum in flight and the actual 18-request/minute admission
+  budget left enabled. All results were observed after **67.050 / 132.777 seconds**
+  from first upload; processing p95 2.470/2.359 seconds, queue-wait p95
+  58.312/122.222 seconds. No answer failed; all completed audio was purged, fixtures
+  disabled and their links closed. Single repeated owner speaker, lecturer preview
+  role, no real-student enrollment/cameras/browser or 500-student capacity claim.
+  Temporary raw source/probe container removed; candidate health 200; production
+  routing/provider/prices untouched. [Method and limits](groq-pressure-2026-11-16.md).
+
 ## Server handoff
 
 Provide only the server's public IP, intended frontend/API domains and OS here. Do not paste
