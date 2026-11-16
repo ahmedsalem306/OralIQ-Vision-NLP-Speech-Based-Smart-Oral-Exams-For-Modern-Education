@@ -132,9 +132,26 @@ eye visibility; this replacement does not claim iris identity or liveness.
   Server-pinned TLS hostname verification passed for the homepage/exam/privacy/
   refund routes (HTTP 200). `/api/v1/health` on the website still returns
   intentional maintenance 503; this is a frontend launch, not full API activation.
-- API cutover still requires the drained candidate/schema rollout, off-site
-  restore/alerts and final mail/auth checks. Do not describe a staged homepage
-  or a model benchmark as a complete public production launch.
+- Public API activation still requires the remaining provider configuration,
+  off-site restore/alerts and final mail/auth checks. Do not describe a live
+  homepage or a model benchmark as a complete public production launch.
+
+Private candidate rollout subsequently completed at application commit `3a3673c`:
+the API, worker and mailer use that image, private health is 200, live plan reads
+return 150/600 and two minutes total, and the deployed SFace model hash/load check
+passes. An 18-table pre-release backup was verified first; no active sittings,
+queued/processing grading jobs or sending test mail were admitted during rollout.
+The initial candidate attempt exposed unreadable root-checkout file modes and
+rolled back safely. The corrected source layer grants read/traverse permission
+and still runs as UID 10001; `backend/Dockerfile.cached-release` records that build
+pattern. No user records or prior results were deleted.
+
+**Speech is still configured as local Whisper in the candidate**; the Groq cost
+model above is a planning assumption for the intended external-transcription
+deployment, not a claim that Groq is currently active. The earlier owner-preview
+Groq credentials were temporary. Public website/API maintenance flags remain on
+for account/exam requests pending the remaining operational configuration; the
+frontend itself is live. No Kashier live activation or paid Groq plan occurred.
 
 Validation: the final full Linux/Python 3.12 suite passed **497 tests with zero
 failures/errors/skips**, including the real PostgreSQL concurrency cases. Frontend

@@ -1,0 +1,10 @@
+# Source-only release layer: BASE_IMAGE must have the already validated dependencies.
+# Use backend/Dockerfile for dependency updates; run the actual resulting image checks.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+USER 0
+COPY app /app/app
+COPY scripts /app/scripts
+# A root-only checkout umask must not prevent the runtime user from reading code.
+RUN chmod -R a+rX /app/app /app/scripts
+USER 10001

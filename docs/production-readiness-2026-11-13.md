@@ -1,5 +1,11 @@
 # Production and privacy review — 2026-11-13
 
+**Latest state, November 16:** the Contabo frontend is live at
+https://oralliq.com with verified apex/www HTTPS. The private API candidate is
+healthy at `3a3673c`; public account/exam requests remain maintenance 503.
+[Current configuration, validation and outstanding work](contabo-two-minute-2026-11-16.md)
+supersede earlier dated observations below.
+
 This records preparation and validation, not a certificate that the application has no
 vulnerabilities or that production cutover is complete. On November 14, the purchased VPS
 was inspected through an authenticated SSH session: Ubuntu 24.04.5 LTS, 8 CPUs, 23.5 GiB
@@ -301,9 +307,18 @@ per 30-day paid cycle at 199/599 EGP. Pinned YuNet/SFace replace restricted
 InsightFace weights; unversioned old templates require reenrollment. Actual VPS
 same/different/blank/concurrent model probe passed; this is not live-class
 accuracy/liveness certification. Full final Linux/PostgreSQL suite **497 passed,
-no skips**; frontend checks and 16 Node tests pass. Static files are staged and
-locally checked on Contabo; public HTTPS/API cutover is tracked separately.
+no skips**; frontend checks and 16 Node tests pass. The frontend is live over
+HTTPS on Contabo; public account/exam API activation remains pending.
 [Current details and budget](contabo-two-minute-2026-11-16.md) supersede the earlier proposal below.
+
+The owner removed `A @ Parked`; authoritative DNS and HTTPS now pass for the
+website. Apex/www frontend is live from Contabo. The private candidate is updated
+to `3a3673c`, with a verified pre-release 18-table backup, health 200, SFace ready
+and actual 150/600 plan reads. A file-read permission problem in the first image
+was corrected without granting runtime root privileges. Public account/exam API
+requests remain maintenance 503. Candidate speech remains local Whisper; Groq
+production credentials/billing and outstanding off-site/alert/auth checks are
+not implied by the frontend launch.
 
 November 16 launch-pricing preparation: the owner specified USD 20/month for the
 server. Basic 199 EGP / 50 student attempts and Professional 599 EGP / 200 per
