@@ -25,6 +25,9 @@ export default function PrivacyPolicy() {
         ["الخدمات الخارجية", "External services",
             "الوصول محكوم بصلاحيات الحسابات، ويجب تشغيل الخدمة عبر HTTPS. تُستخدم خدمات الاستضافة والبريد والدفع بحسب إعداد المؤسسة. عند تفعيل تتبع الأعطال تُرسل بيانات تقنية محدودة لمزوّد المراقبة، مع استبعاد محتوى الطلبات والوسائط وقوالب البصمات. موقع تخزين البيانات ومقدمو الخدمة يتحددان وفق إعدادات النشر الفعلية.",
             "Account permissions control access and the service must use HTTPS. Hosting, email and payment providers depend on deployment settings. When error monitoring is enabled, limited technical diagnostics are sent to its provider, excluding request bodies, media and biometric templates. Data location and providers depend on the actual deployment."],
+        ["تفريغ الصوت بواسطة Groq", "Transcription by Groq",
+            "نستخدم Groq لتحويل إجابات الامتحان الصوتية إلى نص. يُرسل صوت الإجابة باسم ملف لا يتضمن هوية الطالب، دون إرفاق اسمه أو بيانات حسابه أو الإجابة المرجعية أو قوالب البصمات أو لقطات الكاميرا؛ وقد يتضمن الصوت نفسه ما يقوله الطالب من معلومات. يبقى التصحيح بالمعنى ومقارنة بصمة الصوت على خادم OralIQ. بحسب سياسة Groq، لا يُحتفظ بمحتوى طلبات التفريغ افتراضيًا، مع استثناءات موضحة للأعطال ومراقبة إساءة الاستخدام قد تستمر حتى ٣٠ يومًا أو أطول عند وجود التزام قانوني. تُحفظ بيانات الاستخدام التقنية، وقد تتم معالجة البيانات خارج بلدك؛ تُخزن البيانات التي يحتفظ بها Groq في الولايات المتحدة. لا ندّعي تفعيل خيار عدم الاحتفاظ لدى Groq قبل التحقق من إعداد الحساب.",
+            "We use Groq to transcribe spoken exam answers. Answer audio is sent under an anonymous filename without attaching the student's name, account details, reference answer, biometric templates or camera frames; the audio itself may contain information the student speaks. Semantic grading and voice comparison remain on the OralIQ server. Groq states that inference content is not retained by default, with documented reliability and abuse-monitoring exceptions lasting up to 30 days or longer where legally required. Technical usage metadata is retained. Processing may occur outside your country; data retained by Groq is stored in the United States. We do not claim Zero Data Retention is enabled until the account setting is verified."],
         ["الاستفسارات وطلبات الحذف", "Questions and deletion requests",
             "للاستفسار أو طلب مراجعة بياناتك أو حذفها، راسلنا من بريد الحساب مع توضيح الطلب واسم المؤسسة إن وُجد. لا ترسل كلمة المرور أو تسجيلات أو صورًا حساسة. قد نحتاج للتحقق من ملكية الحساب والتنسيق مع المؤسسة. سنوضح ما يمكن حذفه وما يلزم الاحتفاظ به ومدة معالجة الطلب.",
             "For questions or a request to review or delete your data, email us from your account address with the request and institution name where relevant. Do not send passwords, recordings or sensitive images. Account ownership checks and institution coordination may be needed. We will explain what can be deleted, what must be retained and the expected handling time."],
@@ -34,11 +37,12 @@ export default function PrivacyPolicy() {
             <Link to="/" className="font-bold text-pen underline underline-offset-4">{l("العودة إلى OralIQ", "Back to OralIQ")}</Link>
             <p className="mt-10 text-sm font-bold text-ink-2">OralIQ · GharTech</p>
             <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">{l("خصوصية الامتحان والبيانات", "Exam and data privacy")}</h1>
-            <p className="mt-4 text-sm text-ink-2">{l("آخر تحديث: ١٣ نوفمبر ٢٠٢٦", "Last updated: November 13, 2026")}</p>
+            <p className="mt-4 text-sm text-ink-2">{l("آخر تحديث: ١٦ نوفمبر ٢٠٢٦", "Last updated: November 16, 2026")}</p>
             <div className="mt-8 divide-y divide-rule">{sections.map(([arTitle, enTitle, arBody, enBody]) => <section key={enTitle} className="py-6">
                 <h2 className="text-xl font-bold">{l(arTitle, enTitle)}</h2>
                 <p className="mt-3 leading-loose text-ink-2">{l(arBody, enBody)}</p>
             </section>)}</div>
+            <p className="mt-6 text-sm"><a href="https://console.groq.com/docs/your-data" target="_blank" rel="noopener noreferrer" className="text-pen underline underline-offset-4">{l("تفاصيل معالجة البيانات لدى Groq", "Groq data processing details")}</a></p>
             <address className="mt-6 rounded-2xl border border-rule bg-sheet p-6 not-italic">
                 <p className="font-bold">{l("التواصل بشأن الخصوصية", "Privacy contact")}</p>
                 <a href={`mailto:${COMPANY.email}`} className="mt-2 block text-pen underline underline-offset-4" dir="ltr">{COMPANY.email}</a>

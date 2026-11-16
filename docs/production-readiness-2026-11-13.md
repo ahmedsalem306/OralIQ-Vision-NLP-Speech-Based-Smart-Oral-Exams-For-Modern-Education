@@ -2,7 +2,8 @@
 
 **Latest state, November 16:** the Contabo frontend is live at
 https://oralliq.com with verified apex/www HTTPS. The private API candidate is
-healthy at `3a3673c`; public account/exam requests remain maintenance 503.
+healthy with Groq Large V3 selected under conservative free-tier ceilings;
+public account/exam requests remain maintenance 503.
 [Current configuration, validation and outstanding work](contabo-two-minute-2026-11-16.md)
 supersede earlier dated observations below.
 
@@ -319,6 +320,12 @@ was corrected without granting runtime root privileges. Public account/exam API
 requests remain maintenance 503. Candidate speech remains local Whisper; Groq
 production credentials/billing and outstanding off-site/alert/auth checks are
 not implied by the frontend launch.
+
+Subsequently a fresh private key connected Groq Large V3, with the owner confirming
+Free and no paid activation. The real 34.539-second owner clip completed local
+grading after external transcription. Domain CORS and mail frontend URL are set
+to oralliq.com; frontend privacy/consent now disclose Groq. Public API maintenance
+remains enabled. [Current provider connection and limits](groq-activation-2026-11-16.md).
 
 November 16 launch-pricing preparation: the owner specified USD 20/month for the
 server. Basic 199 EGP / 50 student attempts and Professional 599 EGP / 200 per

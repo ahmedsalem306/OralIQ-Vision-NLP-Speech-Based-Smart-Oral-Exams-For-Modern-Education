@@ -11,7 +11,7 @@ class SpeechProviderError(RuntimeError):
 
 class SpeechProviderDeferred(SpeechProviderError):
     def __init__(self, reason: str, retry_after: int):
-        self.reason = reason if reason in ('groq_budget', 'groq_cooldown', 'groq_rate_limit', 'groq_credentials') else 'provider_busy'
+        self.reason = reason if reason in ('groq_budget', 'groq_cooldown', 'groq_rate_limit', 'groq_credentials', 'groq_spend_limit') else 'provider_busy'
         self.retry_after = max(1, min(86400, int(retry_after)))
         super().__init__(f"speech_provider_wait:{self.reason}")
 

@@ -10,6 +10,10 @@ export function ExamPrivacyNotice() {
             "حفاظًا على خصوصية جميع الطلاب والطالبات، لا نسجّل أو نحفظ فيديو للامتحان. الكاميرا تعمل للتحقق أثناء الامتحان، وتُرسل لقطات ثابتة للتحقق من الهوية دون حفظها كسجل صور. إجابتك الصوتية تُسجّل وتُرسل للتصحيح، ثم تُحذف من طابور المعالجة بعد نجاحه؛ وقد تُحتفظ مؤقتًا عند فشل التصحيح لإعادة المحاولة.",
             "To protect every student's privacy, exam video is not recorded or stored. The camera is used for checks during the exam; still frames are sent for identity verification without a retained photo gallery. Your audio answer is recorded and sent for grading, then removed from the processing queue after success; failed grading may retain it temporarily for retry.",
         )}</p>
+        <p className="mt-2">{l(
+            "نستخدم Groq لتحويل إجابات الامتحان الصوتية إلى نص. نرسل صوت الإجابة دون إرفاق بيانات الحساب أو قوالب البصمات أو لقطات الكاميرا. التصحيح ومقارنة بصمة الصوت يجريان على خادم OralIQ.",
+            "We use Groq to transcribe spoken exam answers. We send the answer audio without attaching account details, biometric templates or camera frames. Grading and voice comparison run on the OralIQ server.",
+        )}</p>
         <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block font-semibold text-pen underline underline-offset-4">{l("تفاصيل الخصوصية والاحتفاظ بالبيانات", "Privacy and data retention details")}</Link>
     </aside>;
 }

@@ -148,11 +148,12 @@ def submission_of(Session, submission_id):
         db.close()
 
 
-def test_provider_deferral_preserves_audio_failure_budget_and_can_finish(Session, seed):
+@pytest.mark.parametrize('reason', ['groq_budget', 'groq_spend_limit'])
+def test_provider_deferral_preserves_audio_failure_budget_and_can_finish(Session, seed, reason):
     from app.core.speech_config import SpeechProviderDeferred
     sub_id, _ = accept(Session, seed, key="provider-wait")
     def deferred(*args):
-        raise SpeechProviderDeferred("groq_budget", 300)
+        raise SpeechProviderDeferred(reason, 300)
     assert worker_mod.Worker(Session, 1, pipeline=deferred).run_one(0) == "queued"
     job = job_of(Session, sub_id)
     assert job.audio == AUDIO and job.attempts == 0 and job.locked_by is None

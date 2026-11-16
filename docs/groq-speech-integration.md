@@ -31,7 +31,9 @@ connectivity/quota check. Dictation follows the same selected provider and budge
 
 ## Evidence and grading
 
-Audio-only decoding and the existing 600-second bound happen before transfer.
+Audio-only decoding enforces the server-captured question bound (60/120 seconds
+within the two-minute exam) before transfer; the transport also has a 600-second
+defensive upper bound.
 The provider receives a generated mono 16-kHz WAV with an anonymous `answer.wav`
 filename. No student name, account ID, expected answer, voice template or camera
 data is included. Graded recordings never use a prompt; dictation can retain
@@ -68,6 +70,13 @@ sets a shared cooldown respecting bounded `Retry-After`; 401/403 pause for an ho
 to avoid repeated calls with invalid credentials. A corrected key may require the
 cooldown to expire. No alternate model/key/account is used to bypass a limit.
 
+HTTP 400 with the documented `blocked_api_access` code also defers grading for
+15 minutes and sets the shared cooldown. This covers an organization spend cap:
+accepted audio stays queued without spending failure attempts. Error parsing is
+bounded to 4 KiB and never logs the provider body. Other HTTP 400 responses remain
+ordinary errors so invalid requests are not hidden as budget waits. Provider
+spend tracking is delayed; these waits do not create a real-time dollar cap.
+
 The worker handles provider waits separately from ordinary grading failures:
 the accepted job returns to `queued`, its recording remains, and the claim's
 failure-attempt increment is returned. The old lease cannot overwrite another
@@ -100,3 +109,6 @@ not identity accuracy, diverse student Arabic, real browser recording or capacit
 References: [Groq speech API](https://console.groq.com/docs/speech-to-text),
 [rate limits](https://console.groq.com/docs/rate-limits),
 [data controls](https://console.groq.com/docs/your-data).
+
+For the current private Contabo connection and public launch boundary, see
+[the activation report](groq-activation-2026-11-16.md).

@@ -13,6 +13,10 @@ export function HomePrivacy() {
                 "حفاظًا على خصوصية الطلاب والطالبات، لا نسجّل أو نحفظ فيديو للامتحان. تُعالج لقطات ثابتة للتحقق من الوجه، وإجابتك الصوتية تُسجّل للتصحيح فقط وفق تفاصيل الاحتفاظ بالبيانات. لو محتاجة تيسيرًا يحافظ على تغطية الوجه، تواصلي مع المحاضر قبل الامتحان لترتيب التحقق المناسب.",
                 "To protect every student's privacy, exam video is not recorded or stored. Still frames are processed for face checks, while audio answers are recorded for grading under the stated retention policy. If you need an accommodation that keeps your face covered, contact your lecturer before the exam to arrange appropriate verification.",
             )}</p>
+            <p className="ar-body mt-3 leading-loose text-[#493A30]">{l(
+                "يحوّل Groq الإجابة الصوتية إلى نص، ويجري التصحيح والتحقق من بصمة الصوت على خادم OralIQ. لا نرسل إلى Groq لقطات الكاميرا أو قوالب البصمات.",
+                "Groq transcribes audio answers; grading and voice verification run on the OralIQ server. Camera frames and biometric templates are not sent to Groq.",
+            )}</p>
             <Link to="/privacy-policy" className="mt-4 inline-block font-bold text-[#6F4E37] underline underline-offset-4">{l("اعرف إيه اللي بيتحفظ وإمتى بيتحذف", "See what is stored and when it is deleted")}</Link>
         </div>
     </Section>;

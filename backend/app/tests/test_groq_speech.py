@@ -104,6 +104,35 @@ def test_admission_refusal_sends_no_audio_and_never_falls_back(transport, monkey
     assert transport.calls == []
 
 
+def test_spending_cap_defers_accepted_answer_without_http_retry(transport, monkeypatch):
+    body = BytesIO(json.dumps({'error': {'code': 'blocked_api_access', 'message': 'PRIVATE'}}).encode())
+    calls = []
+    def fail(request, timeout):
+        calls.append(request)
+        raise HTTPError(groq_speech.ENDPOINT, 400, 'redacted', {}, body)
+    monkeypatch.setattr(groq_speech, '_opener', lambda: SimpleNamespace(open=fail))
+    with pytest.raises(SpeechProviderDeferred) as error:
+        groq_speech.transcribe(transport.waveform, word_timestamps=True)
+    assert error.value.reason == 'groq_spend_limit' and error.value.retry_after == 900
+    assert transport.blocks == [900] and len(calls) == 1
+    assert transport.reservations == [2] and body.closed
+    assert 'PRIVATE' not in str(error.value)
+
+
+@pytest.mark.parametrize('payload', [b'not-json', b'x' * 4097,
+                                  b'{"error":{"code":"invalid_request_error"}}',
+                                  b'{"error":"blocked_api_access"}'])
+def test_other_bad_requests_are_bounded_and_not_hidden_as_budget_waits(transport, monkeypatch, payload):
+    body = BytesIO(payload)
+    def fail(*args, **kwargs):
+        raise HTTPError(groq_speech.ENDPOINT, 400, 'redacted', {}, body)
+    monkeypatch.setattr(groq_speech, '_opener', lambda: SimpleNamespace(open=fail))
+    with pytest.raises(SpeechProviderError, match='groq_http_400') as error:
+        groq_speech.transcribe(transport.waveform)
+    assert not isinstance(error.value, SpeechProviderDeferred)
+    assert transport.blocks == [] and body.closed
+
+
 def test_transport_error_is_redacted_and_consumes_its_reservation(transport, monkeypatch):
     def fail(*args, **kwargs):
         raise URLError('gsk_' + 'a' * 32)

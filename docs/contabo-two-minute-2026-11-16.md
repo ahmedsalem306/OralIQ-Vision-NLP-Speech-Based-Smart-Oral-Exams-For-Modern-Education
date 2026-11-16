@@ -146,16 +146,20 @@ rolled back safely. The corrected source layer grants read/traverse permission
 and still runs as UID 10001; `backend/Dockerfile.cached-release` records that build
 pattern. No user records or prior results were deleted.
 
-**Speech is still configured as local Whisper in the candidate**; the Groq cost
-model above is a planning assumption for the intended external-transcription
-deployment, not a claim that Groq is currently active. The earlier owner-preview
-Groq credentials were temporary. Public website/API maintenance flags remain on
-for account/exam requests pending the remaining operational configuration; the
-frontend itself is live. No Kashier live activation or paid Groq plan occurred.
+**Subsequent provider connection:** a fresh privately supplied key now selects
+Groq Large V3 in the candidate, using conservative shared free-tier ceilings.
+The owner confirmed Free; no paid plan or Kashier activation occurred. One real
+34.539-second owner recording completed transcription plus local grading, and
+the live frontend now discloses external transcription with pre-exam consent.
+Private health is 200; public account/exam requests remain maintenance 503.
+[Connection evidence, privacy and remaining work](groq-activation-2026-11-16.md).
 
-Validation: the final full Linux/Python 3.12 suite passed **497 tests with zero
-failures/errors/skips**, including the real PostgreSQL concurrency cases. Frontend
-typecheck, lint and build passed, plus **16 Node tests**. Lint retains warnings.
+Validation: the full Linux/Python 3.12 baseline suite at `3a3673c` passed **497 tests
+with zero failures/errors/skips**, including real PostgreSQL concurrency. The
+subsequent Groq spend-cap wait change passed **63 focused tests with zero skips**
+and is deployed as `oraliq-backend:groq-budget-20261116`. Frontend typecheck, lint
+and build passed after the privacy update; the prior 16 Node tests passed for
+the two-minute release. Lint retains warnings.
 Private reports live under ignored `loadtest-artifacts/contabo-two-minute-20261116/`.
 
 Primary sources: [OpenCV YuNet model/license](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet),

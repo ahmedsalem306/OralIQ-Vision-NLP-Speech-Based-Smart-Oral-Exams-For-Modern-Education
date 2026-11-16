@@ -2071,7 +2071,7 @@ export default function ExamRoom() {
 
                         />
 
-                        {l("قريت الإرشادات وجاهز أبدأ", "I've read the tips and I'm ready")}
+                        {l("قرأت الإرشادات وإشعار الخصوصية وأوافق على إرسال إجابتي الصوتية إلى Groq لتحويلها إلى نص.", "I have read the instructions and privacy notice and agree to send my audio answer to Groq for transcription.")}
 
                     </label>
 

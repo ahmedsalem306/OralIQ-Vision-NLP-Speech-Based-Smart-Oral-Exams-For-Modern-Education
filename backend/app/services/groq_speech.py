@@ -116,7 +116,23 @@ def transcribe(waveform, hint='', word_timestamps=False):
             payload = json.loads(raw)
     except HTTPError as error:
         code, delay = error.code, _retry_after(error.headers.get('Retry-After'))
-        error.close()
+        spend_blocked = False
+        try:
+            # A spending cap is a temporary provider wait, not an invalid answer.
+            # Inspect only a bounded error code; never log provider bodies or keys.
+            if code == 400:
+                raw_error = error.read(4097)
+                if len(raw_error) <= 4096:
+                    payload = json.loads(raw_error)
+                    detail = payload.get('error') if isinstance(payload, dict) else None
+                    spend_blocked = isinstance(detail, dict) and detail.get('code') == 'blocked_api_access'
+        except (ValueError, OSError):
+            pass
+        finally:
+            error.close()
+        if spend_blocked:
+            speech_budget.block_for(900)
+            raise SpeechProviderDeferred('groq_spend_limit', 900) from None
         if code == 429:
             speech_budget.block_for(delay)
             raise SpeechProviderDeferred('groq_rate_limit', delay) from None
