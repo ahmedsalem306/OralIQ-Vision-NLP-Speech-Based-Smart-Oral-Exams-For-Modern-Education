@@ -67,7 +67,7 @@ function seo(siteUrl: string, googleVerify: string): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ isSsrBuild, mode }) => {
     const env = loadEnv(mode, __dirname, "VITE_");
-    const siteUrl = env.VITE_SITE_URL || "https://oral-iq-vision-nlp-speech-based-sma.vercel.app";
+    const siteUrl = env.VITE_SITE_URL || "https://oralliq.com";
     return {
         plugins: [react(), seo(siteUrl, env.VITE_GOOGLE_SITE_VERIFICATION || "")],
         resolve: {

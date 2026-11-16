@@ -29,7 +29,7 @@ interface ExamGroup {
 
 type ResultsPolicy = "manual" | "immediate";
 
-const emptyDraft = { text: "", model_answer: "", keywords: "", category: "", difficulty: "medium" as Difficulty, duration_minutes: 2, max_attempts: 1, results_policy: "manual" as ResultsPolicy };
+const emptyDraft = { text: "", model_answer: "", keywords: "", category: "", difficulty: "medium" as Difficulty, duration_minutes: 1, max_attempts: 1, results_policy: "manual" as ResultsPolicy };
 
 export default function Dashboard() {
     const { l, lang } = useI18n();
@@ -435,8 +435,8 @@ export default function Dashboard() {
                             <Segmented label={l("الصعوبة", "Difficulty")} value={draft.difficulty} onChange={(v) => setDraft({ ...draft, difficulty: v })} options={difficulties} />
                         </div>
                         <Field label={l("الوقت (دقائق)", "Time (min)")} htmlFor="q-duration">
-                            <Input id="q-duration" type="number" min={1} max={3} value={draft.duration_minutes} className="tabular"
-                                onChange={(e) => setDraft({ ...draft, duration_minutes: Math.min(3, Math.max(1, parseInt(e.target.value) || 1)) })} />
+                            <Input id="q-duration" type="number" min={1} max={2} value={draft.duration_minutes} className="tabular"
+                                onChange={(e) => setDraft({ ...draft, duration_minutes: Math.min(2, Math.max(1, parseInt(e.target.value) || 1)) })} />
                         </Field>
                     </div>
                     {/* When students see grades: also the whole exam's, chosen with its first question. */}

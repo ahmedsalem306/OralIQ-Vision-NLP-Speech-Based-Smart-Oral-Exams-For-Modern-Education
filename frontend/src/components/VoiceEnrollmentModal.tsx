@@ -80,7 +80,7 @@ function EnrollmentFlow({
     // Stop camera/mic and timers when the flow closes (unmounts).
     useEffect(() => () => cleanup(), []);
 
-    // Face ID runs on the server (InsightFace) — no heavy browser models to preload
+    // Face ID runs on the server (YuNet/SFace); no face identity model in the browser.
     useEffect(() => {
         if (enrollPhase !== "face") return;
         let cancelled = false;

@@ -10,7 +10,7 @@ from app.core.biometric_capacity import run_biometric
 from app.models.user import User
 from app.services import service_pause
 from app.services.voice_ai import voice_service
-from app.services.face_biometrics import EMBEDDING_DIM as FACE_DIM
+from app.services.face_biometrics import has_current_template, EMBEDDING_DIM as FACE_DIM
 
 router = APIRouter()
 
@@ -29,13 +29,7 @@ def _has_voiceprint(user: User) -> bool:
 
 
 def _has_faceprint(user: User) -> bool:
-    if not user.face_embedding or len(user.face_embedding) < 10:
-        return False
-    try:
-        emb = json.loads(user.face_embedding)
-        return isinstance(emb, list) and len(emb) == FACE_DIM
-    except Exception:
-        return False
+    return has_current_template(user.face_embedding)
 
 
 def _can_enroll(user: User) -> bool:

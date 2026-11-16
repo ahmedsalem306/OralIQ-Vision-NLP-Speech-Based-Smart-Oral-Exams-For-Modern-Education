@@ -49,6 +49,7 @@ def create_question(
 
     is_new_exam_group = True
     group_size_before = 0
+    group_minutes_before = 0
     if question_in.group_token:
         group_questions = (
             db.query(Question).filter(
@@ -67,6 +68,7 @@ def create_question(
                 raise HTTPException(status_code=403, detail="Not authorized to add to this exam group")
             is_new_exam_group = False
             group_size_before = len(group_questions)
+            group_minutes_before = sum(int(q.duration_minutes or 0) for q in group_questions)
 
             # Block adding/replacing questions inside an exam that already has student submissions,
             # assignments, or had questions deleted to recycle the link as a new exam.
@@ -95,7 +97,7 @@ def create_question(
                 )
 
     # Plan limits: questions per exam + answer duration (402 with upgrade code)
-    bs.check_question_limits(db, account, group_size_before, question_in.duration_minutes)
+    bs.check_question_limits(db, account, group_size_before, question_in.duration_minutes, group_minutes_before)
 
     try:
         if is_new_exam_group:

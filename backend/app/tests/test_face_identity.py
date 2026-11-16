@@ -1,11 +1,11 @@
 import numpy as np
 
-from app.services.face_biometrics import face_biometrics_service
+from app.services.face_biometrics import face_biometrics_service, EMBEDDING_DIM
 
 
 def _vector_with_cosine(cosine: float) -> tuple[list[float], list[float]]:
-    enrolled = np.zeros(512, dtype=np.float32)
-    current = np.zeros(512, dtype=np.float32)
+    enrolled = np.zeros(EMBEDDING_DIM, dtype=np.float32)
+    current = np.zeros(EMBEDDING_DIM, dtype=np.float32)
     enrolled[0] = 1.0
     current[0] = cosine
     current[1] = np.sqrt(1.0 - cosine**2)

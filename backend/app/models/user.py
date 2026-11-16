@@ -14,7 +14,7 @@ class User(Base):
     voice_embedding = Column(Text, nullable=True)  # JSON-encoded array of float embedding
     voice_locked = Column(Boolean, default=False)  # True after first enrollment — blocks re-enroll
     voice_reenroll_allowed = Column(Boolean, default=False)  # lecturer can temporarily allow re-enroll
-    face_embedding = Column(Text, nullable=True)  # JSON 512-dim InsightFace ArcFace embedding
+    face_embedding = Column(Text, nullable=True)  # versioned SFace JSON; legacy templates require reenrollment
     face_locked = Column(Boolean, default=False)
     plan_tier = Column(String, default="free")  # 'free', 'pro', 'campus', 'enterprise'
     plan_updated_at = Column(String, nullable=True)

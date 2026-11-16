@@ -50,14 +50,14 @@ export function HomePricing({ startHref }: { startHref: string }) {
             priceEgp: 0,
             priceUsd: 0,
             maxExams: l("5 امتحانات (مرة واحدة)", "5 exams (one-time)"),
-            maxStudents: l("5 محاولات طلاب للتجربة", "5 trial student attempts"),
-            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
+            maxStudents: l("5 مشاركات طلاب للتجربة", "5 trial student participations"),
+            maxDuration: l("دقيقتان / امتحان", "2 min / exam"),
             queueTier: l("طابور معالجة عادي", "Standard AI Queue"),
             featured: false,
             dark: false,
             features: [
                 l("5 روابط امتحانات تجريبية (حتى سؤالين للامتحان)", "5 trial exam links (up to 2 questions each)"),
-                l("5 محاولات طلاب إجمالًا، حتى 6 دقائق للمحاولة", "5 student attempts total, up to 6 minutes each"),
+                l("5 مشاركات طلاب إجمالًا، دقيقتان للامتحان كله", "5 student attempts total, 2 minutes per whole exam"),
                 l("تصحيح تلقائي بالمعنى + تفريغ صوتي عربي وإنجليزي", "Semantic AI grading + Arabic & English speech-to-text"),
                 l("فحوص هوية ومؤشرات مراقبة مع مراجعة المحاضر", "Identity checks and monitoring indicators for lecturer review"),
             ],
@@ -67,20 +67,20 @@ export function HomePricing({ startHref }: { startHref: string }) {
             badge: l("للمدرسين", "For Teachers"),
             name: l("الباقة الأساسية", "Basic"),
             desc: l(
-                "للمدرس: رصيد 50 محاولة طالب كل 30 يومًا.",
-                "For teachers: 50 student attempts every 30 days.",
+                "للمدرس: رصيد 150 مشاركة طالب كل 30 يومًا.",
+                "For teachers: 150 student participations every 30 days.",
             ),
             priceEgp: 199,
             priceUsd: 4,
             maxExams: l("15 امتحان / شهرياً", "15 exams / month"),
-            maxStudents: l("50 محاولة طالب / دورة", "50 student attempts / cycle"),
-            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
+            maxStudents: l("150 مشاركة طالب / دورة", "150 student participations / cycle"),
+            maxDuration: l("دقيقتان / امتحان", "2 min / exam"),
             queueTier: l("أولوية معالجة سريعة", "Fast Priority AI Queue"),
             featured: false,
             dark: false,
             features: [
                 l("15 رابط امتحان لكل دورة (حتى سؤالين للامتحان)", "15 exam links per cycle (up to 2 questions each)"),
-                l("50 محاولة طالب، حتى 6 دقائق للمحاولة", "50 student attempts, up to 6 minutes each"),
+                l("150 مشاركة طالب، دقيقتان للامتحان كله", "150 student participations, 2 minutes per whole exam"),
                 l("أولوية سريعة في طابور التصحيح", "Fast priority in the AI grading queue"),
                 l("إعادة فتح نفس المحاولة لا تستهلك رصيدًا جديدًا", "Resuming the same attempt uses no extra credit"),
             ],
@@ -90,20 +90,20 @@ export function HomePricing({ startHref }: { startHref: string }) {
             badge: l("للفرق التعليمية", "For Teaching Teams"),
             name: l("الباقة الاحترافية", "Professional"),
             desc: l(
-                "رصيد 200 محاولة طالب كل 30 يومًا، مشترك مع 3 مساعدين.",
-                "200 student attempts every 30 days, pooled with 3 assistants.",
+                "رصيد 600 مشاركة طالب كل 30 يومًا، مشترك مع 3 مساعدين.",
+                "600 student participations every 30 days, pooled with 3 assistants.",
             ),
             priceEgp: 599,
             priceUsd: 12,
             maxExams: l("30 امتحان / شهرياً", "30 exams / month"),
-            maxStudents: l("200 محاولة طالب / دورة", "200 student attempts / cycle"),
-            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
+            maxStudents: l("600 مشاركة طالب / دورة", "600 student participations / cycle"),
+            maxDuration: l("دقيقتان / امتحان", "2 min / exam"),
             queueTier: l("أولوية قصوى (VIP)", "VIP AI Queue"),
             featured: true,
             dark: true,
             features: [
                 l("30 رابط امتحان لكل دورة (حتى سؤالين للامتحان)", "30 exam links per cycle (up to 2 questions each)"),
-                l("200 محاولة طالب، حتى 6 دقائق للمحاولة", "200 student attempts, up to 6 minutes each"),
+                l("600 مشاركة طالب، دقيقتان للامتحان كله", "600 student participations, 2 minutes per whole exam"),
                 l("3 حسابات مساعدين (معيدين / مدرسين في السنتر)", "3 assistant accounts (TAs / center teachers)"),
                 l("أولوية قصوى وقت الذروة + تحليلات متقدمة", "VIP peak-time priority + advanced analytics"),
             ],
@@ -120,13 +120,13 @@ export function HomePricing({ startHref }: { startHref: string }) {
             priceUsd: -1,
             maxExams: l("حسب الاتفاق", "Custom"),
             maxStudents: l("محاولات حسب العقد", "Contracted attempts"),
-            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
+            maxDuration: l("دقيقتان / امتحان", "2 min / exam"),
             queueTier: l("أولوية حسب السعة", "Capacity-based priority"),
             featured: false,
             dark: false,
             features: [
                 l("رصيد محاولات محدد للمؤسسة حسب الاتفاق", "A bounded attempt allowance agreed for the institution"),
-                l("حتى سؤالين، و6 دقائق للمحاولة", "Up to 2 questions and 6 minutes per attempt"),
+                l("حتى سؤالين، ودقيقتان للامتحان كله", "Up to 2 questions, 2 minutes for the entire exam"),
                 l("رصيد مشترك للمحاضر ومساعديه", "Shared allowance for the lecturer and assistants"),
                 l("تحديد جدول الامتحانات قبل التشغيل بأعداد كبيرة", "Schedule large cohorts before rollout"),
             ],
@@ -166,8 +166,8 @@ export function HomePricing({ startHref }: { startHref: string }) {
                     </h2>
                     <p className="mt-4 max-w-2xl text-base sm:text-lg font-medium text-ink-2 leading-relaxed">
                         {l(
-                            "محاولة واحدة = طالب يبدأ امتحانًا من سؤالين بحد أقصى، 3 دقائق لكل سؤال. تُحجز عند البدء حتى لو لم يُكمل؛ الرجوع لنفس المحاولة لا يخصم مجددًا، وإعادة الامتحان محاولة جديدة. الرصيد المدفوع يتجدد كل 30 يومًا ولا يُرحّل. حد الإطلاق الحالي 10 طلاب نشطين للمنصة كلها؛ ظهور النتيجة حسب الطابور.",
-                            "One attempt starts one student's exam: up to 2 questions, 3 minutes each. Reserved on start even if abandoned; resuming is free, a retake uses another attempt. Paid allowances reset every 30 days without rollover. Launch admission is 10 active students across the platform; results depend on the queue.",
+                            "المشاركة = طالب يبدأ امتحانًا مدته دقيقتان إجمالًا: سؤال واحد بدقيقتين، أو سؤالان بدقيقة لكل سؤال. تُحجز عند البدء حتى لو لم يُكمل؛ الرجوع لنفس المحاولة لا يخصم مجددًا، وإعادة الامتحان محاولة جديدة. الرصيد المدفوع يتجدد كل 30 يومًا ولا يُرحّل. حد الإطلاق الحالي 10 طلاب نشطين للمنصة كلها؛ ظهور النتيجة حسب الطابور.",
+                            "One participation starts a two-minute exam: one two-minute question, or two one-minute questions. Reserved on start even if abandoned; resuming is free, a retake uses another attempt. Paid allowances reset every 30 days without rollover. Launch admission is 10 active students across the platform; results depend on the queue.",
                         )}
                     </p>
                     <p className="mt-2 max-w-2xl text-xs text-ink-2">
@@ -283,14 +283,14 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                     <div className={`rounded-2xl p-3 ${p.dark ? "bg-black/25 border border-white/10" : "bg-sheet-2 border border-rule"}`}>
                                         <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-75">
                                             <Layers className="size-3.5 text-[#E3A458]" aria-hidden />
-                                            <span>{l("عدد الامتحانات", "Exams Quota")}</span>
+                                            <span>{l("روابط الامتحانات", "Exam links")}</span>
                                         </div>
                                         <p className="mt-1 text-sm font-extrabold">{p.maxExams}</p>
                                     </div>
                                     <div className={`rounded-2xl p-3 ${p.dark ? "bg-black/25 border border-white/10" : "bg-sheet-2 border border-rule"}`}>
                                         <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-75">
                                             <Users className="size-3.5 text-[#E3A458]" aria-hidden />
-                                            <span>{l("محاولات الطلاب", "Student attempts")}</span>
+                                            <span>{l("مشاركات الطلاب", "Student participations")}</span>
                                         </div>
                                         <p className="mt-1 text-xs sm:text-sm font-extrabold">{p.maxStudents}</p>
                                     </div>

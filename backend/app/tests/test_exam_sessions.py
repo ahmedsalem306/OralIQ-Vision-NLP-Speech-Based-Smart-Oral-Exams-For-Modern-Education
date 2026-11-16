@@ -67,7 +67,7 @@ def env(tmp_path):
 
     lect_id, lect = user("lect@t.com", "lecturer", enrolled=False)
 
-    def exam(durations=(2, 3), max_attempts=1):
+    def exam(durations=(1, 1), max_attempts=1):
         """An exam (one group) with one question per duration; returns (token, [question ids])."""
         with Session() as db:
             qs = []
@@ -115,17 +115,17 @@ def parse(ts):
 
 def test_1_access_check_starts_a_server_timed_sitting(env):
     _, h = env["user"]("s@t.com")
-    tok, qids = env["exam"]((2, 3))
+    tok, qids = env["exam"]((1, 1))
     before = datetime.utcnow()
     r = check(env, h, tok)
     assert r.status_code == 200, r.text
     s = r.json()["session"]
     started, deadline = parse(s["started_at"]), parse(s["deadline_at"])
     assert before - timedelta(seconds=2) <= started <= datetime.utcnow()
-    assert deadline - started == timedelta(minutes=2 + 3 + 3)     # question time + 3 min grace
+    assert deadline - started == timedelta(minutes=1 + 1)     # two-minute whole exam, no extra reading time
     assert s["deadline_at"].endswith("Z") and s["status"] == "active"
     assert s["attempt_no"] == 1 and s["max_attempts"] == 1 and s["answered_question_ids"] == []
-    assert 470 <= s["remaining_seconds"] <= 480
+    assert 118 <= s["remaining_seconds"] <= 120
 
 
 def test_2_who_may_not_start(env):
@@ -244,7 +244,7 @@ def test_9_attempts_are_capped_per_exam(env):
 
 def test_9b_a_question_is_answered_once_per_sitting(env):
     _, h = env["user"]("s@t.com")
-    tok, qids = env["exam"]((2, 3), max_attempts=3)
+    tok, qids = env["exam"]((1, 1), max_attempts=3)
     check(env, h, tok)
     assert submit(env, h, qids[0], "k1").status_code == 202
     r = submit(env, h, qids[0], "k2")
@@ -384,9 +384,9 @@ def test_17_historical_answers_are_untouched_but_count_as_attempts(env):
 def test_lecturer_sets_attempts_for_the_whole_exam(env):
     c, lect = env["client"], env["lect"]
     first = c.post("/api/v1/questions/", headers=lect,
-                   json={"text": "س1", "model_answer": "ج", "duration_minutes": 2, "max_attempts": 3}).json()
+                   json={"text": "س1", "model_answer": "ج", "duration_minutes": 1, "max_attempts": 3}).json()
     second = c.post("/api/v1/questions/", headers=lect,
-                    json={"text": "س2", "model_answer": "ج", "duration_minutes": 2, "max_attempts": 9,
+                    json={"text": "س2", "model_answer": "ج", "duration_minutes": 1, "max_attempts": 9,
                           "group_token": first["group_token"]}).json()
     assert first["max_attempts"] == 3 and second["max_attempts"] == 3          # inherited, not 9
     public = c.get(f"/api/v1/questions/by-group/{first['group_token']}").json()

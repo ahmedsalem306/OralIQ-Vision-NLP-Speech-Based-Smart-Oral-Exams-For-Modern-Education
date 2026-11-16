@@ -162,12 +162,15 @@ def process_job(
             tmp_path = recordings.enter_context(_recording_file(job.audio, job.audio_suffix or ".webm"))
         attempt = job.attempts
         alerts, voice_emb, has_face = job.anti_cheat_alerts or "{}", job.voice_embedding, bool(job.has_faceprint)
+        audio_limit_seconds = job.audio_limit_seconds or 120
         db.rollback()  # don't hold a transaction open for the minutes grading may take
 
         cpu0, wall0 = time.process_time(), time.perf_counter()
         with _Heartbeat(session_factory, job_id, worker_id) as hb:
             try:
-                ai = pipeline(tmp_path, model_answer, keywords, alerts, voice_emb)
+                from app.core.media_limits import grading_audio_limit
+                with grading_audio_limit(audio_limit_seconds):
+                    ai = pipeline(tmp_path, model_answer, keywords, alerts, voice_emb)
                 fields = compute_grade(ai, face_id_score, has_face, **evidence)
             except SpeechProviderDeferred as e:
                 status = gq.defer_provider(db, job_id, worker_id, e.reason, e.retry_after)

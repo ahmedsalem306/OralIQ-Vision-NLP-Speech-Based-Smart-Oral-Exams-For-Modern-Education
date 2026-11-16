@@ -146,7 +146,7 @@ class SpeechAnalyzer:
     def active_model(self):
         return groq_settings().model if provider_name() == "groq" else self.MODEL_SIZE
 
-    MAX_AI_AUDIO_SECONDS = 180  # Launch plans: at most three billed audio minutes per answer.
+    MAX_AI_AUDIO_SECONDS = 120  # Entire exam <= 120 seconds; jobs further cap each question.
 
     def _transcribe(self, audio_path: str, hint: str = "", word_timestamps: bool = False):
         """Run a transcription, return (full_text, segments_list, info)."""

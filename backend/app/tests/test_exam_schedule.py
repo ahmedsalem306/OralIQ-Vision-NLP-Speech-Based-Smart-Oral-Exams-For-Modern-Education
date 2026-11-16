@@ -72,11 +72,11 @@ def test_invalid_and_unauthorized_schedule(env):
 
 
 def test_new_question_inherits_window(env):
-    token, _ = env["exam"](durations=(2,))
+    token, _ = env["exam"](durations=(1,))
     opening = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
     assert schedule(env, token, opening, None).status_code == 200
     result = env["client"].post("/api/v1/questions/", headers=env["lect"], json={
-        "text": "New question", "model_answer": "Answer", "group_token": token,
+        "text": "New question", "model_answer": "Answer", "group_token": token, "duration_minutes": 1,
     })
     assert result.status_code == 200
     assert datetime.fromisoformat(result.json()["opens_at"]).hour == datetime.fromisoformat(opening).hour

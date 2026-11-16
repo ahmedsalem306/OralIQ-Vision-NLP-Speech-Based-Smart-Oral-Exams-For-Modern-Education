@@ -1,0 +1,17 @@
+OralIQ uses two unmodified OpenCV Zoo model files, pinned by SHA-256 in
+app/assets/opencv-face-manifest.json at OpenCV Zoo revision
+48b10fa505aeb51fbd127fc60a5c660040e823b7.
+
+YuNet face_detection_yunet_2023mar.onnx:
+Copyright (c) 2020 Shiqi Yu. MIT license; full text in yunet/LICENSE.
+Model source and training project: https://github.com/ShiqiYu/libfacedetection.train
+
+SFace face_recognition_sface_2021dec.onnx:
+Apache License 2.0; full text in sface/LICENSE.
+SFace contributed by Yaoyao Zhong; ONNX conversion by Chengrui Wang.
+Upstream OpenCV Zoo SFace wrapper credits:
+Copyright (C) 2021, Shenzhen Institute of Artificial Intelligence and Robotics
+for Society. Third-party copyrights remain with their respective owners.
+Model source: https://github.com/zhongyy/SFace
+
+No face identity model accuracy or liveness guarantee is made by OralIQ.

@@ -286,6 +286,7 @@ def _accept_submission(
         voice_embedding=current_user.voice_embedding,
         has_faceprint=evidence["has_faceprint"],
         priority=priority,
+        audio_limit_seconds=max(1, min(120, int(question.duration_minutes or 1) * 60)),
     )
     job.api_receive_ms = int((time.perf_counter() - t0) * 1000)
     try:

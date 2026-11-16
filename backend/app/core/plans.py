@@ -1,9 +1,9 @@
 """
 Subscription Plans & Capacity Controls for OralIQ.
 
-Launch pricing: Free 5 student attempts once; Basic 199 EGP / 50 attempts per
-30-day cycle; Professional 599 EGP / 200 attempts. Each attempt starts one
-student's exam, with up to two questions of three minutes each (six minutes max).
+Launch pricing: Free 5 student attempts once; Basic 199 EGP / 150 attempts per
+30-day cycle; Professional 599 EGP / 600 attempts. Each attempt starts one
+student's exam, with up to two questions and TWO MINUTES TOTAL.
 Enterprise is quoted separately, with an explicitly bounded attempt allowance.
 
 Rules:
@@ -41,7 +41,8 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "exams_reset": "lifetime",       # trial quota, never resets
         "max_exams": 5,
         "max_questions_per_exam": 2,
-        "max_duration_minutes": 3,
+        "max_duration_minutes": 2,
+        "max_exam_duration_minutes": 2,
         "max_student_attempts": 5,
         "max_students": 5,
         "max_students_per_exam": UNLIMITED,
@@ -62,8 +63,9 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "exams_reset": "monthly",
         "max_exams": 15,
         "max_questions_per_exam": 2,
-        "max_duration_minutes": 3,
-        "max_student_attempts": 50,
+        "max_duration_minutes": 2,
+        "max_exam_duration_minutes": 2,
+        "max_student_attempts": 150,
         "max_students": 10,
         "max_students_per_exam": UNLIMITED,
         "assistant_seats": 0,
@@ -83,8 +85,9 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "exams_reset": "monthly",
         "max_exams": 30,
         "max_questions_per_exam": 2,
-        "max_duration_minutes": 3,
-        "max_student_attempts": 200,
+        "max_duration_minutes": 2,
+        "max_exam_duration_minutes": 2,
+        "max_student_attempts": 600,
         "max_students": 10,
         "max_students_per_exam": UNLIMITED,
         "assistant_seats": 3,
@@ -105,7 +108,8 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "exams_reset": "monthly",
         "max_exams": 200,                # default; overridden by user.custom_max_exams
         "max_questions_per_exam": 2,
-        "max_duration_minutes": 3,
+        "max_duration_minutes": 2,
+        "max_exam_duration_minutes": 2,
         "max_student_attempts": 500,
         "max_students": 10,              # the shared server launch ceiling still applies
         "max_students_per_exam": UNLIMITED,

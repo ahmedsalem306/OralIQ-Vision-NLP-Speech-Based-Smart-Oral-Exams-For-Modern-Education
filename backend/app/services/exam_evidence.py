@@ -53,11 +53,8 @@ def exam_key_from_token(db: Session, token: Optional[str]) -> Optional[str]:
 
 
 def has_faceprint(user: User) -> bool:
-    try:
-        emb = json.loads(user.face_embedding or "")
-        return isinstance(emb, list) and len(emb) > 10
-    except ValueError:
-        return False
+    from app.services.face_biometrics import has_current_template
+    return has_current_template(user.face_embedding)
 
 
 def _exam_window(db: Session, key: str) -> timedelta:

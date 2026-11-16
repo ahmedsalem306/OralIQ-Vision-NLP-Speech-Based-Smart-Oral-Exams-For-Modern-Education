@@ -67,7 +67,7 @@ def test_concurrent_cycle_rollover_does_not_erase_reservations(pg):
         owner = User(email="pg-rollover@example.com", plan_tier="pro",
                      plan_expires_at=billing.utcnow() + timedelta(days=200),
                      cycle_started_at=billing.utcnow() - timedelta(days=31),
-                     cycle_attempts_started=50)
+                     cycle_attempts_started=150)
         db.add(owner)
         db.commit()
         oid = owner.id

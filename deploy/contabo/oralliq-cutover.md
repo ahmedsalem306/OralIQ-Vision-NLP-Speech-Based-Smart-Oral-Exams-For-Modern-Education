@@ -6,7 +6,25 @@ no API AAAA record. The apex/www still resolve to parking addresses. Nameservers
 are `ns73.domaincontrol.com` and `ns74.domaincontrol.com`. The owner manages DNS;
 no access to the owner's GoDaddy account has been granted to the agent.
 
-## DNS and frontend
+## Current decision: Contabo hosts both frontend and API (16 November)
+
+The owner explicitly chose to remove Vercel. The frontend is a static Vite build
+served by host Nginx on `oralliq.com`; API requests use `/api/v1` on the same
+origin. GoDaddy remains the domain registrar/DNS provider, not the app host.
+
+Required DNS: **A @ = 217.76.56.223** (no residual GoDaddy parking A values),
+and **CNAME www = oralliq.com**. Keep the existing API and email records.
+Use `nginx.frontend.oralliq.conf` after authoritative DNS agrees and a certificate
+covering the apex/www has been issued. Assets are staged under
+`/srv/oraliq-web/releases/two-minute-20261116`, with `current` pointing to it.
+The operator-owned `api-maintenance` marker keeps real writes closed until
+cutover checks pass. Do not infer readiness from a static homepage alone.
+
+The frontend's production defaults are now `/api/v1` and `https://oralliq.com`.
+The older Vercel plan and validation history below are historical. The current
+release details are in [the two-minute Contabo release](../../docs/contabo-two-minute-2026-11-16.md).
+
+## Earlier DNS/frontend plan (superseded)
 
 The **A** record named **api**, value **217.76.56.223**, is now verified. Do not
 create an API AAAA record without verified IPv6 routing.

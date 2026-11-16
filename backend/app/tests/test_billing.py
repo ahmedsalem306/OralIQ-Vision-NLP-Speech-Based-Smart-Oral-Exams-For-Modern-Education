@@ -70,7 +70,7 @@ def make_user(Session, email, role="lecturer", **fields):
     return uid, {"Authorization": f"Bearer {token}"}
 
 
-def new_exam(client, headers, duration=2, group=None):
+def new_exam(client, headers, duration=1, group=None):
     body = {"text": "What is X?", "model_answer": "A", "duration_minutes": duration}
     if group:
         body["group_token"] = group
@@ -113,8 +113,8 @@ def test_free_plan_question_and_duration_limits(env):
     assert new_exam(client, h, group=g).status_code == 200
     r = new_exam(client, h, group=g)  # third question exceeds the launch allowance
     assert r.status_code == 402 and r.json()["detail"]["code"] == "QUESTIONS_PER_EXAM_EXCEEDED"
-    r = new_exam(client, h, duration=4)  # launch max 3 minutes
-    assert r.status_code == 402 and r.json()["detail"]["code"] == "DURATION_EXCEEDED"
+    r = new_exam(client, h, duration=3)  # whole exam is at most two minutes
+    assert r.status_code == 402 and r.json()["detail"]["code"] == "EXAM_DURATION_EXCEEDED"
     # extra questions in a group do not consume exams
     assert client.get("/api/v1/billing/status", headers=h).json()["usage"]["exams_used"] == 1
 
@@ -380,7 +380,7 @@ def test_team_assistants_share_owner_quota(env):
     assert get_user(Session, asst_id).owner_id is None
     invitation = client.get("/api/v1/billing/team/invitations", headers=ah).json()[0]
     assert client.post(f"/api/v1/billing/team/invitations/{invitation['id']}/decision", json={"accept": True}, headers=ah).status_code == 200
-    assert new_exam(client, ah, duration=3).status_code == 200  # campus limits apply to assistant
+    assert new_exam(client, ah, duration=2).status_code == 200  # campus limits apply to assistant
     assert get_user(Session, owner_id).cycle_exams_used == 1
     st = client.get("/api/v1/billing/status", headers=ah).json()
     assert st["is_team_member"] is True and st["plan_tier"] == "campus"
@@ -395,7 +395,7 @@ def test_enterprise_assistant_uses_owners_unlimited_seats_plan(env):
     status = client.get("/api/v1/billing/status", headers=assistant).json()
     assert status["is_team_member"] is True
     assert status["plan_tier"] == "enterprise"
-    assert new_exam(client, assistant, duration=3).status_code == 200
+    assert new_exam(client, assistant, duration=2).status_code == 200
     assert get_user(Session, owner_id).cycle_exams_used == 1
 
 

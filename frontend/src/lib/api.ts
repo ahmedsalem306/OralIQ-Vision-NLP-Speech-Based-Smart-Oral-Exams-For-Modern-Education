@@ -5,7 +5,7 @@ const api = axios.create({
         import.meta.env.VITE_API_URL ??
         (import.meta.env.DEV
             ? "http://127.0.0.1:8000/api/v1"
-            : "https://ahmed2552-oraliq-api.hf.space/api/v1"),
+            : "/api/v1"),
     // A sleeping server can take ~60s to answer its first request. Long uploads
     // (exam submit, transcription) pass their own, longer timeout.
     timeout: 90_000,

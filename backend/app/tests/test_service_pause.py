@@ -61,7 +61,7 @@ def env(tmp_path, monkeypatch):
         with Session() as db:
             qs = []
             for i in range(n):
-                q = Question(text=f"س{i}", model_answer="إجابة", creator_id=creator_id, duration_minutes=3,
+                q = Question(text=f"س{i}", model_answer="إجابة", creator_id=creator_id, duration_minutes=1,
                              order_index=i, max_attempts=2, results_policy="immediate")
                 db.add(q)
                 db.flush()
@@ -237,7 +237,7 @@ def test_team_assistants_of_a_paused_owner_are_paused_too(env):
     e = env
     aid, ah = e["user"]("assist@t.com", "lecturer", owner_id=e["lect_id"])
     with e["Session"]() as db:
-        q = Question(text="سؤال المساعد", model_answer="إجابة", creator_id=aid, duration_minutes=3, max_attempts=1)
+        q = Question(text="سؤال المساعد", model_answer="إجابة", creator_id=aid, duration_minutes=1, max_attempts=1)
         db.add(q)
         db.flush()
         q.group_token = q.exam_token

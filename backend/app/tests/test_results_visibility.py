@@ -71,7 +71,7 @@ def env(tmp_path):
             qs = []
             for i in range(n):
                 q = Question(text=f"س{i}", model_answer="إجابة نموذجية سرية", creator_id=lect_id,
-                             duration_minutes=2, order_index=i, results_policy=policy)
+                             duration_minutes=1, order_index=i, results_policy=policy)
                 db.add(q)
                 db.flush()
                 qs.append(q)
@@ -118,15 +118,15 @@ def publish(e, h, token):
 
 def test_1_2_the_lecturer_chooses_the_policy_per_exam(env):
     c, lect = env["client"], env["lect"]
-    imm = c.post("/api/v1/questions/", headers=lect, json={"text": "سؤال", "model_answer": "ج", "results_policy": "immediate"}).json()
-    man = c.post("/api/v1/questions/", headers=lect, json={"text": "سؤال", "model_answer": "ج", "results_policy": "manual"}).json()
+    imm = c.post("/api/v1/questions/", headers=lect, json={"text": "سؤال", "model_answer": "ج", "duration_minutes": 1, "results_policy": "immediate"}).json()
+    man = c.post("/api/v1/questions/", headers=lect, json={"text": "سؤال", "model_answer": "ج", "duration_minutes": 1, "results_policy": "manual"}).json()
     default = c.post("/api/v1/questions/", headers=lect, json={"text": "سؤال", "model_answer": "ج"}).json()
     assert (imm["results_policy"], man["results_policy"], default["results_policy"]) == ("immediate", "manual", "manual")
-    second = c.post("/api/v1/questions/", headers=lect, json={"text": "س2", "model_answer": "ج", "results_policy": "manual",
+    second = c.post("/api/v1/questions/", headers=lect, json={"text": "س2", "model_answer": "ج", "duration_minutes": 1, "results_policy": "manual",
                                                                "group_token": imm["group_token"]}).json()
     assert second["results_policy"] == "immediate"                  # the exam's policy, inherited
     assert c.post("/api/v1/questions/", headers=lect,
-                  json={"text": "سؤال", "model_answer": "ج", "results_policy": "public"}).status_code == 422
+                  json={"text": "سؤال", "model_answer": "ج", "duration_minutes": 1, "results_policy": "public"}).status_code == 422
 
 
 # ── 3. Immediate ──────────────────────────────────────────────────────────────

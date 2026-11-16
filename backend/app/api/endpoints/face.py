@@ -9,7 +9,7 @@ from app.core.uploads import MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, read_upload_cappe
 from app.core.biometric_capacity import run_biometric
 from app.models.user import User
 from app.services import exam_evidence, service_pause
-from app.services.face_biometrics import face_biometrics_service, EMBEDDING_DIM
+from app.services.face_biometrics import face_biometrics_service, EMBEDDING_DIM, has_current_template, encode_template, decode_template
 from app.services.gaze_ai import gaze_ai_service
 from app.api.endpoints.voice import _can_enroll_face
 
@@ -17,13 +17,7 @@ router = APIRouter()
 
 
 def _has_faceprint(user: User) -> bool:
-    if not user.face_embedding or len(user.face_embedding) < 10:
-        return False
-    try:
-        emb = json.loads(user.face_embedding)
-        return isinstance(emb, list) and len(emb) == EMBEDDING_DIM
-    except Exception:
-        return False
+    return has_current_template(user.face_embedding)
 
 
 @router.get("/status")
@@ -39,7 +33,7 @@ def get_face_status(
         "face_locked": bool(current_user.face_locked) if has_face else False,
         "can_reenroll": _can_enroll_face(current_user) or stale,
         "embedding_dim": EMBEDDING_DIM,
-        "engine": "insightface",
+        "engine": face_biometrics_service.engine,
         "needs_reenroll": stale,
         "face_ready": face_biometrics_service.get_status(),
         "gaze_ready": gaze_ai_service.get_status(),
@@ -74,6 +68,8 @@ async def enroll_face_print(
                 errors.append(f"image[{i}]: too small")
                 continue
             extracted = await run_biometric(face_biometrics_service.extract_embedding, raw)
+            if extracted.get("num_faces", 1) != 1:
+                raise ValueError("Enrollment requires exactly one face")
             embeddings.append(extracted["embedding"])
         except HTTPException:
             raise
@@ -90,19 +86,19 @@ async def enroll_face_print(
         )
 
     avg = face_biometrics_service.average_embeddings(embeddings)
-    current_user.face_embedding = json.dumps(avg)
+    current_user.face_embedding = encode_template(avg)
     current_user.face_locked = True
     db.commit()
     db.refresh(current_user)
 
     return {
         "ok": True,
-        "message": "تم تسجيل Face ID بنجاح (InsightFace)!",
+        "message": "تم تسجيل بصمة الوجه بنجاح!",
         "has_faceprint": True,
         "face_locked": True,
         "embedding_dim": EMBEDDING_DIM,
         "samples_used": len(embeddings),
-        "engine": "insightface",
+        "engine": face_biometrics_service.engine,
     }
 
 
@@ -129,7 +125,7 @@ async def verify_face_print(
     # A face check for a paused lecturer's exam is refused (no evidence recorded for it).
     await anyio.to_thread.run_sync(lambda: service_pause.ensure_exam_token_available(db, exam_token))
     raw = await read_upload_capped(image, MAX_IMAGE_BYTES)
-    stored = json.loads(current_user.face_embedding)
+    stored = decode_template(current_user.face_embedding)
     exam_key = await anyio.to_thread.run_sync(lambda: exam_evidence.exam_key_from_token(db, exam_token))
     try:
         result = await run_biometric(
@@ -166,7 +162,7 @@ async def verify_face_print(
         "cosine": result.get("cosine"),
         "report": result["report"],
         "num_faces": result.get("num_faces"),
-        "engine": "insightface",
+        "engine": face_biometrics_service.engine,
     }
 
 

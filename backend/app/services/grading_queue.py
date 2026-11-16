@@ -86,6 +86,7 @@ def enqueue(
     voice_embedding: Optional[str],
     has_faceprint: bool,
     priority: int,
+    audio_limit_seconds: int = 120,
 ) -> GradingJob:
     """Adds the job for a submission that is being added in the same session. Caller commits."""
     # Serialize only queue admission on PostgreSQL. Claims/completion can continue independently.
@@ -113,6 +114,7 @@ def enqueue(
         audio=audio,
         audio_suffix=audio_suffix,
         audio_bytes=len(audio) if audio else 0,
+        audio_limit_seconds=max(1, min(120, int(audio_limit_seconds))),
         anti_cheat_alerts=anti_cheat_alerts,
         voice_embedding=voice_embedding,
         has_faceprint=has_faceprint,

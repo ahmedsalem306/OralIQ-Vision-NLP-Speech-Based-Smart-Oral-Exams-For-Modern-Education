@@ -88,7 +88,7 @@ def test_monthly_reset_keeps_lifetime_usage_and_downgrade_cannot_reset_trial(env
         account = db.get(User, oid)
         billing.grant_plan(account, "pro", "yearly")
         account.cycle_started_at = billing.utcnow() - timedelta(days=31)
-        account.cycle_attempts_started = 50
+        account.cycle_attempts_started = 150
         account.lifetime_attempts_started = 60
         db.commit()
         billing.refresh_account_state(db, account)
@@ -122,7 +122,7 @@ def test_launch_ceiling_is_shared_across_lecturers_and_resume_still_works(env, m
     token, questions = env["exam"]()
     owner2, _ = env["user"]("other-owner@t.com", "lecturer", enrolled=False)
     with env["Session"]() as db:
-        question = Question(creator_id=owner2, text="Q", model_answer="A", duration_minutes=3)
+        question = Question(creator_id=owner2, text="Q", model_answer="A", duration_minutes=1)
         db.add(question)
         db.commit()
         token2 = question.exam_token
@@ -154,7 +154,7 @@ def test_legacy_long_exam_is_blocked_before_spending_credit(env):
 
 def test_audio_compute_bound_matches_launch_answer_limit():
     from app.services.speech_ai import SpeechAnalyzer
-    assert SpeechAnalyzer.MAX_AI_AUDIO_SECONDS == 180
+    assert SpeechAnalyzer.MAX_AI_AUDIO_SECONDS == 120
 
 
 def test_expired_paid_grace_cannot_start_new_sittings_but_existing_can_finish(env):

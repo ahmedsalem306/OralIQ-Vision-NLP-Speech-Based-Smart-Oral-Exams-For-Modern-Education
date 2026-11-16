@@ -1,5 +1,19 @@
 """Check compressed image dimensions before allocating decoded pixels; bound decoded audio."""
 from io import BytesIO
+from contextlib import contextmanager
+from contextvars import ContextVar
+
+_grading_audio_limit = ContextVar("grading_audio_limit", default=None)
+
+
+@contextmanager
+def grading_audio_limit(seconds: int):
+    """Thread-local bound follows all decoder calls in this grading job only."""
+    token = _grading_audio_limit.set(max(1, min(120, int(seconds))))
+    try:
+        yield
+    finally:
+        _grading_audio_limit.reset(token)
 
 _AUDIO_OPTIONS = {
     "protocol_whitelist": "file,pipe",
@@ -34,6 +48,8 @@ def check_image_dimensions(content: bytes) -> None:
 
 
 def decode_audio_bounded(path: str, max_seconds: int = 600):
+    if _grading_audio_limit.get() is not None:
+        max_seconds = min(max_seconds, _grading_audio_limit.get())
     import av
     import numpy as np
     chunks, count = [], 0

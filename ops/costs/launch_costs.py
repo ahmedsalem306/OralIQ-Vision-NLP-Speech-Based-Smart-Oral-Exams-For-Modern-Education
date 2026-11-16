@@ -1,6 +1,6 @@
 """Reproducible launch budget; assumptions, not a provider bill or guaranteed profit.
 
-Run: python ops/costs/launch_costs.py --frontend-usd 20
+Run: python ops/costs/launch_costs.py --frontend-usd 0
 No API calls, credentials, dependencies or live billing changes.
 """
 import argparse
@@ -21,7 +21,7 @@ def rounded(value):
     return float(value.quantize(Decimal("0.01")))
 
 
-def calculate(*, server_usd=20, frontend_usd=20, fx=60, operations_egp=300,
+def calculate(*, server_usd=20, frontend_usd=0, fx=60, operations_egp=300,
               trial_egp=200, face_license_egp=0, retry_tax_factor="1.25"):
     """Maximum offered audio; 25% expected retry/tax buffer, separately stress at 3x.
 
@@ -29,7 +29,8 @@ def calculate(*, server_usd=20, frontend_usd=20, fx=60, operations_egp=300,
     mail and alerts. 200 EGP trial reserve is a planning allowance, not an enforced
     global free-signup spend cap. Support/refund reserve = 10% of revenue.
     Kashier published domestic card fee: (2.75% + 3 EGP) * 1.14 fee VAT.
-    Tax on sales/profits, salaries, marketing and unquoted license excluded.
+    Tax on sales/profits, salaries and marketing excluded. YuNet/SFace model
+    licenses add no royalty fee; their notices are retained with the deployment.
     """
     fixed = (number(server_usd) + number(frontend_usd)) * number(fx) + number(operations_egp) + number(trial_egp) + number(face_license_egp)
     minute = number("0.111") / 60 * number(fx)
@@ -38,13 +39,13 @@ def calculate(*, server_usd=20, frontend_usd=20, fx=60, operations_egp=300,
                         "egp_per_usd_planning_rate": fx, "groq_large_usd_audio_hour": 0.111,
                         "retry_tax_factor": str(retry_tax_factor), "operations_reserve_egp": operations_egp,
                         "trial_reserve_egp": trial_egp, "face_license_monthly_egp": face_license_egp,
-                        "face_license_unquoted": face_license_egp == 0},
+                        "face_models_license": "YuNet MIT / SFace Apache-2.0; no model license fee"},
         "fixed_monthly_egp": rounded(fixed), "plans": {},
     }
     for tier in ("pro", "campus"):
         plan = PLANS[tier]
         price = number(plan["price_egp"])
-        minutes = plan["max_student_attempts"] * plan["max_questions_per_exam"] * plan["max_duration_minutes"]
+        minutes = plan["max_student_attempts"] * plan["max_exam_duration_minutes"]
         audio = number(minutes) * minute * number(retry_tax_factor)
         payment = (price * number("0.0275") + 3) * number("1.14")
         support = price * number("0.10")
@@ -81,7 +82,7 @@ def calculate(*, server_usd=20, frontend_usd=20, fx=60, operations_egp=300,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--frontend-usd", type=int, default=20)
+    parser.add_argument("--frontend-usd", type=int, default=0)
     parser.add_argument("--face-license-egp", type=int, default=0)
     args = parser.parse_args()
     print(json.dumps(calculate(frontend_usd=args.frontend_usd, face_license_egp=args.face_license_egp), indent=2))

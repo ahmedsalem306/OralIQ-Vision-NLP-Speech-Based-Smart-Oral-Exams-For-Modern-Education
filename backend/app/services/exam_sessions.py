@@ -4,7 +4,7 @@ attempts are left. The browser's clock and the browser's "started_at" play no pa
 
   * A sitting starts at GET /exams/access-check (the web and mobile apps both call it before an
     exam). Its deadline is fixed then: the exam's total question time plus
-    EXAM_SESSION_GRACE_MINUTES (default 3, for reading the instructions). Opening the exam again
+    EXAM_SESSION_GRACE_MINUTES (default 0). Instructions/camera preview precede admission. Opening the exam again
     returns the same sitting — a reload never restarts the clock.
   * An answer is accepted only inside the user's active sitting of that exam, up to
     EXAM_SUBMIT_GRACE_SECONDS (default 90) past the deadline for an upload already under way.
@@ -155,14 +155,15 @@ def start_or_resume(db: Session, user: User, key: str, *, billing_account: Optio
     if account is not None:
         limits = billing.effective_limits(account)
         if (len(questions) > limits["max_questions_per_exam"]
-                or any(int(q.duration_minutes or 0) > limits["max_duration_minutes"] for q in questions)):
+                or any(int(q.duration_minutes or 0) > limits["max_duration_minutes"] for q in questions)
+                or sum(int(q.duration_minutes or 0) for q in questions) > limits["plan"]["max_exam_duration_minutes"]):
             raise refuse(402, "EXAM_PLAN_LIMIT_CHANGED",
                          "إعدادات الامتحان تتجاوز الباقة الحالية. تواصل مع المحاضر.",
                          "This exam exceeds the current plan limits. Contact your lecturer.")
         # Same transaction as the sitting insert: a race rolls both changes back.
         billing.consume_student_attempt(db, account)
     start = now()
-    minutes = sum(int(q.duration_minutes or 0) for q in questions) + _int_env("EXAM_SESSION_GRACE_MINUTES", 3)
+    minutes = sum(int(q.duration_minutes or 0) for q in questions) + _int_env("EXAM_SESSION_GRACE_MINUTES", 0)
     sitting = ExamSitting(user_id=user.id, exam_key=key, attempt_no=used + 1, status="active",
                           started_at=start, deadline_at=start + timedelta(minutes=minutes), active_slot=1)
     db.add(sitting)

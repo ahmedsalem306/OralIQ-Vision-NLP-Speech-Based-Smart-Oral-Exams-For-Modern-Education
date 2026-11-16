@@ -253,6 +253,10 @@ def run_migrations():
                 except Exception as e:  # never block the remaining patches on one index
                     print(f"[DB Migration] WARNING: {ddl.split(' ON ')[0]} failed: {e}")
 
+        if "grading_jobs" in table_names:
+            ine = "IF NOT EXISTS " if is_pg else ""
+            _add_column("grading_jobs", "audio_limit_seconds",
+                        f"ALTER TABLE grading_jobs ADD COLUMN {ine}audio_limit_seconds INTEGER")
         _run_billing_migrations(is_pg, "questions" in table_names)
 
         print("[DB Migration] All patches and scalability indexes applied successfully")

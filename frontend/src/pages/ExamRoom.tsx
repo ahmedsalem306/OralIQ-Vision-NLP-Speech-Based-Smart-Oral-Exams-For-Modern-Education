@@ -210,6 +210,8 @@ export default function ExamRoom() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const recorderRef = useRef<MediaRecorder | null>(null);
+    const admissionPendingRef = useRef(false);
+    const [admittingExam, setAdmittingExam] = useState(false);
 
     const chunksRef = useRef<Blob[]>([]);
 
@@ -562,36 +564,8 @@ export default function ExamRoom() {
 
 
 
-                // Starts — or after a reload resumes — the server-timed sitting, and reports up front
-                // anything that stops the student: plan seats full (402), face/voice not enrolled
-                // (403), attempts used up (409).
-                try {
-                    const { data: access } = await api.get(`/exams/access-check/${examToken}`);
-                    const session = access?.session;
-                    if (session) {
-                        sessionDeadlineRef.current = Date.now() + Math.max(0, session.remaining_seconds) * 1000;
-                        const answered: number[] = session.answered_question_ids || [];
-                        const next = loaded.findIndex((q) => !answered.includes(q.id));
-                        if (session.remaining_seconds <= 0) {
-                            setErrorMsg(l("وقت الامتحان خلص.", "The exam time is over."));
-                            setAllQuestions([]);
-                            setQuestion(null);
-                        } else if (answered.length && next > 0) {
-                            // Already answered in this sitting: continue from the first open question.
-                            setCurrentQIndex(next);
-                            setQuestion(loaded[next]);
-                        }
-                    }
-                } catch (accessErr: any) {
-                    const st = accessErr?.response?.status;
-                    if (st === 402 || st === 403 || st === 409) {
-                        setErrorMsg(getApiErrorMessage(accessErr));
-                        setAllQuestions([]);
-                        setQuestion(null);
-                    }
-                }
-
-
+                // Viewing instructions or camera preview never starts the paid,
+                // two-minute sitting. Admission happens on Start answering.
 
                 setPhase("info");
 
@@ -1518,9 +1492,31 @@ export default function ExamRoom() {
 
     // ── START RECORDING: preview → recording ─────────────────────────────────
 
-    const startRecording = useCallback(() => {
+    const startRecording = useCallback(async () => {
 
-        if (!stream) return;
+        if (!stream || !examToken || admissionPendingRef.current) return;
+        admissionPendingRef.current = true;
+        setAdmittingExam(true);
+        try {
+            const { data } = await api.get(`/exams/access-check/${examToken}`);
+            const session = data?.session;
+            if (!session) throw new Error("Missing exam session");
+            sessionDeadlineRef.current = Date.now() + Math.max(0, session.remaining_seconds) * 1000;
+            const answered: number[] = session.answered_question_ids || [];
+            const next = allQuestions.findIndex((q) => !answered.includes(q.id));
+            if (next >= 0 && next !== currentQIndex) {
+                setCurrentQIndex(next);
+                setQuestion(allQuestions[next]);
+                setTimeLeft(Math.min(allQuestions[next].timeLimit, sessionSecondsLeft()));
+                return;
+            }
+        } catch (error) {
+            setErrorMsg(getApiErrorMessage(error, l("تعذّر بدء الامتحان. حاول بعد قليل.", "Unable to start the exam. Retry shortly.")));
+            return;
+        } finally {
+            admissionPendingRef.current = false;
+            setAdmittingExam(false);
+        }
 
         if (sessionSecondsLeft() <= 0) {
             // The server would refuse the answer: say so now instead of after a recording.
@@ -1569,7 +1565,7 @@ export default function ExamRoom() {
 
         phaseRef.current = "recording";
 
-    }, [stream]);
+    }, [stream, examToken, allQuestions, currentQIndex, l]);
 
 
 
@@ -2645,7 +2641,7 @@ export default function ExamRoom() {
 
                         {phase === "preview" && (
 
-                            <Button size="lg" className="h-14 w-full text-lg shadow-pop lg:shadow-none" onClick={startRecording}>
+                            <Button size="lg" className="h-14 w-full text-lg shadow-pop lg:shadow-none" onClick={startRecording} disabled={admittingExam}>
 
                                 <Mic className="size-5" aria-hidden />{l("ابدأ الإجابة", "Start answering")}
 

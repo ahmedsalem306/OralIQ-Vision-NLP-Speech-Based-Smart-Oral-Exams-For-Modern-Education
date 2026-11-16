@@ -309,34 +309,41 @@ def _bump_lifetime(db: Session, account: User, limits: Dict[str, Any]) -> None:
         )
 
 
-def check_question_limits(db: Session, account: User, group_size_before: int, duration_minutes: int) -> None:
-    limits = effective_limits(account)
-    max_q = limits["max_questions_per_exam"]
-    if max_q != UNLIMITED and group_size_before >= max_q:
-        raise QuotaExceeded(
-            "QUESTIONS_PER_EXAM_EXCEEDED",
-            f"باقتك بتسمح بـ {max_q} أسئلة بحد أقصى في الامتحان الواحد.",
-            f"Your plan allows up to {max_q} questions per exam.",
-            limit=max_q,
-        )
-    max_d = limits["max_duration_minutes"]
-    if max_d != UNLIMITED and duration_minutes > max_d:
-        raise QuotaExceeded(
-            "DURATION_EXCEEDED",
-            f"أقصى مدة للإجابة في باقتك {max_d} دقيقة.",
-            f"Your plan allows answers up to {max_d} minutes.",
-            limit=max_d,
-        )
-
-
-# ── Concurrent exam seats ─────────────────────────────────────────────────────
-# The plan's student number = how many students may be IN an exam at the same time.
-# A seat is held from "start" until the last answer is submitted (or the exam window ends),
-# then it's free again. Finishing an exam never consumes anything.
-
-SEAT_GRACE_MINUTES = 10
-
-
+def check_question_limits(db: Session, account: User, group_size_before: int, duration_minutes: int, total_minutes_before: int = 0) -> None:
+    limits = effective_limits(account)
+    max_q = limits["max_questions_per_exam"]
+    if max_q != UNLIMITED and group_size_before >= max_q:
+        raise QuotaExceeded(
+            "QUESTIONS_PER_EXAM_EXCEEDED",
+            f"باقتك بتسمح بـ {max_q} أسئلة بحد أقصى في الامتحان الواحد.",
+            f"Your plan allows up to {max_q} questions per exam.",
+            limit=max_q,
+        )
+    max_total = limits["plan"]["max_exam_duration_minutes"]
+    if total_minutes_before + duration_minutes > max_total:
+        raise QuotaExceeded("EXAM_DURATION_EXCEEDED",
+                            "مدة الامتحان كله دقيقتان بحد أقصى. قسّم الوقت بين السؤالين.",
+                            "The entire exam is limited to two minutes. Split time between questions.",
+                            limit=max_total)
+
+    max_d = limits["max_duration_minutes"]
+    if max_d != UNLIMITED and duration_minutes > max_d:
+        raise QuotaExceeded(
+            "DURATION_EXCEEDED",
+            f"أقصى مدة للإجابة في باقتك {max_d} دقيقة.",
+            f"Your plan allows answers up to {max_d} minutes.",
+            limit=max_d,
+        )
+
+
+# ── Concurrent exam seats ─────────────────────────────────────────────────────
+# The plan's student number = how many students may be IN an exam at the same time.
+# A seat is held from "start" until the last answer is submitted (or the exam window ends),
+# then it's free again. Finishing an exam never consumes anything.
+
+SEAT_GRACE_MINUTES = 2
+
+
 def _active_sessions_q(db: Session, account_id: int, now: datetime):
     return db.query(ExamSession).filter(
         ExamSession.account_id == account_id,

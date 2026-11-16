@@ -1,5 +1,10 @@
 # Launch prices, operating budget and server decision — 16 November 2026
 
+**Superseded:** the owner subsequently chose Contabo-only hosting, a two-minute
+whole exam, and 150/600 monthly student participations. See
+[the current release](contabo-two-minute-2026-11-16.md). The arithmetic below
+records the earlier six-minute/50/200 proposal; it is not the current offer.
+
 The owner specified **USD 20/month for the purchased server**. This is the only
 confirmed recurring invoice input. No paid provider plan or subscription was
 activated, and public routing has not been changed by this work.

@@ -26,9 +26,9 @@ from app.models.grading_job import GradingJob
 from app.models.question import Question
 from app.models.user import User
 from app.services import face_biometrics
-from app.services.face_biometrics import EMBEDDING_DIM
+from app.services.face_biometrics import EMBEDDING_DIM, encode_template
 
-FACEPRINT = json.dumps([0.01] * EMBEDDING_DIM)
+FACEPRINT = encode_template([0.01] * EMBEDDING_DIM)
 FRAMES = {"match": b"MATCH" + b"\x00" * 600, "other": b"OTHER" + b"\x00" * 600,
           "noface": b"NOFACE" + b"\x00" * 600, "crowd": b"CROWD" + b"\x00" * 600, "broken": b"BROKEN" + b"\x00" * 600}
 
@@ -82,7 +82,7 @@ def env(tmp_path, monkeypatch):
 
     def exam():
         with Session() as db:
-            q = Question(text="سؤال", model_answer="إجابة", creator_id=lect_id, duration_minutes=3)
+            q = Question(text="سؤال", model_answer="إجابة", creator_id=lect_id, duration_minutes=1)
             db.add(q)
             db.flush()
             q.group_token = q.exam_token

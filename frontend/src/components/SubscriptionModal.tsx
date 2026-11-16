@@ -134,10 +134,11 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
     const { plan, usage, all_plans } = data;
     const isLifetime = (usage.exams_quota_type || plan.exams_reset) === "lifetime";
     const isUnlimitedExams = usage.exams_limit >= 9999;
-    const pct = isUnlimitedExams ? 8 : Math.min(100, Math.round((usage.exams_used / Math.max(1, usage.exams_limit)) * 100));
+    const pct = Math.min(100, Math.round((usage.student_attempts_used / Math.max(1, usage.student_attempts_limit)) * 100));
     const bonus = usage.bonus_exams ?? 0;
-    const isExhausted = !isUnlimitedExams && usage.exams_remaining === 0 && bonus === 0;
-    const isNearLimit = !isUnlimitedExams && usage.exams_remaining <= 1;
+    const attemptsExhausted = usage.student_attempts_remaining === 0;
+    const isExhausted = attemptsExhausted || (!isUnlimitedExams && usage.exams_remaining === 0 && bonus === 0);
+    const isNearLimit = usage.student_attempts_remaining <= Math.ceil(usage.student_attempts_limit / 10);
     const studentsLimit = usage.students_limit ?? 0;
     const studentsUsed = usage.students_used ?? 0;
     const studentsFull = studentsLimit > 0 && studentsUsed >= studentsLimit;
@@ -228,12 +229,12 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
 
                         <div className="mt-4 max-w-xl">
                             <p className="mb-2 text-sm font-bold text-ink" role="status">
-                                {l(`محاولات الطلاب: ${usage.student_attempts_used} / ${usage.student_attempts_limit} · المتبقي ${usage.student_attempts_remaining}`,
-                                   `Student attempts: ${usage.student_attempts_used} / ${usage.student_attempts_limit} · ${usage.student_attempts_remaining} left`)}
+                                {l(`مشاركات الطلاب: ${usage.student_attempts_used} / ${usage.student_attempts_limit} · المتبقي ${usage.student_attempts_remaining}`,
+                                   `Student participations: ${usage.student_attempts_used} / ${usage.student_attempts_limit} · ${usage.student_attempts_remaining} left`)}
                             </p>
                             <p className="mb-3 text-xs text-ink-2">
-                                {l("تُحجز المحاولة عند بدء الامتحان حتى لو لم يكتمل. الرجوع لنفس المحاولة لا يخصم مجددًا؛ إعادة الامتحان تستهلك محاولة جديدة. لكل محاولة سؤالان بحد أقصى، 3 دقائق للسؤال. حد الإطلاق 10 طلاب نشطين للمنصة كلها.",
-                                   "Reserved when an exam starts, even if abandoned. Resuming is free; retakes use another attempt. Up to 2 questions, 3 minutes each. Launch admission is 10 active students across the platform.")}
+                                {l("تُحجز المحاولة عند بدء الامتحان حتى لو لم يكتمل. الرجوع لنفس المحاولة لا يخصم مجددًا؛ إعادة الامتحان تستهلك محاولة جديدة. الامتحان كله دقيقتان: سؤال واحد بدقيقتين أو سؤالان بدقيقة لكل سؤال. حد الإطلاق 10 طلاب نشطين للمنصة كلها.",
+                                   "Reserved when an exam starts, even if abandoned. Resuming is free; retakes use another attempt. One 2-minute question or two 1-minute questions; 2 minutes total. Launch admission is 10 active students across the platform.")}
                             </p>
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
                                 <span className="text-ink-2">
@@ -249,10 +250,10 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                 </span>
                                 <span className={isExhausted ? "text-bad" : isNearLimit ? "text-warn" : "text-pen"}>
                                     {isExhausted
-                                        ? l("خلص رصيد الامتحانات", "Exam quota used up")
+                                        ? (attemptsExhausted ? l("رصيد مشاركات الطلاب انتهى", "Student participation allowance used up") : l("رصيد روابط الامتحانات انتهى", "Exam link allowance used up"))
                                         : l(
-                                              `متبقي ${usage.exams_remaining} · حتى ${usage.max_questions_per_exam} أسئلة · ${usage.max_duration_minutes} د/إجابة`,
-                                              `${usage.exams_remaining} left · up to ${usage.max_questions_per_exam} questions · ${usage.max_duration_minutes}m/answer`,
+                                              `متبقي ${usage.exams_remaining} روابط · دقيقتان للامتحان كله`,
+                                              `${usage.exams_remaining} exam links left · 2 minutes total per exam`,
                                           )}
                                 </span>
                             </div>
@@ -412,15 +413,15 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                                     <span>
                                                         {isEnterprise
                                                             ? l("رصيد محاولات حسب الاتفاق", "Contracted attempt allowance")
-                                                            : l(`${p.max_student_attempts} محاولة طالب ${p.exams_reset === "lifetime" ? "للتجربة" : "كل 30 يومًا"}`, `${p.max_student_attempts} student attempts ${p.exams_reset === "lifetime" ? "once" : "every 30 days"}`)}
+                                                            : l(`${p.max_student_attempts} مشاركة طالب ${p.exams_reset === "lifetime" ? "للتجربة" : "كل 30 يومًا"}`, `${p.max_student_attempts} student participations ${p.exams_reset === "lifetime" ? "once" : "every 30 days"}`)}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <Check className="size-3.5 text-[#E3A458]" aria-hidden />
                                                     <span>
                                                         {l(
-                                                            `${p.max_questions_per_exam} أسئلة · ${p.max_duration_minutes} د/إجابة`,
-                                                            `${p.max_questions_per_exam} questions · ${p.max_duration_minutes}m/answer`,
+                                                            `حتى ${p.max_questions_per_exam} أسئلة · دقيقتان للامتحان كله`,
+                                                            `Up to ${p.max_questions_per_exam} questions · 2 min total`,
                                                         )}
                                                     </span>
                                                 </div>

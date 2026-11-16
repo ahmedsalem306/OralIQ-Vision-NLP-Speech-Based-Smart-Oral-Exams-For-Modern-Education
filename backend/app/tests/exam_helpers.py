@@ -4,12 +4,13 @@ import json
 
 from app.models.question import Question
 from app.services import exam_sessions
+from app.services.face_biometrics import EMBEDDING_DIM, encode_template
 
 # Face and voice "enrolled" (the shapes the server checks; the values never reach a model in tests).
-ENROLLED = {"voice_embedding": json.dumps([0.1] * 256), "face_embedding": json.dumps([0.01] * 512)}
+ENROLLED = {"voice_embedding": json.dumps([0.1] * 256), "face_embedding": encode_template([0.01] * EMBEDDING_DIM)}
 
 
-def new_exam(db, creator_id=None, duration=3, max_attempts=1, **fields) -> Question:
+def new_exam(db, creator_id=None, duration=1, max_attempts=1, **fields) -> Question:
     q = Question(text=fields.pop("text", "سؤال"), model_answer=fields.pop("model_answer", "إجابة"),
                  keywords=fields.pop("keywords", ""), creator_id=creator_id, duration_minutes=duration,
                  max_attempts=max_attempts, **fields)

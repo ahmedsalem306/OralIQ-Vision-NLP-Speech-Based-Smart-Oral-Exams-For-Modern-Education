@@ -294,6 +294,17 @@ No production database or real student's biometric data was inspected.
 
 ## Server handoff
 
+**Current owner decision, November 16:** Contabo hosts the frontend and API;
+GoDaddy remains DNS/registrar, Vercel is removed from the current cost/routing
+plan. Exams are **two minutes total**, with **150 / 600 student participations**
+per 30-day paid cycle at 199/599 EGP. Pinned YuNet/SFace replace restricted
+InsightFace weights; unversioned old templates require reenrollment. Actual VPS
+same/different/blank/concurrent model probe passed; this is not live-class
+accuracy/liveness certification. Full final Linux/PostgreSQL suite **497 passed,
+no skips**; frontend checks and 16 Node tests pass. Static files are staged and
+locally checked on Contabo; public HTTPS/API cutover is tracked separately.
+[Current details and budget](contabo-two-minute-2026-11-16.md) supersede the earlier proposal below.
+
 November 16 launch-pricing preparation: the owner specified USD 20/month for the
 server. Basic 199 EGP / 50 student attempts and Professional 599 EGP / 200 per
 30-day cycle now have atomic cumulative credit admission, separate from link

@@ -40,6 +40,7 @@ class GradingJob(Base):
     audio = deferred(Column(LargeBinary, nullable=True))
     audio_suffix = Column(String(8), nullable=True)
     audio_bytes = Column(Integer, nullable=True)
+    audio_limit_seconds = Column(Integer, nullable=True)  # server-captured question time, never client supplied
     audio_purged_at = Column(DateTime, nullable=True)
 
     # What grading needs, captured when the answer arrived.
