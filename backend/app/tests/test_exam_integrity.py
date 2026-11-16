@@ -82,7 +82,7 @@ def env(tmp_path, monkeypatch):
 
     def exam():
         with Session() as db:
-            q = Question(text="سؤال", model_answer="إجابة", creator_id=lect_id, duration_minutes=5)
+            q = Question(text="سؤال", model_answer="إجابة", creator_id=lect_id, duration_minutes=3)
             db.add(q)
             db.flush()
             q.group_token = q.exam_token

@@ -26,6 +26,9 @@ class User(Base):
     plan_expires_at = Column(DateTime, nullable=True)     # naive UTC; NULL = no expiry (free)
     cycle_started_at = Column(DateTime, nullable=True)    # start of current 30-day quota cycle
     cycle_exams_used = Column(Integer, default=0)         # exams created in current cycle (paid plans)
+    lifetime_attempts_started = Column(Integer, default=0)  # never reset on downgrade/deletion
+    cycle_attempts_started = Column(Integer, default=0)
+    custom_max_attempts = Column(Integer, nullable=True)     # bounded enterprise allowance
     bonus_exams = Column(Integer, default=0)              # add-on packs, never expire
     custom_max_exams = Column(Integer, nullable=True)     # enterprise contract override
     custom_max_students = Column(Integer, nullable=True)  # enterprise contract override

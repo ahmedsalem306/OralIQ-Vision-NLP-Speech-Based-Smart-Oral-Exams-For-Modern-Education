@@ -135,7 +135,7 @@ def check_can_start(db: Session, user: User, key: str, questions: Optional[List[
     return used
 
 
-def start_or_resume(db: Session, user: User, key: str) -> ExamSitting:
+def start_or_resume(db: Session, user: User, key: str, *, billing_account: Optional[User] = None) -> ExamSitting:
     """The user's active sitting of this exam, or a new one if attempts remain."""
     questions = exam_questions(db, key)
     if not questions:
@@ -145,6 +145,22 @@ def start_or_resume(db: Session, user: User, key: str) -> ExamSitting:
         return existing
 
     used = check_can_start(db, user, key, questions)
+    from app.services import billing_service as billing
+    account = billing_account
+    if account is None:
+        creator = db.get(User, questions[0].creator_id) if questions[0].creator_id else None
+        if creator is not None:
+            account = billing.get_billing_account(db, creator)
+            billing.refresh_account_state(db, account)
+    if account is not None:
+        limits = billing.effective_limits(account)
+        if (len(questions) > limits["max_questions_per_exam"]
+                or any(int(q.duration_minutes or 0) > limits["max_duration_minutes"] for q in questions)):
+            raise refuse(402, "EXAM_PLAN_LIMIT_CHANGED",
+                         "إعدادات الامتحان تتجاوز الباقة الحالية. تواصل مع المحاضر.",
+                         "This exam exceeds the current plan limits. Contact your lecturer.")
+        # Same transaction as the sitting insert: a race rolls both changes back.
+        billing.consume_student_attempt(db, account)
     start = now()
     minutes = sum(int(q.duration_minutes or 0) for q in questions) + _int_env("EXAM_SESSION_GRACE_MINUTES", 3)
     sitting = ExamSitting(user_id=user.id, exam_key=key, attempt_no=used + 1, status="active",

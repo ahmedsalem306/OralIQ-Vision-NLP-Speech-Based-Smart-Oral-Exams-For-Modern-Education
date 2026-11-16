@@ -111,10 +111,9 @@ def test_free_plan_question_and_duration_limits(env):
     _, h = make_user(Session, "free2@t.com")
     g = new_exam(client, h).json()["group_token"]
     assert new_exam(client, h, group=g).status_code == 200
-    assert new_exam(client, h, group=g).status_code == 200
-    r = new_exam(client, h, group=g)  # 4th question
+    r = new_exam(client, h, group=g)  # third question exceeds the launch allowance
     assert r.status_code == 402 and r.json()["detail"]["code"] == "QUESTIONS_PER_EXAM_EXCEEDED"
-    r = new_exam(client, h, duration=3)  # free max 2 minutes
+    r = new_exam(client, h, duration=4)  # launch max 3 minutes
     assert r.status_code == 402 and r.json()["detail"]["code"] == "DURATION_EXCEEDED"
     # extra questions in a group do not consume exams
     assert client.get("/api/v1/billing/status", headers=h).json()["usage"]["exams_used"] == 1
@@ -155,8 +154,8 @@ def test_sandbox_checkout_activates_basic_plan(env):
     assert 29 <= (u.plan_expires_at - utcnow()).days <= 30
     st = client.get("/api/v1/billing/status", headers=h).json()
     assert st["usage"]["exams_limit"] == 15
-    assert st["usage"]["max_questions_per_exam"] == 5
-    assert st["usage"]["students_limit"] == 150
+    assert st["usage"]["max_questions_per_exam"] == 2
+    assert st["usage"]["students_limit"] == 10
 
 
 def test_term_price_and_renewal_extends_expiry(env):
@@ -198,20 +197,24 @@ def test_expired_plan_falls_back_to_free_after_grace(env):
     assert client.get("/api/v1/billing/status", headers=h).json()["plan_tier"] == "free"
 
 
-def test_addon_pack_used_after_monthly_quota(env):
+def test_unbounded_link_only_addon_checkout_is_disabled(env):
     client, Session = env
-    uid, h = make_user(Session, "addon@t.com")
-    assert client.post("/api/v1/billing/checkout", json={"kind": "addon"}, headers=h).status_code == 400  # free
-    client.post("/api/v1/billing/checkout", json={"plan_id": "pro"}, headers=h)
+    _, h = make_user(Session, "addon@t.com", plan_tier="pro")
     r = client.post("/api/v1/billing/checkout", json={"kind": "addon"}, headers=h)
-    assert r.status_code == 200 and r.json()["amount"] == 79
-    for _ in range(15):
-        assert new_exam(client, h).status_code == 200
-    assert new_exam(client, h).status_code == 200  # from bonus
-    assert get_user(Session, uid).bonus_exams == 9
+    assert r.status_code == 400
 
 
-# ── Webhooks ──────────────────────────────────────────────────────────────────
+def _kashier_data(reference, amount="199.00", status="SUCCESS", **over):
+    """A Kashier webhook `data` object shaped like the documented pay example."""
+    data = {
+        "merchantOrderId": reference, "kashierOrderId": "ko-111", "orderReference": "TEST-ORD-1",
+        "transactionId": "TX-1", "status": status, "method": "card", "creationDate": "2026-11-03T10:00:00.000Z",
+        "amount": amount, "currency": "EGP", "transactionResponseCode": "00", "channel": "online | e-commerce",
+        "signatureKeys": list(KASHIER_SIGNATURE_KEYS),
+    }
+    data.update(over)
+    return data
+
 
 KASHIER_TEST_KEY = "kashier-test-api-key"
 KASHIER_SIGNATURE_KEYS = ["amount", "channel", "currency", "kashierOrderId", "merchantOrderId", "method",
@@ -315,16 +318,16 @@ def test_stripe_and_paymob_webhooks_are_gone_and_their_records_are_kept(env):
 # ── Students limit ────────────────────────────────────────────────────────────
 
 def test_concurrent_limit_counts_students_in_exam_at_same_time(env):
-    """Free plan = 50 students AT THE SAME TIME. Finished students free their seat."""
+    """Concurrent seats and cumulative attempt credits are separate."""
     client, Session = env
     owner_id, h = make_user(Session, "lim@t.com")
     qid = new_exam(client, h).json()["id"]
     token = client.get("/api/v1/questions/", headers=h).json()[0]["group_token"]
 
-    # 50 students currently inside the exam
+    # Five students currently inside the exam
     from app.models.exam_session import ExamSession
     db = Session()
-    for i in range(50):
+    for i in range(5):
         db.add(ExamSession(account_id=owner_id, student_key=f"n:S{i}", group_token=token,
                            started_at=utcnow(), expires_at=utcnow() + timedelta(minutes=10)))
     db.commit()
@@ -347,16 +350,20 @@ def test_concurrent_limit_counts_students_in_exam_at_same_time(env):
     db = Session()
     open_seats = db.query(ExamSession).filter(ExamSession.finished.is_(False), ExamSession.expires_at > utcnow()).count()
     db.close()
-    assert open_seats == 49
+    assert open_seats == 4
 
-    # Many students finishing over time never "uses up" the plan
-    for i in range(60):
+    # Finishing releases seats, but subsequent starts still consume the five trial credits.
+    for i in range(4):
         _, hh = make_user(Session, f"later{i}@t.com", role="student")
         db = Session()
         db.query(ExamSession).filter(ExamSession.finished.is_(False)).update({ExamSession.finished: True})
         db.commit()
         db.close()
         assert client.get(f"/api/v1/exams/access-check/{token}", headers=hh).status_code == 200
+    _, hh = make_user(Session, "trial-exhausted@t.com", role="student")
+    r = client.get(f"/api/v1/exams/access-check/{token}", headers=hh)
+    assert r.status_code == 402
+    assert r.json()["detail"]["code"] == "STUDENT_ATTEMPT_QUOTA_EXCEEDED"
 
 
 # ── Team / assistants ─────────────────────────────────────────────────────────
@@ -373,7 +380,7 @@ def test_team_assistants_share_owner_quota(env):
     assert get_user(Session, asst_id).owner_id is None
     invitation = client.get("/api/v1/billing/team/invitations", headers=ah).json()[0]
     assert client.post(f"/api/v1/billing/team/invitations/{invitation['id']}/decision", json={"accept": True}, headers=ah).status_code == 200
-    assert new_exam(client, ah, duration=10).status_code == 200  # campus limits apply to assistant
+    assert new_exam(client, ah, duration=3).status_code == 200  # campus limits apply to assistant
     assert get_user(Session, owner_id).cycle_exams_used == 1
     st = client.get("/api/v1/billing/status", headers=ah).json()
     assert st["is_team_member"] is True and st["plan_tier"] == "campus"
@@ -388,7 +395,7 @@ def test_enterprise_assistant_uses_owners_unlimited_seats_plan(env):
     status = client.get("/api/v1/billing/status", headers=assistant).json()
     assert status["is_team_member"] is True
     assert status["plan_tier"] == "enterprise"
-    assert new_exam(client, assistant, duration=15).status_code == 200
+    assert new_exam(client, assistant, duration=3).status_code == 200
     assert get_user(Session, owner_id).cycle_exams_used == 1
 
 

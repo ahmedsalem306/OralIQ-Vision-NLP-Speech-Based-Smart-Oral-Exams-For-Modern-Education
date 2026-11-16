@@ -1,17 +1,18 @@
 """
 Subscription Plans & Capacity Controls for OralIQ.
 
-Pricing model (agreed business plan):
-  * Free        0 EGP           | 5 exams (lifetime trial) | 3 Q/exam  | 2 min  | 50 students (lifetime)
-  * Basic (pro) 199 EGP / month | 15 exams / month         | 5 Q/exam  | 5 min  | 150 students / month
-  * Pro (campus)599 EGP / month | 30 exams / month         | 15 Q/exam | 10 min | 500 students / month + 3 assistants
-  * Enterprise  per contract     | custom (admin-assigned)  | 20 Q/exam | 15 min | custom students, unlimited assistants
+Launch pricing: Free 5 student attempts once; Basic 199 EGP / 50 attempts per
+30-day cycle; Professional 599 EGP / 200 attempts. Each attempt starts one
+student's exam, with up to two questions of three minutes each (six minutes max).
+Enterprise is quoted separately, with an explicitly bounded attempt allowance.
 
 Rules:
   - An "exam" = one question group (group_token). Questions inside it don't count separately.
   - Paid quotas reset every 30-day cycle; unused monthly exams do NOT roll over.
   - Add-on exam packs (bonus_exams) never expire and are consumed only after the monthly quota.
-  - "Students" = distinct students who submitted to any of the account's exams in the current cycle.
+  - Student attempts are reserved on exam start, atomically with the timed sitting.
+    Resuming that sitting is free; abandoning it or starting a retake does not refund it.
+  - Concurrent seats are separate from the cumulative attempt allowance.
   - Plan IDs (free/pro/campus/enterprise) are kept stable for frontend & DB compatibility.
 """
 from typing import Any, Dict, Optional
@@ -39,9 +40,10 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "purchasable": False,
         "exams_reset": "lifetime",       # trial quota, never resets
         "max_exams": 5,
-        "max_questions_per_exam": 3,
-        "max_duration_minutes": 2,
-        "max_students": 50,              # lifetime distinct students
+        "max_questions_per_exam": 2,
+        "max_duration_minutes": 3,
+        "max_student_attempts": 5,
+        "max_students": 5,
         "max_students_per_exam": UNLIMITED,
         "assistant_seats": 0,
         "addon_price_egp": None,
@@ -59,13 +61,14 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "purchasable": True,
         "exams_reset": "monthly",
         "max_exams": 15,
-        "max_questions_per_exam": 5,
-        "max_duration_minutes": 5,
-        "max_students": 150,
+        "max_questions_per_exam": 2,
+        "max_duration_minutes": 3,
+        "max_student_attempts": 50,
+        "max_students": 10,
         "max_students_per_exam": UNLIMITED,
         "assistant_seats": 0,
-        "addon_price_egp": 79,
-        "addon_price_usd": 2,
+        "addon_price_egp": None,
+        "addon_price_usd": None,
         "queue_priority": 2,
         "queue_label_ar": "أولوية معالجة سريعة",
         "queue_label_en": "Fast Priority AI Queue",
@@ -79,13 +82,14 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "purchasable": True,
         "exams_reset": "monthly",
         "max_exams": 30,
-        "max_questions_per_exam": 15,
-        "max_duration_minutes": 10,
-        "max_students": 500,
+        "max_questions_per_exam": 2,
+        "max_duration_minutes": 3,
+        "max_student_attempts": 200,
+        "max_students": 10,
         "max_students_per_exam": UNLIMITED,
         "assistant_seats": 3,
-        "addon_price_egp": 199,
-        "addon_price_usd": 4,
+        "addon_price_egp": None,
+        "addon_price_usd": None,
         "queue_priority": 1,
         "queue_label_ar": "أولوية قصوى (VIP)",
         "queue_label_en": "VIP AI Queue",
@@ -96,21 +100,21 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "name_en": "Enterprise",
         "price_egp": None,               # per contract: ~30 EGP / student / term
         "price_usd": None,
-        "price_per_student_term_egp": 30,
         "min_students": 150,
         "purchasable": False,            # activated by admin after contract
         "exams_reset": "monthly",
         "max_exams": 200,                # default; overridden by user.custom_max_exams
-        "max_questions_per_exam": 20,
-        "max_duration_minutes": 15,
-        "max_students": 1000,            # default; overridden by user.custom_max_students
+        "max_questions_per_exam": 2,
+        "max_duration_minutes": 3,
+        "max_student_attempts": 500,
+        "max_students": 10,              # the shared server launch ceiling still applies
         "max_students_per_exam": UNLIMITED,
         "assistant_seats": UNLIMITED,
         "addon_price_egp": None,
         "addon_price_usd": None,
         "queue_priority": 0,
-        "queue_label_ar": "معالجة فورية",
-        "queue_label_en": "Instant AI Queue",
+        "queue_label_ar": "أولوية المؤسسات حسب السعة",
+        "queue_label_en": "Enterprise queue priority",
     },
 }
 

@@ -435,8 +435,8 @@ export default function Dashboard() {
                             <Segmented label={l("الصعوبة", "Difficulty")} value={draft.difficulty} onChange={(v) => setDraft({ ...draft, difficulty: v })} options={difficulties} />
                         </div>
                         <Field label={l("الوقت (دقائق)", "Time (min)")} htmlFor="q-duration">
-                            <Input id="q-duration" type="number" min={1} max={10} value={draft.duration_minutes} className="tabular"
-                                onChange={(e) => setDraft({ ...draft, duration_minutes: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })} />
+                            <Input id="q-duration" type="number" min={1} max={3} value={draft.duration_minutes} className="tabular"
+                                onChange={(e) => setDraft({ ...draft, duration_minutes: Math.min(3, Math.max(1, parseInt(e.target.value) || 1)) })} />
                         </Field>
                     </div>
                     {/* When students see grades: also the whole exam's, chosen with its first question. */}

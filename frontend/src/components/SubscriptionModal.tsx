@@ -20,6 +20,7 @@ export interface PlanInfo {
     purchasable?: boolean;
     exams_reset?: "lifetime" | "monthly";
     max_exams: number;
+    max_student_attempts: number;
     max_questions_per_exam: number;
     max_students?: number;
     max_students_per_exam: number;
@@ -46,6 +47,9 @@ export interface BillingStatusResponse {
         exams_used: number;
         exams_limit: number;
         exams_remaining: number;
+        student_attempts_used: number;
+        student_attempts_limit: number;
+        student_attempts_remaining: number;
         exams_quota_type?: "lifetime" | "monthly";
         bonus_exams?: number;
         cycle_resets_at?: string | null;
@@ -139,7 +143,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
     const studentsFull = studentsLimit > 0 && studentsUsed >= studentsLimit;
     const resetsAt = fmtDate(usage.cycle_resets_at, lang);
     const expiresAt = fmtDate(data.plan_expires_at, lang);
-    const canBuyAddon = !data.is_team_member && (plan.id === "pro" || plan.id === "campus");
+    const canBuyAddon = !data.is_team_member && plan.addon_price_egp != null;
     const addonPrice = currency === "EGP" ? plan.addon_price_egp : plan.addon_price_usd;
     // null unless the backend confirmed test payments: no test cards, numbers or "no real money" text.
     const help = sandboxHelp(sandboxMode, paymentMethod);
@@ -223,6 +227,14 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                         </div>
 
                         <div className="mt-4 max-w-xl">
+                            <p className="mb-2 text-sm font-bold text-ink" role="status">
+                                {l(`محاولات الطلاب: ${usage.student_attempts_used} / ${usage.student_attempts_limit} · المتبقي ${usage.student_attempts_remaining}`,
+                                   `Student attempts: ${usage.student_attempts_used} / ${usage.student_attempts_limit} · ${usage.student_attempts_remaining} left`)}
+                            </p>
+                            <p className="mb-3 text-xs text-ink-2">
+                                {l("تُحجز المحاولة عند بدء الامتحان حتى لو لم يكتمل. الرجوع لنفس المحاولة لا يخصم مجددًا؛ إعادة الامتحان تستهلك محاولة جديدة. لكل محاولة سؤالان بحد أقصى، 3 دقائق للسؤال. حد الإطلاق 10 طلاب نشطين للمنصة كلها.",
+                                   "Reserved when an exam starts, even if abandoned. Resuming is free; retakes use another attempt. Up to 2 questions, 3 minutes each. Launch admission is 10 active students across the platform.")}
+                            </p>
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
                                 <span className="text-ink-2">
                                     {isLifetime ? l("الامتحانات التجريبية:", "Trial exams:") : l("امتحانات الشهر:", "Exams this month:")}{" "}
@@ -381,7 +393,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                                 {isFree
                                                     ? l("مجاناً", "Free")
                                                     : isEnterprise
-                                                      ? l(`${p.price_per_student_term_egp ?? 30} ج.م / طالب / ترم`, `${p.price_per_student_term_egp ?? 30} EGP / student / term`)
+                                                      ? l("عرض سعر حسب الاستخدام والسعة", "Quote based on usage and capacity")
                                                       : money(price)}
                                             </p>
                                             <div className="mt-3 space-y-1.5 border-t border-current/15 pt-3 text-xs font-bold">
@@ -399,8 +411,8 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                                     <Users className="size-3.5 text-[#E3A458]" aria-hidden />
                                                     <span>
                                                         {isEnterprise
-                                                            ? l("طلاب حسب الاتفاق", "Custom students")
-                                                            : l(`${p.max_students} طالب في نفس الوقت`, `${p.max_students} students at once`)}
+                                                            ? l("رصيد محاولات حسب الاتفاق", "Contracted attempt allowance")
+                                                            : l(`${p.max_student_attempts} محاولة طالب ${p.exams_reset === "lifetime" ? "للتجربة" : "كل 30 يومًا"}`, `${p.max_student_attempts} student attempts ${p.exams_reset === "lifetime" ? "once" : "every 30 days"}`)}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">

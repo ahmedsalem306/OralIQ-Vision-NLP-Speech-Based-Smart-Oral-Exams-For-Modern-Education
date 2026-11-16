@@ -688,9 +688,14 @@ def test_final_cancellation_keeps_add_on_balance_frozen_and_out_of_the_refund(km
     client, Session, _, _ = km
     uid, h = make_user(Session, "addonfinal@t.com")
     _pay(client, h)
-    r = client.post(f"{API}/checkout", json={"kind": "addon"}, headers=h)
-    ref = r.json()["reference"]
-    _kashier_send(client, _kashier_data(ref, amount=f"{r.json()['amount']}.00"))
+    # Historical purchased link packs remain refundable/frozen even though
+    # new link-only add-on checkout is disabled for launch.
+    from app.models.user import User
+    with Session() as db:
+        db.get(User, uid).bonus_exams = 10
+        db.add(Payment(user_id=uid, kind="addon", plan_id="pro", addon_exams=10,
+                       amount=79, currency="EGP", provider="kashier", status="paid", paid_at=utcnow()))
+        db.commit()
     assert get_user(Session, uid).bonus_exams == 10
     ah = _admin(Session)
     c = _record(client, ah, uid, utcnow())

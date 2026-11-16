@@ -9,6 +9,7 @@ Responsibilities:
   * Activate plans / add-on packs after a verified payment.
 """
 from datetime import datetime, timedelta, timezone
+import os
 from typing import Any, Dict, List, Optional, Set
 
 from fastapi import HTTPException
@@ -71,6 +72,10 @@ def team_member_ids(db: Session, account: User) -> List[int]:
 
 def refresh_account_state(db: Session, account: User) -> User:
     """Expire finished plans and roll the monthly quota cycle forward. Idempotent."""
+
+    # Serialize cycle rollover with credit reservations.
+    db.execute(update(User).where(User.id == account.id).values(id=User.id))
+    db.refresh(account)
     now = utcnow()
     changed = False
     tier = (account.plan_tier or "free").lower()
@@ -80,6 +85,7 @@ def refresh_account_state(db: Session, account: User) -> User:
         account.plan_period = None
         account.cycle_started_at = None
         account.cycle_exams_used = 0
+        account.cycle_attempts_started = 0
         tier = "free"
         changed = True
 
@@ -87,12 +93,14 @@ def refresh_account_state(db: Session, account: User) -> User:
         if account.cycle_started_at is None:
             account.cycle_started_at = account.plan_started_at or now
             account.cycle_exams_used = 0
+            account.cycle_attempts_started = 0
             changed = True
         elapsed = now - account.cycle_started_at
         if elapsed >= timedelta(days=CYCLE_DAYS):
             cycles = elapsed.days // CYCLE_DAYS
             account.cycle_started_at = account.cycle_started_at + timedelta(days=CYCLE_DAYS * cycles)
             account.cycle_exams_used = 0
+            account.cycle_attempts_started = 0
             changed = True
 
     if changed:
@@ -121,6 +129,53 @@ def effective_limits(account: User) -> Dict[str, Any]:
         "assistant_seats": plan["assistant_seats"],
         "lifetime_quota": plan["exams_reset"] == "lifetime",
     }
+
+
+def attempt_limit(account: User) -> int:
+    plan = get_plan(account.plan_tier)
+    custom = account.custom_max_attempts if plan["id"] == "enterprise" else None
+    return max(1, int(custom if custom is not None else plan["max_student_attempts"]))
+
+
+def attempts_used(account: User) -> int:
+    field = account.lifetime_attempts_started if get_plan(account.plan_tier)["exams_reset"] == "lifetime" else account.cycle_attempts_started
+    return int(field or 0)
+
+
+def ensure_attempt_available(account: User) -> None:
+    if attempts_used(account) >= attempt_limit(account):
+        raise QuotaExceeded("STUDENT_ATTEMPT_QUOTA_EXCEEDED",
+                            "رصيد محاولات الطلاب انتهى. تواصل مع المحاضر لتجديد الباقة.",
+                            "The student-attempt allowance is exhausted. Contact your lecturer.",
+                            limit=attempt_limit(account))
+
+
+def consume_student_attempt(db: Session, account: User) -> None:
+    """Reserve one whole exam start; caller commits it with the new sitting.
+
+    Reloads return an existing sitting before this call. Failed inserts roll back
+    this reservation. Deleting an exam never restores credits. Assistants use
+    their owner's row, so concurrent team members cannot overspend the allowance.
+    """
+    if subscription_paused(db, account):
+        raise QuotaExceeded("SUBSCRIPTION_PAUSED", "الاشتراك موقوف مؤقتًا.", "The subscription is paused.")
+    if (get_plan(account.plan_tier)["id"] != "free" and account.plan_expires_at
+            and utcnow() >= account.plan_expires_at):
+        raise QuotaExceeded("SUBSCRIPTION_EXPIRED", "انتهت مدة الاشتراك. المحاولات التي بدأت يمكنها الإكمال.",
+                            "The subscription expired. Existing sittings may finish.")
+    lifetime = get_plan(account.plan_tier)["exams_reset"] == "lifetime"
+    counter = User.lifetime_attempts_started if lifetime else User.cycle_attempts_started
+    values = {User.lifetime_attempts_started: func.coalesce(User.lifetime_attempts_started, 0) + 1}
+    if not lifetime:
+        values[User.cycle_attempts_started] = func.coalesce(User.cycle_attempts_started, 0) + 1
+    result = db.execute(update(User).where(
+        User.id == account.id, func.coalesce(counter, 0) < attempt_limit(account)
+    ).values(values).execution_options(synchronize_session=False))
+    if result.rowcount != 1:
+        raise QuotaExceeded("STUDENT_ATTEMPT_QUOTA_EXCEEDED",
+                            "رصيد محاولات الطلاب انتهى. تواصل مع المحاضر لتجديد الباقة.",
+                            "The student-attempt allowance is exhausted. Contact your lecturer.",
+                            limit=attempt_limit(account))
 
 
 def exams_used(account: User) -> int:
@@ -305,43 +360,55 @@ def _exam_minutes(db: Session, group_token: Optional[str]) -> int:
     return max(1, int(total or 0))
 
 
-def acquire_exam_seat(
-    db: Session, account: User, student_id: Optional[int], student_number: Optional[str],
-    group_token: Optional[str],
-) -> ExamSession:
-    """Hold (or refresh) a seat for this student. Raises 402 when the room is full right now."""
-    now = utcnow()
-    key = _student_identity(student_id, student_number)[:160]
-    window = timedelta(minutes=_exam_minutes(db, group_token) + SEAT_GRACE_MINUTES)
-
-    mine = (
-        _active_sessions_q(db, account.id, now)
-        .filter(ExamSession.student_key == key)
-        .order_by(ExamSession.id.desc())
-        .first()
-    )
-    if mine:
-        if group_token and mine.group_token != group_token:
-            mine.group_token = group_token
-        mine.expires_at = max(mine.expires_at, now + window)
-        db.commit()
-        return mine
-
-    max_seats = effective_limits(account)["max_students"]
-    if max_seats != UNLIMITED and _active_sessions_q(db, account.id, now).count() >= max_seats:
-        raise QuotaExceeded(
-            "CONCURRENT_LIMIT_REACHED",
-            f"الامتحان مليان دلوقتي ({max_seats} طالب بيمتحنوا في نفس الوقت). استنى دقايق وجرّب تاني.",
-            f"The exam room is full right now ({max_seats} students at the same time). Wait a few minutes and try again.",
-            limit=max_seats,
-        )
-    seat = ExamSession(account_id=account.id, student_key=key, group_token=group_token,
-                       started_at=now, expires_at=now + window, finished=False)
-    db.add(seat)
-    db.commit()
-    return seat
-
-
+def acquire_exam_seat(
+    db: Session, account: User, student_id: Optional[int], student_number: Optional[str],
+    group_token: Optional[str],
+    *, commit: bool = True,
+) -> ExamSession:
+    """Hold (or refresh) a seat for this student. Raises 402 when the room is full right now."""
+    db.execute(update(User).where(User.id == account.id).values(id=User.id))
+    if db.get_bind().dialect.name == "postgresql":
+        from sqlalchemy import text
+        db.execute(text("SELECT pg_advisory_xact_lock(721183005)"))
+    now = utcnow()
+    key = _student_identity(student_id, student_number)[:160]
+    window = timedelta(minutes=_exam_minutes(db, group_token) + SEAT_GRACE_MINUTES)
+
+    mine = (
+        _active_sessions_q(db, account.id, now)
+        .filter(ExamSession.student_key == key)
+        .order_by(ExamSession.id.desc())
+        .first()
+    )
+    if mine:
+        if group_token and mine.group_token != group_token:
+            mine.group_token = group_token
+        mine.expires_at = max(mine.expires_at, now + window)
+        db.commit() if commit else db.flush()
+        return mine
+
+    max_seats = effective_limits(account)["max_students"]
+    if max_seats != UNLIMITED and _active_sessions_q(db, account.id, now).count() >= max_seats:
+        raise QuotaExceeded(
+            "CONCURRENT_LIMIT_REACHED",
+            f"الامتحان مليان دلوقتي ({max_seats} طالب بيمتحنوا في نفس الوقت). استنى دقايق وجرّب تاني.",
+            f"The exam room is full right now ({max_seats} students at the same time). Wait a few minutes and try again.",
+            limit=max_seats,
+        )
+    raw_cap = os.environ.get("LAUNCH_MAX_ACTIVE_EXAMS", "10")
+    launch_cap = int(raw_cap) if raw_cap.isdigit() and int(raw_cap) > 0 else 10
+    if db.query(ExamSession.id).filter(ExamSession.finished.is_(False), ExamSession.expires_at > now).count() >= launch_cap:
+        raise HTTPException(503, detail={"code": "LAUNCH_CAPACITY_REACHED",
+                            "message": "الأماكن المتاحة مشغولة حاليًا. حاول بدء الامتحان بعد قليل.",
+                            "message_en": "All launch seats are occupied. Please retry shortly."},
+                            headers={"Retry-After": "30"})
+    seat = ExamSession(account_id=account.id, student_key=key, group_token=group_token,
+                       started_at=now, expires_at=now + window, finished=False)
+    db.add(seat)
+    db.commit() if commit else db.flush()
+    return seat
+
+
 def release_exam_seat(db: Session, account: User, student_id: Optional[int], student_number: Optional[str]) -> None:
     key = _student_identity(student_id, student_number)[:160]
     (
@@ -465,6 +532,7 @@ def grant_plan(user: User, plan_id: str, period: str, now: Optional[datetime] = 
         user.plan_expires_at = now + timedelta(days=days)
         user.cycle_started_at = now
         user.cycle_exams_used = 0
+        user.cycle_attempts_started = 0
     user.plan_period = period
     user.plan_updated_at = now.replace(tzinfo=timezone.utc).isoformat()
 
@@ -544,6 +612,7 @@ def end_subscription(user: User, now: Optional[datetime] = None) -> None:
     user.plan_expires_at = now
     user.cycle_started_at = None
     user.cycle_exams_used = 0
+    user.cycle_attempts_started = 0
     user.plan_updated_at = now.replace(tzinfo=timezone.utc).isoformat()
 
 
@@ -655,6 +724,11 @@ def billing_status(db: Session, user: User) -> Dict[str, Any]:
         "is_team_member": account.id != user.id,
         "billing_owner": {"id": account.id, "email": account.email} if account.id != user.id else None,
         "usage": {
+            "student_attempts_used": attempts_used(account),
+            "student_attempts_limit": attempt_limit(account),
+            "student_attempts_remaining": max(0, attempt_limit(account) - attempts_used(account)),
+            "attempt_consumed_on": "exam_start",
+
             "exams_used": used,
             "exams_limit": max_exams if max_exams != UNLIMITED else 9999,
             "exams_remaining": (max(0, max_exams - used) if max_exams != UNLIMITED else 9999),

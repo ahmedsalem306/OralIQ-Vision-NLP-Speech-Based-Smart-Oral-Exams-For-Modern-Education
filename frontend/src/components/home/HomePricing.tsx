@@ -50,16 +50,16 @@ export function HomePricing({ startHref }: { startHref: string }) {
             priceEgp: 0,
             priceUsd: 0,
             maxExams: l("5 امتحانات (مرة واحدة)", "5 exams (one-time)"),
-            maxStudents: l("50 طالب في نفس الوقت", "50 students at once"),
-            maxDuration: l("دقيقتين / إجابة", "2 min / answer"),
+            maxStudents: l("5 محاولات طلاب للتجربة", "5 trial student attempts"),
+            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
             queueTier: l("طابور معالجة عادي", "Standard AI Queue"),
             featured: false,
             dark: false,
             features: [
-                l("5 امتحانات تجريبية (حتى 3 أسئلة للامتحان)", "5 trial exams (up to 3 questions each)"),
-                l("50 طالب يمتحنوا في نفس الوقت", "50 students taking an exam at once"),
+                l("5 روابط امتحانات تجريبية (حتى سؤالين للامتحان)", "5 trial exam links (up to 2 questions each)"),
+                l("5 محاولات طلاب إجمالًا، حتى 6 دقائق للمحاولة", "5 student attempts total, up to 6 minutes each"),
                 l("تصحيح تلقائي بالمعنى + تفريغ صوتي عربي وإنجليزي", "Semantic AI grading + Arabic & English speech-to-text"),
-                l("مراقبة حيوية بـ 478 نقطة للوجه والعين والصوت", "478-point face, eye-gaze & voiceprint anti-cheat"),
+                l("فحوص هوية ومؤشرات مراقبة مع مراجعة المحاضر", "Identity checks and monitoring indicators for lecturer review"),
             ],
         },
         {
@@ -67,43 +67,43 @@ export function HomePricing({ startHref }: { startHref: string }) {
             badge: l("للمدرسين", "For Teachers"),
             name: l("الباقة الأساسية", "Basic"),
             desc: l(
-                "للمدرس اللي بيعمل كويز شفوي أسبوعي لطلابه — 150 طالب في نفس الوقت.",
-                "For teachers running weekly oral quizzes — 150 students at once.",
+                "للمدرس: رصيد 50 محاولة طالب كل 30 يومًا.",
+                "For teachers: 50 student attempts every 30 days.",
             ),
             priceEgp: 199,
             priceUsd: 4,
             maxExams: l("15 امتحان / شهرياً", "15 exams / month"),
-            maxStudents: l("150 طالب في نفس الوقت", "150 students at once"),
-            maxDuration: l("5 دقائق / إجابة", "5 min / answer"),
+            maxStudents: l("50 محاولة طالب / دورة", "50 student attempts / cycle"),
+            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
             queueTier: l("أولوية معالجة سريعة", "Fast Priority AI Queue"),
             featured: false,
             dark: false,
             features: [
-                l("15 امتحان شهرياً (حتى 5 أسئلة للامتحان)", "15 exams/month (up to 5 questions each)"),
-                l("150 طالب يمتحنوا في نفس الوقت (عدد الطلاب الكلي مفتوح)", "150 students at once (unlimited total students)"),
+                l("15 رابط امتحان لكل دورة (حتى سؤالين للامتحان)", "15 exam links per cycle (up to 2 questions each)"),
+                l("50 محاولة طالب، حتى 6 دقائق للمحاولة", "50 student attempts, up to 6 minutes each"),
                 l("أولوية سريعة في طابور التصحيح", "Fast priority in the AI grading queue"),
-                l("+10 امتحانات إضافية بـ 79 ج.م (ما بتنتهيش)", "+10 extra exams for 79 EGP (never expire)"),
+                l("إعادة فتح نفس المحاولة لا تستهلك رصيدًا جديدًا", "Resuming the same attempt uses no extra credit"),
             ],
         },
         {
             id: "campus",
-            badge: l("الأكثر طلباً للدكاترة والسناتر", "Most Popular"),
+            badge: l("للفرق التعليمية", "For Teaching Teams"),
             name: l("الباقة الاحترافية", "Professional"),
             desc: l(
-                "للدكاترة والسناتر وأصحاب الأعداد الكبيرة — 500 طالب في نفس الوقت و3 مساعدين.",
-                "For lecturers & centers with large cohorts — 500 students at once and 3 assistants.",
+                "رصيد 200 محاولة طالب كل 30 يومًا، مشترك مع 3 مساعدين.",
+                "200 student attempts every 30 days, pooled with 3 assistants.",
             ),
             priceEgp: 599,
             priceUsd: 12,
             maxExams: l("30 امتحان / شهرياً", "30 exams / month"),
-            maxStudents: l("500 طالب في نفس الوقت", "500 students at once"),
-            maxDuration: l("10 دقائق / إجابة", "10 min / answer"),
+            maxStudents: l("200 محاولة طالب / دورة", "200 student attempts / cycle"),
+            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
             queueTier: l("أولوية قصوى (VIP)", "VIP AI Queue"),
             featured: true,
             dark: true,
             features: [
-                l("30 امتحان شهرياً (حتى 15 سؤال للامتحان)", "30 exams/month (up to 15 questions each)"),
-                l("500 طالب يمتحنوا في نفس الوقت (عدد الطلاب الكلي مفتوح)", "500 students at once (unlimited total students)"),
+                l("30 رابط امتحان لكل دورة (حتى سؤالين للامتحان)", "30 exam links per cycle (up to 2 questions each)"),
+                l("200 محاولة طالب، حتى 6 دقائق للمحاولة", "200 student attempts, up to 6 minutes each"),
                 l("3 حسابات مساعدين (معيدين / مدرسين في السنتر)", "3 assistant accounts (TAs / center teachers)"),
                 l("أولوية قصوى وقت الذروة + تحليلات متقدمة", "VIP peak-time priority + advanced analytics"),
             ],
@@ -113,22 +113,22 @@ export function HomePricing({ startHref }: { startHref: string }) {
             badge: l("مدارس وجامعات", "Schools & Universities"),
             name: l("باقة المؤسسات", "Enterprise"),
             desc: l(
-                "للمدارس والجامعات والمعاهد — سعر بالطالب وحدود حسب حجم مؤسستك.",
-                "For schools, universities and institutes — priced per student, sized to you.",
+                "حجم استخدام وسعة متزامنة يتحددان بعرض سعر وقياس قبل التفعيل.",
+                "Usage and concurrent capacity agreed and measured before activation.",
             ),
             priceEgp: -1,
             priceUsd: -1,
             maxExams: l("حسب الاتفاق", "Custom"),
-            maxStudents: l("أكتر من 500 طالب", "500+ students"),
-            maxDuration: l("15 دقيقة / إجابة", "15 min / answer"),
-            queueTier: l("معالجة فورية", "Instant AI"),
+            maxStudents: l("محاولات حسب العقد", "Contracted attempts"),
+            maxDuration: l("3 دقائق / إجابة", "3 min / answer"),
+            queueTier: l("أولوية حسب السعة", "Capacity-based priority"),
             featured: false,
             dark: false,
             features: [
-                l("30 ج.م للطالب في الترم (حد أدنى 150 طالب)", "30 EGP per student per term (min. 150 students)"),
-                l("حتى 20 سؤال للامتحان ومدرسين غير محدود", "Up to 20 questions per exam, unlimited teachers"),
-                l("لوحة تحكم للمؤسسة وتقارير شاملة", "Institution dashboard & reports"),
-                l("فاتورة رسمية + إمكانية الربط عبر API / LTI", "Official invoicing + optional API / LTI integration"),
+                l("رصيد محاولات محدد للمؤسسة حسب الاتفاق", "A bounded attempt allowance agreed for the institution"),
+                l("حتى سؤالين، و6 دقائق للمحاولة", "Up to 2 questions and 6 minutes per attempt"),
+                l("رصيد مشترك للمحاضر ومساعديه", "Shared allowance for the lecturer and assistants"),
+                l("تحديد جدول الامتحانات قبل التشغيل بأعداد كبيرة", "Schedule large cohorts before rollout"),
             ],
         },
     ];
@@ -166,9 +166,13 @@ export function HomePricing({ startHref }: { startHref: string }) {
                     </h2>
                     <p className="mt-4 max-w-2xl text-base sm:text-lg font-medium text-ink-2 leading-relaxed">
                         {l(
-                            "اختار الباقة حسب عدد طلابك وامتحاناتك في الشهر. الامتحان الواحد ممكن يكون فيه أكتر من سؤال، ونفس الامتحان يتبعت لكل مجموعاتك ويتحسب مرة واحدة.",
-                            "Pick a plan by how many students and exams you have per month. One exam can hold several questions, and the same exam can be sent to all your groups while counting once.",
+                            "محاولة واحدة = طالب يبدأ امتحانًا من سؤالين بحد أقصى، 3 دقائق لكل سؤال. تُحجز عند البدء حتى لو لم يُكمل؛ الرجوع لنفس المحاولة لا يخصم مجددًا، وإعادة الامتحان محاولة جديدة. الرصيد المدفوع يتجدد كل 30 يومًا ولا يُرحّل. حد الإطلاق الحالي 10 طلاب نشطين للمنصة كلها؛ ظهور النتيجة حسب الطابور.",
+                            "One attempt starts one student's exam: up to 2 questions, 3 minutes each. Reserved on start even if abandoned; resuming is free, a retake uses another attempt. Paid allowances reset every 30 days without rollover. Launch admission is 10 active students across the platform; results depend on the queue.",
                         )}
+                    </p>
+                    <p className="mt-2 max-w-2xl text-xs text-ink-2">
+                        {l("إعادة المعالجة اليدوية لإجابة فشل تصحيحها تستهلك محاولة إضافية؛ انتظار الطابور وإعادات المعالجة التلقائية لا تخصم محاولات إضافية.",
+                           "Manually reprocessing a failed answer uses another attempt; queue waits and automatic processing retries use no extra attempt credits.")}
                     </p>
 
                     {/* Currency & Cycle Switchers */}
@@ -286,7 +290,7 @@ export function HomePricing({ startHref }: { startHref: string }) {
                                     <div className={`rounded-2xl p-3 ${p.dark ? "bg-black/25 border border-white/10" : "bg-sheet-2 border border-rule"}`}>
                                         <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-75">
                                             <Users className="size-3.5 text-[#E3A458]" aria-hidden />
-                                            <span>{l("عدد الطلاب", "Students")}</span>
+                                            <span>{l("محاولات الطلاب", "Student attempts")}</span>
                                         </div>
                                         <p className="mt-1 text-xs sm:text-sm font-extrabold">{p.maxStudents}</p>
                                     </div>

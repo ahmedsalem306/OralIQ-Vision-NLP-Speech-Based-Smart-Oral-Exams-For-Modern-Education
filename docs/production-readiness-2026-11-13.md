@@ -294,6 +294,19 @@ No production database or real student's biometric data was inspected.
 
 ## Server handoff
 
+November 16 launch-pricing preparation: the owner specified USD 20/month for the
+server. Basic 199 EGP / 50 student attempts and Professional 599 EGP / 200 per
+30-day cycle now have atomic cumulative credit admission, separate from link
+and concurrent-seat limits. Free allows five starts lifetime; shared launch
+admission defaults to ten active students across the entire service. Two
+questions/three minutes each bound the offered audio, with a 180-second speech
+decode cap. Existing sittings may finish after credit exhaustion/paid expiry;
+failed admission reserves neither a seat nor a credit. Full final Linux suite:
+**488 passed, no skips**, including real PostgreSQL financial/admission races.
+Frontend typecheck/lint/build and 16 Node tests pass. Prices/allowances are
+prepared in source, not deployed publicly. No paid service or weight license was
+activated. [Budget, margins, source evidence and rollout limits](launch-pricing-2026-11-16.md).
+
 Provide only the server's public IP, intended frontend/API domains and OS here. Do not paste
 passwords, private keys or production `.env` values into chat. Arrange existing SSH key access
 or enter credentials locally when needed. Confirm whether the current database contains real

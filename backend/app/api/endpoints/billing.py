@@ -51,6 +51,7 @@ class AdminGrantRequest(BaseModel):
     months: int = Field(default=1, ge=1, le=36)
     custom_max_exams: Optional[int] = Field(default=None, ge=0)
     custom_max_students: Optional[int] = Field(default=None, ge=0)
+    custom_max_attempts: Optional[int] = Field(default=None, ge=1, le=100000)
     bonus_exams: int = Field(default=0, ge=0, le=10000)
     amount: int = Field(default=0, ge=0)
     currency: str = Field(default="EGP", max_length=8)
@@ -703,6 +704,8 @@ def admin_grant(
         target.custom_max_exams = payload.custom_max_exams
     if payload.custom_max_students is not None:
         target.custom_max_students = payload.custom_max_students
+    if payload.custom_max_attempts is not None:
+        target.custom_max_attempts = payload.custom_max_attempts
     if payload.bonus_exams:
         target.bonus_exams = int(target.bonus_exams or 0) + payload.bonus_exams
 

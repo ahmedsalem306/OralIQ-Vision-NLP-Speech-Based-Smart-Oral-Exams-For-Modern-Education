@@ -9,7 +9,7 @@ from app.services import exam_sessions
 ENROLLED = {"voice_embedding": json.dumps([0.1] * 256), "face_embedding": json.dumps([0.01] * 512)}
 
 
-def new_exam(db, creator_id=None, duration=5, max_attempts=1, **fields) -> Question:
+def new_exam(db, creator_id=None, duration=3, max_attempts=1, **fields) -> Question:
     q = Question(text=fields.pop("text", "سؤال"), model_answer=fields.pop("model_answer", "إجابة"),
                  keywords=fields.pop("keywords", ""), creator_id=creator_id, duration_minutes=duration,
                  max_attempts=max_attempts, **fields)

@@ -171,12 +171,17 @@ def exam_access_check(
     if sitting is None:
         exam_sessions.check_can_start(db, current_user, key)
     creator = db.query(User).filter(User.id == question.creator_id).first() if question.creator_id else None
+    account = None
     if creator is not None:
         account = bs.get_billing_account(db, creator)
         bs.refresh_account_state(db, account)
-        bs.acquire_exam_seat(db, account, current_user.id, None, key)
+        if sitting is None:
+            bs.ensure_attempt_available(account)
+        # New seats and credits commit with the sitting; failed admission reserves neither.
+        bs.acquire_exam_seat(db, account, current_user.id, None, key, commit=sitting is not None)
     if sitting is None:
-        sitting = exam_sessions.start_or_resume(db, current_user, key)
+        sitting = exam_sessions.start_or_resume(db, current_user, key, billing_account=account)
+        db.commit()
     return {"allowed": True, "session": exam_sessions.describe(db, sitting)}
 
 
@@ -458,6 +463,15 @@ def regrade_submission(
     job = db.query(GradingJob).filter(GradingJob.submission_id == sub.id).first()
     if job is None or job.status != gq.FAILED:
         raise HTTPException(status_code=409, detail="Only an answer whose grading failed can be re-graded")
+    # A fresh manual retry batch reserves another attempt, preventing unlimited
+    # paid transcription retries through this endpoint. Provider quota waits do
+    # not call this endpoint and never consume another student attempt.
+    question = db.get(Question, sub.question_id)
+    creator = db.get(User, question.creator_id) if question and question.creator_id else None
+    if creator is not None:
+        account = bs.get_billing_account(db, creator)
+        bs.refresh_account_state(db, account)
+        bs.consume_student_attempt(db, account)
     if not gq.requeue_failed(db, job):
         raise HTTPException(status_code=410, detail="The recording of this answer is no longer kept")
     db.refresh(sub)
