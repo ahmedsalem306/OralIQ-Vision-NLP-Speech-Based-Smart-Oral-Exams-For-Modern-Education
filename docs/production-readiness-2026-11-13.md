@@ -269,6 +269,18 @@ No production database or real student's biometric data was inspected.
   Production routing/provider/limits/pricing remain unchanged. See the
   [integration pilot](groq-integration-pilot-2026-11-16.md).
 
+- November 16 Arabic scoring follow-up: semantic comparison now keeps negation,
+  quantities and names rather than using the keyword layer's phonetic/stemming
+  reductions as embedding input. Conservative orthography and one context-bound AI
+  spelling alias preserve original stored transcripts. Local focused tests **19
+  passed**; full Linux suite **469 passed, no skipped tests**. Six offline real
+  cached-SBERT comparisons confirmed the typo handling and off-topic rejection,
+  while exposing remaining entailment/quantity limitations (negated/changed-number
+  diagnostics still over-score). Lecturer review/calibration remains necessary;
+  these are similarity grades, not certified factual grading. Only the private
+  owner-preview worker was upgraded; historical grades and production stay intact.
+  See [details and measured limitations](arabic-scoring-normalization-2026-11-16.md).
+
 ## Server handoff
 
 Provide only the server's public IP, intended frontend/API domains and OS here. Do not paste

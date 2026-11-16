@@ -2,6 +2,7 @@ import re
 import threading
 import time
 import traceback
+from app.services.arabic_text import scoring_text
 
 
 class NLPAnalyzer:
@@ -70,7 +71,9 @@ class NLPAnalyzer:
         return word
 
     def _normalize_text(self, text: str) -> str:
-        words = re.findall(r"[\u0621-\u064AA-Za-z]+", text or "")
+        # This broad phonetic/token matching is only a secondary keyword signal.
+        # It must never be the text sent to the semantic encoder (negation/numbers).
+        words = re.findall(r"[\u0621-\u064AA-Za-z]+", scoring_text(text))
         cleaned = []
         for w in words:
             nw = self._normalize_word(w.lower() if w.isascii() else w)
@@ -130,7 +133,7 @@ class NLPAnalyzer:
 
         pairs = [
             (student_answer, model_answer),
-            (self._normalize_text(student_answer), self._normalize_text(model_answer)),
+            (scoring_text(student_answer), scoring_text(model_answer)),
         ]
         # Deduplicate identical normalized pairs
         seen = set()
