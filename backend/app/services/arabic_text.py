@@ -11,10 +11,13 @@ _ORTHOGRAPHY = str.maketrans({'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ٱ': 'ا', '�
 # A fixed, context-bound spelling alias. Never derive substitutions from a
 # reference answer or guess university/person names and technical quantities.
 _AI_TYPO = re.compile(r'(?<!\w)((?:[وبفك])?(?:ال)?ذكاء)\s+((?:ال)?)(?:استناع[يى]|اصتناع[يى]|اصطناعى)(?!\w)')
+_ORAL_EXAM_TYPO = re.compile(r'(?<!\w)((?:[وبفك])?(?:ال)?امتحان(?:ات)?)\s+((?:ال)?)شبهوي([ةه]?)(?!\w)')
 
 
 def scoring_text(text: str) -> str:
     value = unicodedata.normalize('NFC', text or '')
     value = _MARKS.sub('', value).translate(_ORTHOGRAPHY)
     value = _AI_TYPO.sub(lambda match: match[1] + ' ' + match[2] + 'اصطناعي', value)
+    value = _ORAL_EXAM_TYPO.sub(
+        lambda match: match[1] + ' ' + match[2] + 'شفوي' + ('ة' if match[3] else ''), value)
     return ' '.join(value.split())

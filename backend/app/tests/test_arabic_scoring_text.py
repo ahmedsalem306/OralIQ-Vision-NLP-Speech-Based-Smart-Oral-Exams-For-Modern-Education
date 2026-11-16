@@ -14,6 +14,11 @@ from app.services.nlp_ai import NLPAnalyzer
     ('الذَّكَاءُ الاصْطِنَاعِيّ', 'الذكاء الاصطناعي'),
     ('التعــليم الإلكتروني', 'التعليم الالكتروني'),
     ('\nتعليم\t  إلكتروني  ', 'تعليم الكتروني'),
+    ('الامتحانات الشبهويه', 'الامتحانات الشفوية'),
+    ('الامتحانات الشبهويّة', 'الامتحانات الشفوية'),
+    ('والامتحانات الشبهويه في الجامعة', 'والامتحانات الشفوية في الجامعة'),
+    ('امتحان شبهوي', 'امتحان شفوي'),
+    ('ليست الامتحانات الشبهويه ٣٠ امتحانا', 'ليست الامتحانات الشفوية ٣٠ امتحانا'),
 ])
 def test_bounded_spelling_and_orthography(source, expected):
     assert scoring_text(source) == expected
@@ -35,6 +40,8 @@ def test_meaning_bearing_words_names_and_quantities_survive(text):
 def test_ambiguous_single_word_is_never_guessed_from_reference():
     assert scoring_text('استناعي خارج السياق') == 'استناعي خارج السياق'
     assert scoring_text('هو طالب في جامعة الدلتا') == 'هو طالب في جامعة الدلتا'
+    assert scoring_text('الشبهويه خارج السياق') == 'الشبهويه خارج السياق'
+    assert scoring_text('النظرية الشبهويه') == 'النظرية الشبهويه'
 
 
 def test_encoder_receives_negation_and_numbers_in_every_pair(monkeypatch):

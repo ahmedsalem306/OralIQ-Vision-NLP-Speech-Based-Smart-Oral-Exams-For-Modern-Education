@@ -12,7 +12,8 @@ negation and quantities or collapse distinct Arabic letters and names.
 
 The semantic encoder now receives the original and a conservative alternative:
 NFC, Arabic vowel-mark/tatweel cleanup, common alef spelling normalization and a
-fixed context-bound alias such as `ذكاء استناعي` to `ذكاء اصطناعي`. Negation,
+fixed context-bound aliases such as `ذكاء استناعي` to `ذكاء اصطناعي` and
+`الامتحانات الشبهويه` to `الامتحانات الشفوية`. Negation,
 quantities, word order and other spelling are preserved. Standalone ambiguous
 words and university/person names are not guessed from a reference answer.
 
@@ -60,3 +61,10 @@ worker; the private owner-preview worker was updated after validation. Previousl
 saved grades/transcripts are not modified. Production and the
 public frontend remain unchanged. Detailed probe reports are private artifacts
 under ignored `loadtest-artifacts/nlp-20261116/`.
+
+Follow-up after the 469-test run: the owner identified the oral-exam typo in a
+second browser transcript. Its narrowly scoped alias preserves the surrounding
+negation/quantity and does not rewrite the same word in unrelated contexts.
+Focused normalization/transcription regressions: **24 passed**. Offline checks
+on the resulting Linux image passed before replacing only the private preview
+worker. The earlier full-suite number is not a new full-suite run for this alias.
