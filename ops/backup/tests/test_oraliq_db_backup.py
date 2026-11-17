@@ -178,7 +178,8 @@ def test_7_restore_into_an_empty_test_database(env, monkeypatch, capsys):
     monkeypatch.setenv("RESTORE_DATABASE_URL", TARGET_URL)
     assert tool.main(["restore", backups(env)[0]]) == 0
     restore_call = [c for c in calls(env) if c.get("restore")][0]
-    assert "--single-transaction" in restore_call["args"] and "--clean" not in restore_call["args"]
+    assert "--single-transaction" in restore_call["args"] and "--clean" in restore_call["args"]
+    assert "--if-exists" in restore_call["args"]
     assert "--dbname=oraliq_restore_test" in restore_call["args"]
     out = capsys.readouterr().out
     assert '"tables_restored": 3' in out and '"public.users": 5' in out
@@ -196,6 +197,14 @@ def test_7b_an_existing_database_is_not_overwritten_without_explicit_confirmatio
     assert "already has 12 tables" in capsys.readouterr().out
     assert tool.main(["restore", name, "--replace-existing", "--confirm", "oraliq_restore_test"]) == 0
     assert "--clean" in [c for c in calls(env) if c.get("restore")][0]["args"]
+
+
+def test_empty_of_tables_but_not_schema_objects_requires_confirmation(env, monkeypatch):
+    assert tool.main(["backup"]) == 0
+    monkeypatch.setenv("RESTORE_DATABASE_URL", TARGET_URL)
+    monkeypatch.setenv("FAKE_TARGET_OBJECT_COUNT", "1")
+    assert tool.main(["restore", backups(env)[0]]) == tool.EXIT_REFUSED
+    assert not [call for call in calls(env) if call.get("restore")]
 
 
 def test_7c_the_source_database_is_refused_as_a_target(env, monkeypatch, capsys):
@@ -330,6 +339,7 @@ def test_only_one_backup_runs_at_a_time(env, capsys):
 
 def test_backup_dir_must_be_outside_app_and_temp(env, monkeypatch, capsys):
     monkeypatch.undo()  # restore the real _forbidden_roots
+    monkeypatch.delenv("BACKUP_APP_DIR", raising=False)  # test the default source-layout guard
     monkeypatch.setitem(tool.TOOLS, "psql", [sys.executable, FAKE, "psql"])
     monkeypatch.setenv("BACKUP_DATABASE_URL", SOURCE_URL)
     monkeypatch.setenv("BACKUP_DIR", str(Path(tempfile.gettempdir()) / "oraliq-forbidden-backup"))
@@ -377,6 +387,16 @@ def test_offsite_copy_success_failure_and_requirement(env, monkeypatch):
     monkeypatch.delenv("BACKUP_UPLOAD_COMMAND")
     monkeypatch.setenv("BACKUP_REQUIRE_OFFSITE", "1")
     assert tool.main(["backup"]) == 3
+
+
+def test_missing_required_offsite_hook_keeps_every_old_backup(env, monkeypatch):
+    directory = env["dir"]
+    directory.mkdir(mode=0o700)
+    old = [make_old_backup(directory, age, tool._utcnow()) for age in (40, 50, 60)]
+    monkeypatch.setenv("BACKUP_MIN_KEEP", "1")
+    monkeypatch.setenv("BACKUP_REQUIRE_OFFSITE", "1")
+    assert tool.main(["backup"]) == tool.EXIT_OFFSITE_FAILED
+    assert all((directory / name).exists() for name in old)
 
 
 def test_an_empty_archive_is_not_accepted(env, monkeypatch, capsys):

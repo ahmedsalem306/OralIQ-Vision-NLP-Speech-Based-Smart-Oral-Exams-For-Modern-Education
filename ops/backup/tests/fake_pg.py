@@ -84,6 +84,8 @@ if tool == "psql":
         print(os.environ.get("FAKE_SERVER_NUM", "160004"))
     elif "information_schema.tables" in sql:
         print(os.environ.get("FAKE_TARGET_TABLE_COUNT", "0"))
+    elif "pg_catalog.pg_depend" in sql:
+        print(os.environ.get("FAKE_TARGET_OBJECT_COUNT", "0"))
     elif sql.startswith("select count(*) from"):
         state = os.environ.get("FAKE_STATE")
         restored = json.load(open(state)) if state and os.path.exists(state) else []

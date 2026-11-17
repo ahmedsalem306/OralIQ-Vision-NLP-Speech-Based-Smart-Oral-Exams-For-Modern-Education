@@ -1,0 +1,10 @@
+[Unit]
+Description=OralIQ daily encrypted off-site backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Africa/Cairo
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

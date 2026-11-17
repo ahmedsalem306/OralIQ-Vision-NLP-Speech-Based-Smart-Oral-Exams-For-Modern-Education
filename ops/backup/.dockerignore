@@ -1,0 +1,10 @@
+__pycache__
+**/__pycache__
+.pytest_cache
+*.pyc
+*.env
+*.asc
+*.key
+*.gpg
+*.dump*
+*.log

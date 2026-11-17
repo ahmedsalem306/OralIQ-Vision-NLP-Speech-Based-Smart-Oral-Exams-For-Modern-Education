@@ -88,6 +88,11 @@ exam/grade and biometric-template data (plus any queued audio), not exam videos.
 No external storage account or credentials have been supplied. Do not describe
 the backup requirement as complete or block normal exams on a paid speech plan.
 
+Later on November 17, [encrypted backup preparation](offsite-backup-2026-11-17.md)
+verified recovery with an owner-held local key and all 20 tables. The private
+recovery export is now local and the public-key-only server job is prepared;
+B2 account/credential setup and actual cloud upload/recovery remain pending.
+
 Kashier Live activation, external backup storage and alert delivery, a human
 Google sign-in/camera rehearsal, and representative class-size testing remain
 separate launch work. Remove `payments-maintenance` only after live gateway

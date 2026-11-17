@@ -1,0 +1,34 @@
+name: oraliq-offsite
+
+services:
+  backup:
+    image: oraliq-backup:offsite-20261117
+    build:
+      context: ..
+      dockerfile: contabo/Dockerfile
+      target: runtime
+    env_file:
+      - /etc/oraliq-backup/backup.env
+      - /etc/oraliq-backup/storage.env
+    volumes:
+      - /var/backups/oraliq/encrypted:/backups
+      - /etc/oraliq-backup/recipient.asc:/run/secrets/recipient.asc:ro
+      - /srv/oraliq/deploy/contabo/.env:/run/secrets/application.env:ro
+      - /srv/oraliq/deploy/contabo/compose.yaml:/run/config/compose.yaml:ro
+      - /srv/oraliq/deploy/contabo/compose.nginx.yaml:/run/config/compose.nginx.yaml:ro
+    networks: [database, outbound]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=128m,mode=1777
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    cpus: 0.75
+    mem_limit: 512m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: "5m", max-file: "2"}
+
+networks:
+  database: {external: true, name: oraliq_database}
+  outbound: {external: true, name: oraliq_default}

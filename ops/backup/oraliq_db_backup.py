@@ -464,7 +464,9 @@ def apply_retention(d: Path, now: Optional[_dt.datetime] = None) -> List[str]:
         except (KeyError, ValueError):
             continue
         if created < cutoff:
-            for f in (p, p.with_name(p.name + ".sha256"), p.with_name(p.name + ".json")):
+            suffixes = ("", ".sha256", ".json", ".config.tar.gz.gpg",
+                        ".config.tar.gz.gpg.sha256", ".complete.json")
+            for f in (p.with_name(p.name + suffix) for suffix in suffixes):
                 try:
                     f.unlink()
                 except FileNotFoundError:
@@ -549,12 +551,13 @@ def cmd_backup() -> int:
                 tables=len(contents["tables"]), seconds=round((_utcnow() - started).total_seconds(), 1))
 
             offsite = _hook("BACKUP_UPLOAD_COMMAND", str(final), str(final) + ".sha256", str(final) + ".json")
-            if offsite in (None, 0):
+            require_offsite = os.environ.get("BACKUP_REQUIRE_OFFSITE", "").strip() == "1"
+            if offsite == 0 or (offsite is None and not require_offsite):
                 removed = apply_retention(d)
                 if removed:
                     log("retention_pruned", removed=removed)
             else:
-                log("retention_skipped", reason="off-site copy failed; keeping every local backup")
+                log("retention_skipped", reason="required off-site copy missing or failed; keeping every local backup")
             if offsite is None:
                 log("offsite_not_configured", warning="backup exists only on this server; set BACKUP_UPLOAD_COMMAND")
                 if os.environ.get("BACKUP_REQUIRE_OFFSITE", "").strip() == "1":
@@ -675,11 +678,24 @@ def cmd_restore(file_arg: str, target_env: str, replace: bool, confirm: Optional
             raise BackupError("refused", f"target database {target.dbname} already has {existing} tables; nothing was "
                                          f"changed. To overwrite it, pass --replace-existing --confirm {target.dbname}")
 
+        # A schema can contain sequences/functions/types even when it has no tables.
+        # Do not clean those away without the same explicit replacement confirmation.
+        other_objects = 0
+        if not existing:
+            other_objects = int(psql(target,
+                "SELECT count(*) FROM pg_catalog.pg_depend d "
+                "JOIN pg_catalog.pg_namespace n ON d.refclassid='pg_catalog.pg_namespace'::regclass "
+                f"AND d.refobjid=n.oid WHERE n.nspname in ({in_list})", "connect") or 0)
+        if other_objects and not (replace and confirm == target.dbname):
+            raise BackupError("refused", f"target database {target.dbname} already has schema objects; nothing was "
+                                         f"changed. To overwrite it, pass --replace-existing --confirm {target.dbname}")
+
         args = ["--no-owner", "--no-privileges", "--exit-on-error", "--single-transaction", "--no-password",
-                f"--dbname={target.dbname}"]
-        if existing:
-            args += ["--clean", "--if-exists"]
-        log("restore_started", file=path.name, target_database=target.dbname, replacing_existing=bool(existing))
+                "--clean", "--if-exists", f"--dbname={target.dbname}"]
+        # Even a fresh PostgreSQL database contains public. A schema-filtered dump
+        # creates it again, so remove/recreate archive objects within one transaction.
+        log("restore_started", file=path.name, target_database=target.dbname,
+            replacing_existing=bool(existing or other_objects))
         err_file = tempfile.TemporaryFile()
         try:
             proc = subprocess.Popen(tool("pg_restore") + args, env=target.env(), stdin=subprocess.PIPE,

@@ -1,0 +1,17 @@
+[Unit]
+Description=OralIQ encrypted PostgreSQL and configuration backup to Backblaze B2
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/oraliq-backup
+ExecStart=/usr/bin/docker compose -f /opt/oraliq-backup/source/contabo/compose.yaml run --rm --no-deps -T backup
+TimeoutStartSec=3h
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+StandardOutput=journal
+StandardError=journal
