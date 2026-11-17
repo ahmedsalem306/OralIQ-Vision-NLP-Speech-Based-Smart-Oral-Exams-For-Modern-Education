@@ -1,9 +1,10 @@
 # Production and privacy review — 2026-11-13
 
-**Latest state, November 16:** the Contabo frontend is live at
+**Latest state, November 17:** the Contabo frontend is live at
 https://oralliq.com with verified apex/www HTTPS. The private API candidate is
 healthy with Groq Large V3 selected under conservative free-tier ceilings;
-public account/exam requests remain maintenance 503.
+public account routes are open; exam, biometric and checkout requests remain 503.
+[Account access and live technical SEO checks](seo-auth-2026-11-17.md).
 [Current configuration, validation and outstanding work](contabo-two-minute-2026-11-16.md)
 supersede earlier dated observations below.
 

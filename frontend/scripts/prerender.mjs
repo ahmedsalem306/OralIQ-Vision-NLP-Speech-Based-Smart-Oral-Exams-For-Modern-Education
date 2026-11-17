@@ -1,80 +1,62 @@
-// Writes the home page's HTML into dist/index.html (served at "/") and keeps the plain shell as
-// dist/app.html (served for every other route) after the two builds in `npm run build`:
-//   vite build --manifest                                   -> dist/ (the app) + dist/.vite/manifest.json
-//   vite build --ssr src/entry-prerender.tsx --outDir dist-ssr -> the same app, renderable in Node
-// Only "/" is rendered. It is public and identical for every visitor; signed-in pages and
-// exam links are never rendered here. index.html's head script and src/main.tsx decide per
-// visit whether to adopt this HTML (hydrate) or hide it and draw from scratch.
+// Render public pages at build time. Account pages and token URLs get app.html.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const root = fs.realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const dist = path.join(root, "dist");
 const ssrDir = path.join(root, "dist-ssr");
-const indexPath = path.join(dist, "index.html");
 const manifestDir = path.join(dist, ".vite");
-
-const fail = (msg) => { console.error(`prerender: ${msg}`); process.exit(1); };
-
+const shell = fs.readFileSync(path.join(dist, "index.html"), "utf8");
+const canonical = shell.match(/<link rel="canonical" href="([^"]+)"/);
+if (!canonical || !shell.includes('<div id="root"></div>')) throw new Error("Invalid HTML build shell");
+const site = new URL(canonical[1]).origin;
 const { render } = await import(pathToFileURL(path.join(ssrDir, "entry-prerender.js")).href);
-// React puts image preload hints in front of a fragment render. They are not part of the tree the
-// browser hydrates, and index.html already preloads the hero photos on "/", so they go.
-const appHtml = (await render("/")).replace(/^(?:<link rel="preload" as="image"[^>]*\/>)+/, "");
-if (appHtml.startsWith("<link")) fail("unexpected tags in front of the rendered app");
+fs.writeFileSync(path.join(dist, "app.html"), shell);
 
-// Sanity: the real home page came out (headline, all six section anchors), not a loader or an error
-for (const needle of ["أول منصة عربية", 'id="about"', 'id="video"', 'id="integrate"', 'id="contact"', 'id="main"']) {
-    if (!appHtml.includes(needle)) fail(`rendered HTML is missing ${needle}`);
+const pages = [
+    { route: "/", title: null, description: null },
+    { route: "/privacy-policy", title: "خصوصية الامتحان والبيانات — OralIQ",
+      description: "سياسة خصوصية OralIQ: الكاميرا دون تسجيل فيديو، ومعالجة الإجابات الصوتية لدى Groq، والبصمات والاحتفاظ بالبيانات وطلبات الحذف." },
+    { route: "/refund-policy", title: "سياسة الاسترجاع والإلغاء — OralIQ",
+      description: "سياسة استرجاع وإلغاء اشتراكات OralIQ وطرق التواصل لطلب مراجعة المدفوعات." },
+];
+
+const escapeAttribute = (value) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
+for (const page of pages) {
+    const markup = (await render(page.route)).replace(/^(?:<link\b[^>]*rel="preload"[^>]*\/>)+/, "");
+    if (!markup.includes("<main") && !markup.includes('id="main"')) throw new Error(`Empty public page: ${page.route}`);
+    if (page.route === "/") {
+        for (const needle of ['id="about"', 'id="contact"', 'id="privacy"']) {
+            if (!markup.includes(needle)) throw new Error(`Homepage missing ${needle}`);
+        }
+    }
+    let html = shell.replace('<div id="root"></div>', () => `<div id="root" data-prerendered>${markup}</div>`);
+    const url = `${site}${page.route}`;
+    html = html.replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
+        .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`);
+    if (page.title) {
+        html = html.replace(/<title>[^<]*<\/title>/, `<title>${page.title}</title>`)
+            .replace(/(<meta (?:property="og:title"|name="twitter:title") content=")[^"]*(")/g, `$1${escapeAttribute(page.title)}$2`)
+            .replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "")
+            .replace(/\s*<link rel="alternate"[^>]*>/g, "")
+            .replace(/\s*<noscript>[\s\S]*?<\/noscript>/, "");
+    }
+    if (page.description) {
+        html = html.replace(/(<meta (?:name="description"|property="og:description"|name="twitter:description") content=")[^"]*(")/g,
+            `$1${escapeAttribute(page.description)}$2`);
+    }
+    const directory = page.route === "/" ? dist : path.join(dist, page.route.slice(1));
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(path.join(directory, "index.html"), html);
+    console.log(`prerender: ${page.route} (${Math.round(markup.length / 1024)} KB markup)`);
 }
 
-let html = fs.readFileSync(indexPath, "utf8");
-if (!html.includes('<div id="root"></div>')) fail("dist/index.html has no empty #root (already pre-rendered?)");
-
-// Every other route keeps the plain, light shell (vercel.json rewrites them to /app.html), so
-// sign-in, dashboards and exam links do not download the home page's markup
-fs.writeFileSync(path.join(dist, "app.html"), html);
-
-// The home page's own chunks, so "/" can fetch them alongside the main bundle
-const manifest = JSON.parse(fs.readFileSync(path.join(manifestDir, "manifest.json"), "utf8"));
-const landingKey = Object.keys(manifest).find((k) => k.endsWith("src/pages/LandingPage.tsx"));
-if (!landingKey) fail("LandingPage not found in the build manifest");
-const chunks = new Set();
-const walk = (key) => {
-    const entry = manifest[key];
-    if (!entry || entry.isEntry || chunks.has(`/${entry.file}`)) return;
-    chunks.add(`/${entry.file}`);
-    (entry.imports || []).forEach(walk);
-};
-walk(landingKey);
-
-const head = `
-  <style>
-    /* Pre-rendered home page (scripts/prerender.mjs). A visit that cannot adopt it hides it before the first paint. */
-    html[data-prerender="skip"] #root[data-prerendered] { display: none; }
-    /* Until GSAP takes over, the hero's entrance pieces wait in their hidden starting state, as they do
-       without pre-rendering. If the scripts never arrive they show anyway after a few seconds. */
-    @media (prefers-reduced-motion: no-preference) {
-      html[data-prerender="hydrate"] :is([data-hero-line], [data-hero-fade], [data-piece-enter]) {
-        opacity: 0;
-        animation: oiq-prerender-reveal 0s 6s forwards;
-      }
+// Verify both resolved targets before recursive cleanup on Windows.
+for (const target of [ssrDir, manifestDir]) {
+    const resolved = fs.realpathSync(target);
+    if (resolved !== path.resolve(target) || !resolved.startsWith(`${root}${path.sep}`)) {
+        throw new Error(`Refusing cleanup outside frontend: ${target}`);
     }
-    @keyframes oiq-prerender-reveal { to { opacity: 1; } }
-  </style>
-  <script>
-    // Home page: fetch its own code alongside the main bundle instead of after it
-    if (location.pathname === "/") ${JSON.stringify([...chunks])}.forEach(function (href) {
-      var link = document.createElement("link"); link.rel = "modulepreload"; link.href = href; document.head.appendChild(link);
-    });
-  </script>
-</head>`;
-
-html = html.replace("</head>", () => head).replace('<div id="root"></div>', () => `<div id="root" data-prerendered>${appHtml}</div>`);
-fs.writeFileSync(indexPath, html);
-
-// Build-only artefacts: the server bundle and the manifest are not part of the site
-fs.rmSync(ssrDir, { recursive: true, force: true });
-fs.rmSync(manifestDir, { recursive: true, force: true });
-
-console.log(`prerender: "/" written into dist/index.html (${Math.round(appHtml.length / 1024)} KB of markup, ${chunks.size} home chunks preloaded)`);
+}
+for (const target of [ssrDir, manifestDir]) fs.rmSync(target, { recursive: true, force: true });

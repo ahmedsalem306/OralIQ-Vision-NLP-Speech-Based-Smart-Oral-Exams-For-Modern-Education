@@ -154,6 +154,12 @@ the live frontend now discloses external transcription with pre-exam consent.
 Private health is 200; public account/exam requests remain maintenance 503.
 [Connection evidence, privacy and remaining work](groq-activation-2026-11-16.md).
 
+November 17 follow-up: exact account routes are now public after isolated HTTP
+account checks, SMTP TLS/auth and a verified pre-opening backup. Exams, biometric
+enrollment and paid checkout remain paused. Public pages are prerendered with
+correct canonical URLs; private URLs are excluded from indexing.
+[Deployment and remaining Google/Search Console checks](seo-auth-2026-11-17.md).
+
 Validation: the full Linux/Python 3.12 baseline suite at `3a3673c` passed **497 tests
 with zero failures/errors/skips**, including real PostgreSQL concurrency. The
 subsequent Groq spend-cap wait change passed **63 focused tests with zero skips**

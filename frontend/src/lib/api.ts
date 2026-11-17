@@ -18,6 +18,18 @@ const SLOW_MS = 6_000;
 let slowCount = 0;
 const listeners = new Set<(slow: boolean) => void>();
 const emit = () => listeners.forEach((fn) => fn(slowCount > 0));
+let maintenance = false;
+const maintenanceListeners = new Set<(active: boolean) => void>();
+function setMaintenance(active: boolean) {
+    if (active === maintenance) return;
+    maintenance = active;
+    maintenanceListeners.forEach((fn) => fn(active));
+}
+export function onServiceMaintenance(fn: (active: boolean) => void) {
+    maintenanceListeners.add(fn);
+    fn(maintenance);
+    return () => { maintenanceListeners.delete(fn); };
+}
 
 export function onServerSlow(fn: (slow: boolean) => void) {
     listeners.add(fn);
@@ -70,12 +82,14 @@ function handleExpiredSession() {
 api.interceptors.response.use(
     (response) => {
         settle(response.config as TimedConfig);
+        setMaintenance(false);
         return response;
     },
     (error) => {
         settle(error?.config as TimedConfig);
         const status = error?.response?.status;
         const detail = error?.response?.data?.detail;
+        if (status === 503 && detail?.code === "SERVICE_MAINTENANCE") setMaintenance(true);
         const isLogin = String(error?.config?.url || "").includes("/login/");
         if (!isLogin && (status === 401 || (status === 403 && detail === "Could not validate credentials"))) {
             handleExpiredSession();

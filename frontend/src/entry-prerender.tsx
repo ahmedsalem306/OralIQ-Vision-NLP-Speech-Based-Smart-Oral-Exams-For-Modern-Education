@@ -5,7 +5,7 @@ import { AppProviders } from "./AppProviders";
 
 /**
  * Build-time render of a public route to HTML, waiting for its lazy page to load.
- * Only "/" is rendered (scripts/prerender.mjs); signed-in pages and exam links never are.
+ * The homepage and public policies are rendered; account and exam URLs never are.
  */
 export async function render(url: string): Promise<string> {
     const { prelude } = await prerender(

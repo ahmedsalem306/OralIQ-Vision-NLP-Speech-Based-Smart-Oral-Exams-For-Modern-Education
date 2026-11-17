@@ -9,8 +9,8 @@ const __dirname = path.dirname(__filename);
 /** Public pages that should appear in search results (signed-in pages and exam links never do). */
 const PUBLIC_ROUTES = [
     { loc: "/", priority: "1.0", changefreq: "weekly" },
-    { loc: "/register", priority: "0.8", changefreq: "monthly" },
-    { loc: "/login", priority: "0.5", changefreq: "monthly" },
+    { loc: "/privacy-policy", priority: "0.3", changefreq: "monthly" },
+    { loc: "/refund-policy", priority: "0.3", changefreq: "monthly" },
 ];
 
 /**
@@ -50,11 +50,8 @@ function seo(siteUrl: string, googleVerify: string): Plugin {
                 source: [
                     "User-agent: *",
                     "Allow: /",
-                    "# Signed-in pages hold nothing for search engines",
-                    "Disallow: /dashboard",
-                    "# Exam links carry their token in the URL. They are answered with \"X-Robots-Tag: noindex\"",
-                    "# (vercel.json); they are not blocked here, because a blocked URL can still be indexed from",
-                    "# a public link and a crawler that may not fetch it never sees the noindex.",
+                    "# Contabo Nginx serves X-Robots-Tag: noindex for account and exam URLs.",
+                    "# Keep them crawlable so search engines can read that exclusion header.",
                     "",
                     `Sitemap: ${base}/sitemap.xml`,
                     "",

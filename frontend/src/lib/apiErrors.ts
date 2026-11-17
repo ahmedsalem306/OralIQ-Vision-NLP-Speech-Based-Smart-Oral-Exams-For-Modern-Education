@@ -54,6 +54,7 @@ export function getApiErrorMessage(err: unknown, fallback?: string): string {
     if (status === 413) return t("الملف كبير جداً.", "That file is too large.");
     if (status === 422) return t("في بيانات ناقصة أو مش صحيحة. راجعها وجرّب تاني.", "Some details are missing or invalid. Check them and try again.");
     if (status === 429) return t("طلبات كتير في وقت قصير. استنى دقيقة وجرّب تاني.", "Too many requests. Wait a minute and try again.");
+    if (status === 503) return t("الخدمة غير متاحة مؤقتًا. حاول لاحقًا.", "The service is temporarily unavailable. Please try later.");
     if (status && status >= 500) return t("حصلت مشكلة في السيرفر. جرّب بعد دقيقة.", "Something went wrong on the server. Try again in a minute.");
 
     return fallback || t("حصل خطأ غير متوقع.", "Something unexpected went wrong.");

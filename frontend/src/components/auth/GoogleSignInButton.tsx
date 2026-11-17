@@ -69,19 +69,14 @@ let configPromise: Promise<string | null> | null = null;
 
 function getClientId(): Promise<string | null> {
     if (configPromise) return configPromise;
-    const fallback = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() || null;
-    // Client ID is public: use the build-time value right away instead of waiting for a
-    // (possibly cold-starting) backend, so the Google button is clickable immediately.
-    if (fallback) {
-        configPromise = Promise.resolve(fallback);
-        return configPromise;
-    }
+    // The server is authoritative. During maintenance or disabled configuration,
+    // a stale build-time ID must not launch an unusable Google authorization flow.
     configPromise = api
         .get<{ enabled: boolean; client_id: string | null }>("/auth/google/config")
-        .then((res) => (res.data?.enabled && res.data.client_id ? res.data.client_id : fallback))
+        .then((res) => (res.data?.enabled && res.data.client_id ? res.data.client_id : null))
         .catch(() => {
             configPromise = null;
-            return fallback;
+            return null;
         });
     return configPromise;
 }
@@ -170,7 +165,7 @@ export default function GoogleSignInButton({
                 setPendingCredential(null);
                 fail(msg);
             } else if (r?.status === 503) {
-                const msg = t("الدخول بحساب Google غير مفعّل بعد على السيرفر (أضف GOOGLE_CLIENT_ID).", "Google sign-in isn't configured on the server yet (set GOOGLE_CLIENT_ID).");
+                const msg = getApiErrorMessage(err, t("الدخول بحساب Google غير متاح حاليًا.", "Google sign-in is currently unavailable."));
                 setPendingCredential(null);
                 fail(msg);
             } else {
@@ -238,8 +233,8 @@ export default function GoogleSignInButton({
         if (!clientId) {
             onError(
                 l(
-                    "لتفعيل الدخول بحساب Google: أضف GOOGLE_CLIENT_ID في ملف إعدادات السيرفر (local.env أو .env) وأعد تشغيل الباك إند.",
-                    "To enable Google Sign-In: set GOOGLE_CLIENT_ID in the backend env file and restart the server.",
+                    "الدخول بحساب Google غير متاح حاليًا. حاول لاحقًا.",
+                    "Google sign-in is currently unavailable. Please try later.",
                 ),
             );
         } else {
@@ -277,6 +272,8 @@ export default function GoogleSignInButton({
             sub: l("أنشئ الامتحانات وأتابع الطلاب", "Create exams and review students"),
         },
     ];
+
+    if (configChecked && !clientId) return null;
 
     return (
         <div className={className}>
