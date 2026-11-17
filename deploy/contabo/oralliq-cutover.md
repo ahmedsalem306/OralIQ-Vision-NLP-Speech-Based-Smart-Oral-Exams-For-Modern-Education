@@ -1,12 +1,12 @@
 # oralliq.com cutover
 
 The user supplied `oralliq.com` and added the API DNS record on 2026-11-14.
-Google and Cloudflare DNS both resolve `api.oralliq.com` to `217.76.56.223`, with
-no API AAAA record. The apex/www still resolve to parking addresses. Nameservers
+The apex and API now resolve to `217.76.56.223`; `www` points to the apex.
+The owner removed the extra parking record before cutover. Nameservers
 are `ns73.domaincontrol.com` and `ns74.domaincontrol.com`. The owner manages DNS;
 no access to the owner's GoDaddy account has been granted to the agent.
 
-## Current decision: Contabo hosts both frontend and API (16 November)
+## Current decision: Contabo hosts both frontend and API (17 November)
 
 The owner explicitly chose to remove Vercel. The frontend is a static Vite build
 served by host Nginx on `oralliq.com`; API requests use `/api/v1` on the same
@@ -16,9 +16,14 @@ Required DNS: **A @ = 217.76.56.223** (no residual GoDaddy parking A values),
 and **CNAME www = oralliq.com**. Keep the existing API and email records.
 Use `nginx.frontend.oralliq.conf` after authoritative DNS agrees and a certificate
 covering the apex/www has been issued. Assets are staged under
-`/srv/oraliq-web/releases/two-minute-20261116`, with `current` pointing to it.
-The operator-owned `api-maintenance` marker keeps real writes closed until
-cutover checks pass. Do not infer readiness from a static homepage alone.
+`/srv/oraliq-web/releases/exams-open-20261117-v2`, with `current` pointing to it.
+Account and exam access are open after isolated real-provider smoke checks and
+backup-restore verification. `api-maintenance` is absent; the separate
+`payments-maintenance` marker closes only checkout/upgrade until Kashier Live
+activation. The independent API subdomain remains in maintenance.
+See [the exam-opening report](../../docs/exam-opening-2026-11-17.md) for checks,
+the conservative shared Free-provider limits, and remaining operational work.
+Do not infer readiness from a static homepage alone.
 
 The frontend's production defaults are now `/api/v1` and `https://oralliq.com`.
 The older Vercel plan and validation history below are historical. The current

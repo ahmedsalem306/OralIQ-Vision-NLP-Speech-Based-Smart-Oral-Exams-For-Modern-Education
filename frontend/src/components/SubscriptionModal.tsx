@@ -102,15 +102,27 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
     // is hidden again while each opening re-asks (so a switch to live takes effect), and stays
     // hidden if the question fails.
     const [sandboxMode, setSandboxMode] = useState(false);
+    const [paymentAvailability, setPaymentAvailability] = useState<"loading" | "available" | "paused" | "error">("loading");
 
     useEffect(() => {
         if (!modalOpen) return;
         let cancelled = false;
+        const controller = new AbortController();
         setSandboxMode(false);
+        setPaymentAvailability("loading");
         loadSandboxMode((path) => api.get(path)).then((mode) => {
             if (!cancelled) setSandboxMode(mode);
         });
-        return () => { cancelled = true; };
+        fetch("/service-status.json", { cache: "no-store", signal: controller.signal })
+            .then((response) => response.ok ? response.json() : null)
+            .then((status: unknown) => {
+                if (cancelled) return;
+                const available = status && typeof status === "object"
+                    ? (status as { payments_available?: unknown }).payments_available : undefined;
+                setPaymentAvailability(available === true ? "available" : available === false ? "paused" : "error");
+            })
+            .catch(() => { if (!cancelled) setPaymentAvailability("error"); });
+        return () => { cancelled = true; controller.abort(); };
     }, [modalOpen]);
 
     const fetchStatus = async () => {
@@ -156,6 +168,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
         v == null ? "—" : currency === "EGP" ? `${v.toLocaleString(lang === "ar" ? "ar-EG" : "en-US")} ${l("ج.م", "EGP")}` : `$${v}`;
 
     const startCheckout = async (body: Record<string, unknown>) => {
+        if (paymentAvailability !== "available") return;
         setBusy(true);
         setToast(null);
         try {
@@ -506,7 +519,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                         </span>
                                         <button
                                             type="button"
-                                            disabled={busy}
+                                            disabled={busy || paymentAvailability !== "available"}
                                             onClick={() => startCheckout({ kind: "addon" })}
                                             className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full border border-[#6F4E37] px-4 text-xs font-bold text-[#6F4E37] hover:bg-[#6F4E37]/10 disabled:opacity-50"
                                         >
@@ -515,6 +528,16 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                                         </button>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {paymentAvailability !== "available" && (
+                            <div role="status" className="mt-4 rounded-xl border border-rule bg-sheet-2 px-4 py-3 text-sm font-semibold text-ink-2">
+                                {paymentAvailability === "paused"
+                                    ? l("الدفع الإلكتروني قيد التفعيل. تقدر تستخدم الامتحانات ضمن رصيد باقتك الحالي.", "Online payments are awaiting activation. You can use exams within your current plan allowance.")
+                                    : paymentAvailability === "loading"
+                                      ? l("بنتحقق من إتاحة الدفع…", "Checking payment availability…")
+                                      : l("تعذّر التأكد من إتاحة الدفع. اقفل النافذة وافتحها تاني للمحاولة.", "Could not check payment availability. Close and reopen this window to try again.")}
                             </div>
                         )}
 
@@ -534,7 +557,7 @@ export function SubscriptionQuotaBar({ refreshTrigger = 0 }: { refreshTrigger?: 
                             </button>
                             <button
                                 type="button"
-                                disabled={busy || selected.id === "free"}
+                                disabled={busy || selected.id === "free" || (selected.id !== "enterprise" && paymentAvailability !== "available")}
                                 onClick={handleUpgrade}
                                 className="oiq-btn-mint inline-flex h-11 items-center gap-2 rounded-full px-6 text-xs sm:text-sm font-bold text-[#FAF6F0] disabled:opacity-50"
                             >

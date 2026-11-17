@@ -57,7 +57,7 @@ export function LoadFailed({ onRetry, detail, className }: { onRetry: () => void
             className={className}
             icon={<WifiOff />}
             title={l("مقدرناش نجيب البيانات", "We couldn't load this")}
-            body={detail || l("غالباً مشكلة في الاتصال أو السيرفر بيجهز. بياناتك محفوظة، جرّب تاني.", "Probably a connection issue or the server is starting. Your data is safe; try again.")}
+            body={detail || l("تعذّر تحميل البيانات دلوقتي. جرّب تاني، ولو المشكلة استمرت تواصل مع الدعم.", "The data could not be loaded. Try again, and contact support if the problem continues.")}
             action={<Button onClick={onRetry}><RefreshCw className="size-4" aria-hidden />{l("حاول تاني", "Try again")}</Button>}
         />
     );

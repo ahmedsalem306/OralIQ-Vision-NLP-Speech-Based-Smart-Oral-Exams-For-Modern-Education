@@ -48,7 +48,7 @@ export function ServerStatus() {
                 ) : maintenance ? (
                     <span>{l("الخدمة تحت التجهيز. التسجيل والدخول والامتحانات متوقفة مؤقتًا.", "Service preparation is underway. Registration, sign-in and exams are temporarily paused.")}</span>
                 ) : accountsOnly ? (
-                    <span>{l("الحسابات متاحة. الامتحانات والدفع لم يُفتحا بعد.", "Accounts are available. Exams and payments have not opened yet.")}</span>
+                    <span>{l("الحسابات متاحة. الامتحانات متوقفة مؤقتًا.", "Accounts are available. Exams are temporarily paused.")}</span>
                 ) : (
                     <>
                         <span className="size-3.5 animate-spin rounded-full border-2 border-paper/40 border-t-paper" aria-hidden />
