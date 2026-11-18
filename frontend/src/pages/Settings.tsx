@@ -55,6 +55,10 @@ export default function Settings() {
     const [photoError, setPhotoError] = useState("");
     const [showEnroll, setShowEnroll] = useState(false);
     const [justEnrolled, setJustEnrolled] = useState(false);
+    const [accountType, setAccountType] = useState<{ can_change: boolean; reason: string | null } | null>(null);
+    const [confirmType, setConfirmType] = useState(false);
+    const [changingType, setChangingType] = useState(false);
+    const [typeError, setTypeError] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const loadBio = () => api.get("/voice/status").then((r) => setBio(r.data)).catch(() => setBio(null));
@@ -68,7 +72,28 @@ export default function Settings() {
             } catch { /* ignore */ }
         }).catch(() => {});
         loadBio();
+        api.get("/users/me/account-type").then((res) => setAccountType(res.data)).catch(() => {});
     }, []);
+
+    const changeAccountType = async () => {
+        if (!user || changingType) return;
+        setChangingType(true);
+        setTypeError("");
+        try {
+            const { data } = await api.post("/users/me/account-type", {
+                current_role: user.role, role: user.role === "student" ? "lecturer" : "student",
+            });
+            localStorage.setItem("token", data.access_token);
+            // Reload the layout too, so navigation and permissions use the new profile together.
+            window.location.assign("/dashboard/settings");
+        } catch (err: unknown) {
+            const code = (err as { response?: { data?: { detail?: { code?: string } } } })?.response?.data?.detail?.code;
+            setTypeError(code === "ACCOUNT_TYPE_LOCKED"
+                ? l("الحساب مرتبط بامتحانات أو اشتراك. تواصل مع الدعم لتعديل النوع مع الحفاظ على بياناتك.", "This account has exam or subscription activity. Contact support to preserve your records while changing its type.")
+                : l("تعذّر تعديل نوع الحساب. حدّث الصفحة وحاول مرة تانية.", "Couldn't change the account type. Refresh the page and try again."));
+            setChangingType(false);
+        }
+    };
 
     const handlePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -136,6 +161,27 @@ export default function Settings() {
                                     <div className="rounded-xl border border-rule bg-sheet-2/60 p-3.5 sm:col-span-2">
                                         <dt className="text-xs font-extrabold uppercase tracking-wider text-ink-2">{l("نوع الحساب", "Account type")}</dt>
                                         <dd className="mt-1 text-base font-extrabold text-ink">{lecturer ? l("محاضر", "Lecturer") : l("طالب", "Student")}</dd>
+                                        {accountType?.can_change && !confirmType && (
+                                            <Button variant="secondary" size="sm" className="mt-3" onClick={() => setConfirmType(true)}>
+                                                {l("اخترت النوع بالغلط؟", "Chose the wrong type?")}
+                                            </Button>
+                                        )}
+                                        {confirmType && (
+                                            <div className="mt-3 space-y-3">
+                                                <p className="text-sm font-semibold text-ink-2">
+                                                    {lecturer
+                                                        ? l("تؤكد تحويل الحساب إلى طالب؟ هتحتاج تسجّل الدخول تاني على أجهزتك الأخرى.", "Change this account to a student? Your other devices will need to sign in again.")
+                                                        : l("تؤكد تحويل الحساب إلى محاضر لإنشاء الامتحانات؟ هتحتاج تسجّل الدخول تاني على أجهزتك الأخرى.", "Change this account to a lecturer to create exams? Your other devices will need to sign in again.")}
+                                                </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Button size="sm" disabled={changingType} onClick={changeAccountType}>{changingType ? l("جارٍ التعديل…", "Changing…") : l("تأكيد التغيير", "Confirm change")}</Button>
+                                                    <Button variant="ghost" size="sm" disabled={changingType} onClick={() => setConfirmType(false)}>{l("إلغاء", "Cancel")}</Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {accountType?.reason === "verify_email" && <p className="mt-2 text-sm font-semibold text-ink-2">{l("أكّد بريدك الإلكتروني لتتمكن من تصحيح نوع الحساب.", "Verify your email to correct the account type.")}</p>}
+                                        {accountType?.reason === "account_in_use" && <p className="mt-2 text-sm font-semibold text-ink-2">{l("لتغيير النوع بعد استخدام الحساب، تواصل مع", "To change the type after using your account, contact")} <a className="underline" href="mailto:ghartech1@gmail.com">ghartech1@gmail.com</a>.</p>}
+                                        {typeError && <Alert tone="error" className="mt-3">{typeError}</Alert>}
                                     </div>
                                 </>
                             ) : (

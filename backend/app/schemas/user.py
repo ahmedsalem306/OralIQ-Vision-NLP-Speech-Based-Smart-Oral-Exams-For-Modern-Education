@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional
+from typing import Literal, Optional
+from pydantic import ConfigDict
 
 ALLOWED_SIGNUP_ROLES = {"student", "lecturer"}
 
@@ -47,3 +48,9 @@ class UserOut(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class AccountTypeChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_role: Literal["student", "lecturer"]
+    role: Literal["student", "lecturer"]

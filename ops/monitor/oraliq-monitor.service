@@ -1,0 +1,17 @@
+[Unit]
+Description=OralIQ host health, queue and offsite backup checks
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/oraliq-monitor/monitor.env
+ExecStart=/usr/bin/python3 /opt/oraliq-monitor/oraliq_monitor.py
+StateDirectory=oraliq-monitor
+StateDirectoryMode=0700
+UMask=0077
+TimeoutStartSec=100
+Nice=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
