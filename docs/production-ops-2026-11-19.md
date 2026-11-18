@@ -22,10 +22,13 @@ Frontend: `/srv/oraliq-web/releases/ops-ready-20261119`.
   18 November cloud download and isolated restore, rather than assuming a local
   commit file alone proved remote success. This does not claim the first scheduled
   03:30 Cairo run had already happened at rollout time.
-- Host checks are enabled. **Email delivery remains disabled**: the owner asked
-  whether alerts include subscription renewal/API balance, which is not approval
-  to send mail. The ready test message and persistent delivery limits are documented
-  in `ops/monitor/README.md`. No test or incident mail was sent for this change.
+- Host checks and **incident/recovery email delivery are enabled** after the owner
+  explicitly approved ongoing incident mail and one test on 19 November (Cairo).
+  One test to `ghartech1@gmail.com` was accepted by the configured SMTP relay;
+  recipient Inbox delivery is not independently confirmed. The same durable limits
+  cover the test and incident messages: one attempt per hour, three per rolling
+  24 hours, including SMTP failures. The test text is in `ops/monitor/README.md`'s
+  referenced script. No incident message was needed: current checks were healthy.
 
 ## Validation
 
