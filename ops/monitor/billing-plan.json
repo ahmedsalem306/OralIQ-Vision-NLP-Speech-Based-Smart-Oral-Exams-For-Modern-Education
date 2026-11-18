@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "prepared_on": "2026-11-19",
+  "timezone": "Africa/Cairo",
+  "contact_email": "ghartech1@gmail.com",
+  "live_billing_alerts_enabled": false,
+  "contabo": {
+    "next_due_date": null,
+    "due_date_source": "awaiting_owner_invoice",
+    "remind_days_before_due": [7, 3, 1],
+    "reminder_time_local": "10:00",
+    "codex_automation_id": "oraliq",
+    "codex_automation_status": "PAUSED",
+    "payment_confirmed": false,
+    "advance_due_date_automatically": false,
+    "automatic_payment_authorized": false
+  },
+  "openai": {
+    "owner_confirmed_funded": false,
+    "provider_alerts_configured": false,
+    "monthly_spend_budget_usd": null,
+    "proposed_spend_alert_percentages": [80, 90],
+    "balance_reading_connected": false,
+    "spend_is_not_credit_balance": true,
+    "automatic_credit_purchase_authorized": false,
+    "limits_url": "https://platform.openai.com/settings/organization/limits",
+    "billing_url": "https://platform.openai.com/settings/organization/billing/overview"
+  }
+}
