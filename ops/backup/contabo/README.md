@@ -2,8 +2,9 @@
 
 This supplements the existing local PostgreSQL backup. It does not replace the
 legacy job until an actual B2 upload, download and restore have succeeded.
-Current validation and remaining owner actions are recorded in
-[the November 17 report](../../../docs/offsite-backup-2026-11-17.md).
+The actual B2 upload/download/recovery passed on November 18 and the daily timer
+is enabled. Current validation and remaining owner actions are recorded in
+[the activation report](../../../docs/offsite-backup-2026-11-18.md).
 
 ## Recovery material
 

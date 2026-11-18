@@ -1,5 +1,9 @@
 # Off-site backup preparation — November 17, 2026
 
+**Superseded by [the November 18 activation report](offsite-backup-2026-11-18.md):
+actual B2 upload/download/recovery passed and the daily timer is now active.**
+The pending setup state below records the earlier preparation phase.
+
 **Encrypted backup creation and local-key recovery are verified. Automatic B2
 storage is not connected or enabled yet:** the owner is creating the account.
 The final provider choice is Backblaze B2, because the owner does not want to
